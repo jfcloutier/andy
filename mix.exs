@@ -38,7 +38,8 @@ defmodule Andy.MixProject do
   defp deps do
     [
       {:nerves, "~> 1.0", runtime: false},
-      {:shoehorn, "~> 0.2"}
+      {:shoehorn, "~> 0.2"},
+      {:nerves_init_gadget, "~> 0.4"}
     ] ++ deps(@target)
   end
 

@@ -10,6 +10,7 @@ defmodule Andy.Application do
   def start(_type, _args) do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
+    if System.get_env("MIX_TARGET") == "ev3", do: initialize_ev3()
     opts = [strategy: :one_for_one, name: Andy.Supervisor]
     Supervisor.start_link(children(@target), opts)
   end
@@ -28,4 +29,12 @@ defmodule Andy.Application do
       # {Andy.Worker, arg},
     ]
   end
+
+  defp initialize_ev3() do
+    :os.cmd('modprobe suart_emu')
+    :os.cmd('modprobe legoev3_ports')
+    :os.cmd('modprobe snd_legoev3')
+    :os.cmd('modprobe legoev3_battery')
+  end
+
 end
