@@ -58,3 +58,10 @@ config :nerves_network,
        eth0: [
          ipv4_address_method: :dhcp
        ]
+
+config :andy, AndyWeb.Endpoint,
+       url: [host: "localhost"],
+       secret_key_base: "JabRQhGLCdiqwHKJiz7PzzliXg+/meHmY5BCLRHdit5RpwvRa0i4Wp1zPVoFoc7e",
+       render_errors: [view: AndyWeb.ErrorView, accepts: ~w(html json)],
+       pubsub: [name: Andy.PubSub,
+         adapter: Phoenix.PubSub.PG2]
