@@ -4,6 +4,8 @@ defmodule Andy do
   alias Andy.Communicators
   import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1]
 
+  @default_ttl 10_000
+
   def platform() do
     platform_name = System.get_env("ANDY_PLATFORM") || "mock_rover"
     platforms = Application.get_env(:andy, :platforms)
@@ -34,6 +36,11 @@ defmodule Andy do
 
   def community_name() do
     System.get_env("ANDY_COMMUNITY") || "andy"
+  end
+
+  def default_ttl(kind) do
+  (Application.get_env(:andy, :ttl) || [])
+    |> Keyword.get(kind, @default_ttl)
   end
 
   def rest_port() do

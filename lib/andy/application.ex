@@ -19,7 +19,7 @@ defmodule Andy.Application do
     wait_for_platform_ready(0)
     children = [
       supervisor(Andy.Endpoint, []),
-      supervisor(PredictionProcessingSupervisor, [])
+      supervisor(CognitionSupervisor, [])
     ]
     opts = [strategy: :one_for_one, name: :root_supervisor]
     result = Supervisor.start_link(children, opts)
@@ -61,21 +61,12 @@ defmodule Andy.Application do
 
   def go() do
     spawn_link(fn() -> connect_to_nodes() end)
-    PredictionProcessingSupervisor.start_prediction_processing()
+    CognitionSupervisor.start_cognition()
     Process.spawn(fn -> push_runtime_stats() end, [])
     InternalClock.resume()
   end
   
   ## PRIVATE
-  
-  defp initialize_target("ev3") do  ## TODO - Brick start_platform
-    Logger.info("Initializing ev3")
-    :os.cmd('modprobe suart_emu')
-    :os.cmd('modprobe legoev3_ports')
-    :os.cmd('modprobe snd_legoev3')
-    :os.cmd('modprobe legoev3_battery')
-    :ok
-  end
 
   defp wait_for_platform_ready(n) do
     if Andy.platform_ready?() do

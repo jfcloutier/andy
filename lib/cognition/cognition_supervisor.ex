@@ -1,4 +1,4 @@
-defmodule Andy.PredictionProcessingSupervisor do
+defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
@@ -32,7 +32,7 @@ defmodule Andy.PredictionProcessingSupervisor do
   end
 
   @doc "Start prediction processing"
-  def start_prediction_processing() do
+  def start_cognition() do
     Logger.info("Starting embodied cognition")
     start_detectors()
     # TODO - Start other agents of embodied cognition

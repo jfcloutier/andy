@@ -9,22 +9,6 @@ defmodule Andy.InternalClock do
 
   @name __MODULE__
 
-  def start_link() do
-    {:ok, pid} = Agent.start_link(
-      fn() ->
-        InternalCommunicator.register(__MODULE__)
-        %{responsive: false, tock: nil, count: 0}
-      end,
-      [name: @name]
-    )
-		spawn_link(fn() ->
-			:timer.sleep(tick_interval())
-			tick_tock()
-		end)
-		Logger.info("#{@name} started")
-    {:ok, pid}
-  end
-
   def tick() do
     Agent.cast(
       @name,
@@ -64,7 +48,23 @@ defmodule Andy.InternalClock do
 			end)
 	end
 
-  ### Event handling
+  ### Cognition Agent Behaviour
+
+  def start_link() do
+    {:ok, pid} = Agent.start_link(
+      fn() ->
+        InternalCommunicator.register(__MODULE__)
+        %{responsive: false, tock: nil, count: 0}
+      end,
+      [name: @name]
+    )
+    spawn_link(fn() ->
+      :timer.sleep(tick_interval())
+      tick_tock()
+    end)
+    Logger.info("#{@name} started")
+    {:ok, pid}
+  end
 
   def handle_event(:faint, state) do
     InternalClock.pause()
