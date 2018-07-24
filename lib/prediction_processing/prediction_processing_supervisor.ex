@@ -2,13 +2,14 @@ defmodule Andy.PredictionProcessingSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{CNS, Memory, DetectorsSupervisor, ActuatorsSupervisor, InternalClock, PG2Communicator, RESTCommunicator}
+  alias Andy.{InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, InternalClock, PG2Communicator,
+              RESTCommunicator}
 
   @name __MODULE__
 
   ### Supervisor Callbacks
 
-  @doc "Start the smart thing supervisor, linking it to its parent supervisor"
+  @doc "Start the supervisor, linking it to its parent supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
     {:ok, _pid} = Supervisor.start_link(@name, [], [name: @name])
@@ -17,23 +18,24 @@ defmodule Andy.PredictionProcessingSupervisor do
   @spec init(any) :: {:ok, tuple}
   def init(_) do
     children = [
-      worker(CNS, []),
+      worker(InternalCommunicator, []),
       worker(Memory, []),
       worker(PG2Communicator, []),
       worker(RESTCommunicator, []),
       worker(InternalClock, []),
       supervisor(DetectorsSupervisor, []),
-      supervisor(ActuatorsSupervisor, []),
+      supervisor(ActuatorsSupervisor, [])
+      # TODO
     ]
     opts = [strategy: :one_for_one]
     supervise(children, opts)
   end
 
-  @doc "Start embodied cognition"
-  def start_embodied_cognition() do
+  @doc "Start prediction processing"
+  def start_prediction_processing() do
     Logger.info("Starting embodied cognition")
     start_detectors()
-    # TODO
+    # TODO - Start other agents of embodied cognition
   end
 
 

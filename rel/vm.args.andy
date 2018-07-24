@@ -38,7 +38,7 @@
 -env ANDY_PEER marvin@nerves-5e58
 -env ANDY_HOST 192.168.1.181
 -env ANDY_PORT 4002
--env ANDY_ID_CHANNEL 3
+-env ANDY_ID_CHANNEL 2
 -env ANDY_PLATFORM rover
 -env ANDY_PROFILE puppy
 -env ANDY_COMMUNITY brood
