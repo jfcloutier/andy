@@ -35,6 +35,7 @@ defmodule Andy.CognitionSupervisor do
   def start_cognition() do
     Logger.info("Starting embodied cognition")
     start_detectors()
+    start_actuators()
     # TODO - Start other agents of embodied cognition
   end
 

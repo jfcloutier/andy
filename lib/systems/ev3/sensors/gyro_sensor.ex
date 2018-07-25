@@ -1,6 +1,6 @@
 defmodule Andy.Ev3.GyroSensor do
   @moduledoc "Gyro sensor"
-  @behaviour Andy.SmartThing.Sensing
+  @behaviour Andy.Sensing
 
   import Andy.Ev3.Sysfs
   alias Andy.Ev3.LegoSensor

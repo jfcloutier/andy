@@ -27,7 +27,7 @@ defmodule Andy.Ev3.Sysfs do
 		[line] = File.stream!("#{dir}/#{file}")
 		|> Stream.take(1)
     |> Enum.to_list()
-    String.strip(line)
+    String.trim(line)
 	end
 
  @doc "Writing a line to a file"

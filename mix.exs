@@ -36,23 +36,22 @@ defmodule Andy.MixProject do
   def application do
     [
       mod: { Andy.Application, [] },
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :ex_ncurses]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      { :nerves, "~> 1.0", runtime: false },
-      { :shoehorn, "~> 0.2" },
-      { :nerves_init_gadget, "~> 0.4" },
       { :phoenix, "~> 1.3.0" },
       { :phoenix_pubsub, "~> 1.0" },
       { :phoenix_html, "~> 2.10" },
       { :phoenix_live_reload, "~> 1.0", only: :dev },
+      { :httpoison, "~> 0.11" },
+      { :poison, "~> 3.1.0" },
       { :gettext, "~> 0.11" },
       { :cowboy, "~> 1.0" }
-    ] ++ deps(@target)
+     ] ++ deps(@target)
   end
 
   # Specify target specific dependencies
@@ -60,13 +59,17 @@ defmodule Andy.MixProject do
 
   defp deps(target) do
     [
-      { :nerves_runtime, "~> 0.4" }
+      { :nerves, "~> 1.0", runtime: false },
+      { :shoehorn, "~> 0.2" },
+      { :nerves_init_gadget, "~> 0.4" },
+      { :nerves_runtime, "~> 0.4" },
+      {:ex_ncurses, "~> 0.3"}
     ] ++ system(target)
   end
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp system("rpi"), do: [{ :nerves_system_rpi, "~> 1.0", runtime: false }]
   defp system("rpi0"), do: [{ :nerves_system_rpi0, "~> 1.0", runtime: false }]

@@ -35,7 +35,11 @@ config :nerves_firmware_ssh,
 
 
 # Replace the default Elixir logger
-config :logger, backends: [RingLogger]
+# config :logger, backends: [RingLogger]
+config :logger, :console,
+       level: :info,
+       format: "$time $metadata[$level] $message\n",
+       metadata: [:request_id]
 
 # Import target specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

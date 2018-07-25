@@ -3,14 +3,13 @@ defmodule Andy.Application do
   # for more information on OTP Applications
   @moduledoc false
 
-  @target Mix.Project.config()[:target]
-  @poll_runtime_delay 5000
+   @poll_runtime_delay 5000
   @max_waits 20
 
 
   use Application
   require Logger
-  alias Andy.{PredictionProcessingSupervisor, InternalCommunicator, InternalClock}
+  alias Andy.{CognitionSupervisor, InternalCommunicator, InternalClock}
   import Supervisor.Spec
 
   def start(_type, _args) do

@@ -3,8 +3,8 @@ defmodule Andy.InternalCommunicator do
 
   require Logger
   import Andy.Utils
+  alias Andy.Percept
 
-  @name __MODULE__
   @registry_name :registry
   @topic :pp # single topic for all subscribers
   @faint_duration 2500
@@ -78,7 +78,7 @@ defmodule Andy.InternalCommunicator do
       set_alarm_clock(@faint_duration)
       set_overwhelmed(true)
     else
-      { :noreply, state }
+      :ok
     end
     notify({ :notify_overwhelmed, component_type, name })
   end
@@ -117,7 +117,7 @@ defmodule Andy.InternalCommunicator do
 
   @doc "Toggle the robot between paused and active"
   def toggle_paused() do
-    if paused? do
+    if paused?() do
       notify(:revive)
       set_paused(false)
       set_overwhelmed(false)
@@ -162,10 +162,6 @@ defmodule Andy.InternalCommunicator do
         notify_revive()
       end
     )
-  end
-
-  defp delta(%{ when_started: time }) do
-    (now() - time) / 1000
   end
 
 end

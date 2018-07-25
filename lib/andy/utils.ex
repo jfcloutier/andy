@@ -1,6 +1,8 @@
 defmodule Andy.Utils do
 
   @moduledoc "Utility functions"
+
+  @ttl 10_000
   
   def timeout() do
     10000
@@ -48,6 +50,10 @@ defmodule Andy.Utils do
 
   def very_slow_rps() do
     Application.fetch_env!(:andy, :very_slow_rps)
+  end
+
+  def default_ttl(kind) do
+    Application.get_env(:andy, :ttl, []) |> Keyword.get(kind, @ttl)
   end
 
   @doc "The time now in msecs"

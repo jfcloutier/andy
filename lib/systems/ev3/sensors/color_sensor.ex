@@ -1,6 +1,6 @@
 defmodule Andy.Ev3.ColorSensor do
 	@moduledoc "Color sensor"
-	@behaviour Andy.SmartThing.Sensing
+	@behaviour Andy.Sensing
 
   import Andy.Ev3.Sysfs
 	alias Andy.Ev3.LegoSensor

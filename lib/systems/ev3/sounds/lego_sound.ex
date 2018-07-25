@@ -47,7 +47,7 @@ defmodule Andy.Ev3.LegoSound do
 			:os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}" --stdout | aplay')
 			:os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}"')
 		end)
-		SmartThing.display(words)
+		Andy.display(words)
   end
 
   @doc "Speak words loud and clear"

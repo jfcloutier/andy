@@ -57,7 +57,7 @@ defmodule Andy.Detector do
   end
 
   def handle_event({:poll, sensing_device, sense}, state) do
-    Detector.poll(Device.name(sensing_device), sense)
+    poll(Device.name(sensing_device), sense)
     state
   end
 
