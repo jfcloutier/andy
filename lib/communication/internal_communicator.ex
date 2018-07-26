@@ -15,11 +15,11 @@ defmodule Andy.InternalCommunicator do
       keys: :unique,
       name: @registry_name,
       partitions: System.schedulers_online(),
-      meta: %{
+      meta: [
         when_started: now(),
         overwhelmed: false,
         paused: false
-      }
+      ]
     )
   end
 

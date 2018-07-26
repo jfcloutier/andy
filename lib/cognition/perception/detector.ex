@@ -7,6 +7,20 @@ defmodule Andy.Detector do
 
   @behaviour Andy.CognitionAgentBehaviour
 
+  @doc "Start a detector on a sensing device, to be linked to its supervisor"
+  def start_link(device) do
+    register_internal()
+    name = Device.name(device)
+    { :ok, pid } = Agent.start_link(
+      fn () ->
+        %{ device: device, previous_values: %{ } }
+      end,
+      [name: name]
+    )
+    Logger.info("#{__MODULE__} started on #{inspect device.type} device")
+    { :ok, pid }
+  end
+
 
   def poll(name, sense) do
     Agent.get_and_update(
@@ -43,17 +57,8 @@ defmodule Andy.Detector do
 
   ### Cognition Agent Behaviour
 
-  @doc "Start a detector on a sensing device, to be linked to its supervisor"
-  def start_link(device) do
-    name = Device.name(device)
-    { :ok, pid } = Agent.start_link(
-      fn () ->
-        %{ device: device, previous_values: %{ } }
-      end,
-      [name: name]
-    )
-    Logger.info("#{__MODULE__} started on #{inspect device.type} device")
-    { :ok, pid }
+  def register_internal() do
+    InternalCommunicator.register(__MODULE__)
   end
 
   def handle_event({:poll, sensing_device, sense}, state) do

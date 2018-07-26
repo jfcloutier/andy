@@ -36,9 +36,22 @@ defmodule Andy.MixProject do
   def application do
     [
       mod: { Andy.Application, [] },
-      extra_applications: [:logger, :runtime_tools, :ex_ncurses]
+      extra_applications: extra_applications()
     ]
   end
+
+  defp extra_applications() do
+    [:logger] ++ extra_applications(@target)
+  end
+
+  defp extra_applications("ev3") do
+    [:ex_ncurses]
+  end
+
+  defp extra_applications(_any) do
+    []
+  end
+
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do

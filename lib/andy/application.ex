@@ -17,7 +17,7 @@ defmodule Andy.Application do
     Andy.start_platform()
     wait_for_platform_ready(0)
     children = [
-      supervisor(Andy.Endpoint, []),
+      supervisor(AndyWeb.Endpoint, []),
       supervisor(CognitionSupervisor, [])
     ]
     opts = [strategy: :one_for_one, name: :root_supervisor]
@@ -59,7 +59,7 @@ defmodule Andy.Application do
   end
 
   def go() do
-    spawn_link(fn() -> connect_to_nodes() end)
+#    spawn_link(fn() -> connect_to_nodes() end)
     CognitionSupervisor.start_cognition()
     Process.spawn(fn -> push_runtime_stats() end, [])
     InternalClock.resume()

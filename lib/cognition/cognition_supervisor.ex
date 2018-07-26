@@ -2,8 +2,8 @@ defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, InternalClock, PG2Communicator,
-              RESTCommunicator}
+  alias Andy.{ InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, InternalClock, PG2Communicator,
+               RESTCommunicator }
 
   @name __MODULE__
 
@@ -12,10 +12,9 @@ defmodule Andy.CognitionSupervisor do
   @doc "Start the supervisor, linking it to its parent supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
-    {:ok, _pid} = Supervisor.start_link(@name, [], [name: @name])
+    { :ok, _pid } = Supervisor.start_link(__MODULE__, [], [name: @name])
   end
 
-  @spec init(any) :: {:ok, tuple}
   def init(_) do
     children = [
       worker(InternalCommunicator, []),
@@ -28,7 +27,7 @@ defmodule Andy.CognitionSupervisor do
       # TODO
     ]
     opts = [strategy: :one_for_one]
-    supervise(children, opts)
+    Supervisor.init(children, opts)
   end
 
   @doc "Start prediction processing"

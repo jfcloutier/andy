@@ -44,12 +44,12 @@ defmodule Andy do
   end
 
   def rest_port() do
-    {port, _} = System.get_env("ANDY_PORT") |> Integer.parse()
+    {port, _} = (System.get_env("ANDY_PORT") || "4002") |> Integer.parse()
     port
   end
 
   def rest_host() do
-    Application.get_env(:andy, Andy.Endpoint)
+    Application.get_env(:andy, AndyWeb.Endpoint)
     |> Keyword.get(:url)
     |> Keyword.get(:host)
   end

@@ -61,7 +61,7 @@ defmodule Andy.InternalClock do
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn () ->
-        InternalCommunicator.register(__MODULE__)
+        register_internal()
         %{ responsive: false, tock: nil, count: 0 }
       end,
       [name: @name]
@@ -89,6 +89,10 @@ defmodule Andy.InternalClock do
   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
+  end
+
+  def register_internal() do
+    InternalCommunicator.register(__MODULE__)
   end
 
 

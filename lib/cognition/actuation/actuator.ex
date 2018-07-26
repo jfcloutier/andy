@@ -11,9 +11,10 @@ defmodule Andy.Actuator do
   @doc "Start an actuator from a configuration"
   def start_link(actuator_config) do
     Logger.info("Starting #{__MODULE__} #{actuator_config.name}")
+    register_internal()
     Agent.start_link(
       fn () ->
-        case actuator_config.type do
+         case actuator_config.type do
           :motor ->
             %{
               actuator_config: actuator_config,
@@ -69,6 +70,10 @@ defmodule Andy.Actuator do
   end
 
   ### Cognition agent
+
+  def register_internal() do
+    InternalCommunicator.register(__MODULE__)
+  end
 
   def handle_event({ :intended, intent }, state) do
     process_intent(intent, state)
