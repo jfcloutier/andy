@@ -1,5 +1,5 @@
 defmodule Andy.Percept do
-  @moduledoc "A struct for a percept (a unit of perception)."
+  @moduledoc "A struct for a percept (a detected value for a sense)."
 
   import Andy.Utils
 

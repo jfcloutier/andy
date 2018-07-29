@@ -1,17 +1,17 @@
 defmodule Andy.Ev3.Brick do
 
   require Logger
+  @mountable "/dev/mmcblk0p4"
 
   def start() do
-    import Supervisor.Spec
     Logger.info("Starting EV3 system")
     # Initialize
     load_ev3_modules()
-    start_writable_fs()
     init_alsa()
+    redirect_logging()
     # Define workers and child supervisors to be supervised
     children = [
-      worker(Andy.Ev3.Display, []),
+    #  worker(Andy.Ev3.Display, []),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
@@ -45,18 +45,19 @@ defmodule Andy.Ev3.Brick do
   end
 
   defp redirect_logging() do
+    :ok = maybe_mount_appdata()
     Logger.add_backend { LoggerFileBackend, :error }
     Logger.configure_backend { LoggerFileBackend, :error },
                              path: "/mnt/system.log",
                              level: :info
-    Logger.remove_backend :console
+#    Logger.remove_backend :console
 
     # Turn off kernel logging to the console
     #System.cmd("dmesg", ["-n", "1"])
   end
 
   defp format_appdata() do
-    case System.cmd("mke2fs", ["-t", "ext4", "-L", "APPDATA", "/dev/mmcblk0p3"]) do
+    case System.cmd("mke2fs", ["-t", "ext4", "-L", "APPDATA", "/dev/mmcblk0p4"]) do
       { _, 0 } -> :ok
       _ -> :error
     end
@@ -71,26 +72,12 @@ defmodule Andy.Ev3.Brick do
   end
 
   defp mount_appdata() do
-    case System.cmd("mount", ["-t", "ext4", "/dev/mmcblk0p3", "/mnt"]) do
+    case System.cmd("mount", ["-t", "ext4", @mountable, "/mnt"]) do
       { _, 0 } ->
         File.write("/mnt/.initialized", "Done!")
         :ok
       _ ->
         :error
-    end
-  end
-
-  defp start_writable_fs() do
-    case maybe_mount_appdata() do
-      :ok ->
-        redirect_logging()
-      :error ->
-        case format_appdata() do
-          :ok ->
-            mount_appdata()
-            redirect_logging()
-          error -> error
-        end
     end
   end
 

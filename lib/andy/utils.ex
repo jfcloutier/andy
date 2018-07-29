@@ -3,7 +3,7 @@ defmodule Andy.Utils do
   @moduledoc "Utility functions"
 
   @ttl 10_000
-  
+
   def timeout() do
     10000
   end
@@ -53,7 +53,8 @@ defmodule Andy.Utils do
   end
 
   def default_ttl(kind) do
-    Application.get_env(:andy, :ttl, []) |> Keyword.get(kind, @ttl)
+    Application.get_env(:andy, :ttl, [])
+    |> Keyword.get(kind, @ttl)
   end
 
   @doc "The time now in msecs"
@@ -68,7 +69,7 @@ defmodule Andy.Utils do
 
   @doc "Convert a duration to msecs"
   def convert_to_msecs(nil), do: nil
-  def convert_to_msecs({count, unit}) do
+  def convert_to_msecs({ count, unit }) do
     case unit do
       :msecs -> count
       :secs -> count * 1000
@@ -98,7 +99,38 @@ defmodule Andy.Utils do
   end
 
   def pg2_group() do
-    System.get_env("ANDY_COMMUNITY") || "lego"
+    get_andy_env("ANDY_COMMUNITY") || "lego"
+  end
+
+  def get_andy_env(variable) do
+    get_andy_env(variable, nil)
+  end
+
+  def get_andy_env(variable, default_value) do
+    Map.get(extract_plain_env_arguments(), variable) || System.get_env(variable) || default_value
+  end
+
+  def time_secs() do
+    System.os_time() |> div(1_000_000_000)
+  end
+
+  ### PRIVATE
+
+  defp extract_plain_env_arguments() do
+    :init.get_plain_arguments()
+    |> Enum.map(&("#{&1}"))
+    |> Enum.filter(&(Regex.match?(~r/\w+=\w+/, &1)))
+    |> Enum.reduce(
+         %{ },
+         fn (arg, acc) ->
+           case Regex.named_captures(~r/(?<var>\w+)=(?<val>\w+)/, arg) do
+             %{ "var" => var, "val" => val } ->
+               Map.put(acc, var, val)
+             nil ->
+               acc
+           end
+         end
+       )
   end
 
 end

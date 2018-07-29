@@ -14,6 +14,9 @@ defmodule Andy.Application do
 
   def start(_type, _args) do
     Logger.info("Starting #{__MODULE__}")
+    Logger.info("SYSTEM is #{Andy.system()}")
+    Logger.info("PLATFORM is #{Andy.platform()}")
+    Logger.info("PROFILE is #{Andy.profile()}")
     Andy.start_platform()
     wait_for_platform_ready(0)
     children = [
@@ -22,7 +25,7 @@ defmodule Andy.Application do
     ]
     opts = [strategy: :one_for_one, name: :root_supervisor]
     result = Supervisor.start_link(children, opts)
-    go()
+ #   go()
     result
   end
   

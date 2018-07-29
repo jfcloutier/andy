@@ -27,7 +27,7 @@ defmodule Andy.InternalClock do
           |> InternalCommunicator.notify_perceived()
           %{ state | tock: tock, count: state.count + 1 }
         else
-          Logger.info(" no tick")
+ #         Logger.debug(" no tick")
           state
         end
       end

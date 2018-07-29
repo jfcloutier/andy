@@ -1,11 +1,12 @@
 defmodule Andy.Ev3.LegoSound do
   @moduledoc "Lego sound playing"
 
-	@behaviour Andy.Speaking
+  @behaviour Andy.Speaking
 
   require Logger
   alias Andy.Device
-	alias Andy
+  alias Andy
+  import Andy.Utils, only: [get_andy_env: 2]
 
   @sys_path "/sound"
 
@@ -32,22 +33,23 @@ defmodule Andy.Ev3.LegoSound do
     sound_player
   end
 
-	# Speaking
-	
+  # Speaking
+
   @doc "The sound player says out loud the given words"
   def speak(sound_player, words) do
     speak(words, volume_level(sound_player), speed_level(sound_player), voice(sound_player))
   end
 
-	###
-	
+  ###
+
   @doc "Speak out words with a given volume, speed and voice"
   def speak(words, volume, speed, voice \\ "en") do
-		spawn(fn() ->
-			:os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}" --stdout | aplay')
-			:os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}"')
-		end)
-		Andy.display(words)
+    spawn(
+      fn () ->
+        :os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}"')
+      end
+    )
+    Andy.display(words)
   end
 
   @doc "Speak words loud and clear"
@@ -58,12 +60,17 @@ defmodule Andy.Ev3.LegoSound do
   ### Private
 
   defp init_sound_player(type, path) do
-    %Device{mod: Andy.Ev3,
-						class: :sound,
-            path: path,
-            port: nil,
-            type: type
-           }
+    %Device{
+      mod: Andy.Ev3,
+      class: :sound,
+      path: path,
+      port: nil,
+      type: type,
+      props: %{
+        voice: get_andy_env("ANDY_VOICE", "en-us"),
+        volume: :loud
+      }
+    }
   end
 
   defp volume_level(sound_player) do
@@ -85,5 +92,5 @@ defmodule Andy.Ev3.LegoSound do
   defp voice(sound_player) do
     sound_player.props.voice
   end
-  
+
 end

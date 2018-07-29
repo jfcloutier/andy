@@ -30,7 +30,7 @@ defmodule Andy.CognitionSupervisor do
     Supervisor.init(children, opts)
   end
 
-  @doc "Start prediction processing"
+  @doc "Start predicting processing"
   def start_cognition() do
     Logger.info("Starting embodied cognition")
     start_detectors()

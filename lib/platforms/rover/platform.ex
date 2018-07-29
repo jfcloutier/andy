@@ -10,7 +10,7 @@ defmodule Andy.Rover.Platform do
 	### PlatformBehaviour
 
 	def start() do
-		Logger.info("Starting ev3 system")
+		Logger.info("Starting Rover platform")
 		Brick.start()
 	end
 

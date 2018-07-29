@@ -4,7 +4,7 @@
 ##  The cookie needs to be configured prior to vm boot for
 ##  for read only filesystem.
 
--sname marv
+-sname marvin
 -setcookie predictive_processing
 
 ## Use Ctrl-C to interrupt the current shell rather than invoking the emulator's
@@ -34,13 +34,15 @@
 --
 --dot-iex /etc/iex.exs
 
-# I am Andy
--env ANDY_PEER marvin@nerves-2091
--env ANDY_HOST 192.168.1.182
--env ANDY_PORT 4002
--env ANDY_ID_CHANNEL 3
--env ANDY_PLATFORM rover
--env ANDY_PROFILE puppy
--env ANDY_COMMUNITY brood
--env ANDY_PARENT_URL mom:4003
--env ANDY_SYSTEM ev3
+# I am Marvin
+ANDY_NAME=marvin
+ANDY_PEER=andy@nerves-5e58
+ANDY_HOST=192.168.1.182
+ANDY_PORT=4002
+ANDY_ID_CHANNEL=3
+ANDY_PLATFORM=rover
+ANDY_PROFILE=puppy
+ANDY_COMMUNITY=brood
+ANDY_PARENT_URL=mom:4003
+ANDY_SYSTEM=ev3
+ANDY_VOICE=en-us

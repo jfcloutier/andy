@@ -2,24 +2,24 @@ defmodule Andy do
 
   require Logger
   alias Andy.Communicators
-  import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1]
+  import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
   @default_ttl 10_000
 
   def platform() do
-    platform_name = System.get_env("ANDY_PLATFORM") || "mock_rover"
+    platform_name = get_andy_env("ANDY_PLATFORM", "mock_rover")
     platforms = Application.get_env(:andy, :platforms)
     Map.get(platforms, platform_name)
   end
 
   def profile() do
-    profile_name = System.get_env("ANDY_PROFILE") || "puppy"
+    profile_name = get_andy_env("ANDY_PROFILE", "puppy")
     profiles = Application.get_env(:andy, :profiles)
     Map.get(profiles, profile_name)
   end
 
   def system() do
-    System.get_env("ANDY_SYSTEM") || "pc"
+    get_andy_env("ANDY_SYSTEM", "pc")
   end
 
   def start_platform() do
@@ -35,7 +35,7 @@ defmodule Andy do
   end
 
   def community_name() do
-    System.get_env("ANDY_COMMUNITY") || "andy"
+    get_andy_env("ANDY_COMMUNITY", "andy")
   end
 
   def default_ttl(kind) do
@@ -44,7 +44,7 @@ defmodule Andy do
   end
 
   def rest_port() do
-    {port, _} = (System.get_env("ANDY_PORT") || "4002") |> Integer.parse()
+    {port, _} = (get_andy_env("ANDY_PORT", "4000")) |> Integer.parse()
     port
   end
 
@@ -59,7 +59,7 @@ defmodule Andy do
   end
 
   def parent_url() do
-    System.get_env("ANDY_PARENT_URL") || ""
+    get_andy_env("ANDY_PARENT_URL", "")
   end
 
   def member_name() do
@@ -67,7 +67,7 @@ defmodule Andy do
   end
 
   def peer() do
-    (System.get_env("ANDY_PEER") || "???") |> String.to_atom()
+    (get_andy_env("ANDY_PEER", "???")) |> String.to_atom()
   end
 
   def sensors() do
@@ -107,7 +107,7 @@ defmodule Andy do
   end
 
   def id_channel() do
-    String.to_integer(System.get_env("ANDY_ID_CHANNEL") || "0")
+    String.to_integer(get_andy_env("ANDY_ID_CHANNEL", "0"))
   end
 
   def senses_for_id_channel(id_channel) do

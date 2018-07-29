@@ -22,6 +22,14 @@ config :nerves_firmware_ssh,
          File.read!(Path.join(System.user_home!, ".ssh/id_rsa_ev3.pub"))
        ]
 
+config :nerves_init_gadget,
+       ifname: "wlan0",
+       address_method: :dhcp,
+       mdns_domain: nil,
+       node_name: nil,
+       node_host: :dhcp,
+       ssh_console_port: 22
+
 # Add to ~/.ssh/config
 
 # Host nerves-*
@@ -99,5 +107,4 @@ config :andy,
        normal_rps: 1,
        slow_rps: 0.5,
        very_slow_rps: 0.3
-
 

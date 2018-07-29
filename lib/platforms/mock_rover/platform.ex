@@ -13,19 +13,20 @@ defmodule Andy.MockRover.Platform do
 												LED
 											 }
 	alias Andy.{Device, SoundPlayer}
+	import Andy.Utils, only: [get_andy_env: 1]
 	require Logger
 	
 	### PlatformBehaviour
 
 	def start() do
 		Logger.info("Platform mock_rover started")
-		if System.get_env("ANDY_SYSTEM") == "ev3" do
+		if get_andy_env("ANDY_SYSTEM") == "ev3" do
 			Andy.Ev3.Brick.start()
 		end
 	end
 
 	def ready?() do
-		if System.get_env("ANDY_SYSTEM") == "ev3" do
+		if get_andy_env("ANDY_SYSTEM") == "ev3" do
 			Andy.Ev3.Brick.ready?()
 		else
 			true
@@ -33,7 +34,7 @@ defmodule Andy.MockRover.Platform do
   end		
 
 	def display(words) do
-		if System.get_env("ANDY_SYSTEM") == "ev3" do
+		if get_andy_env("ANDY_SYSTEM") == "ev3" do
 			Andy.Ev3.Display.show_banner(words)
 		else
 			Logger.info("DISPLAYING: #{words}")
