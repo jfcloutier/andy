@@ -2,7 +2,7 @@ defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{ InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, InternalClock, PG2Communicator,
+  alias Andy.{ InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, InternalClock, PG2Communicator,
                RESTCommunicator }
 
   @name __MODULE__
@@ -12,30 +12,31 @@ defmodule Andy.CognitionSupervisor do
   @doc "Start the supervisor, linking it to its parent supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
-    { :ok, _pid } = Supervisor.start_link(__MODULE__, [], [name: @name])
+    { :ok, _pid } = Supervisor.start_link(__MODULE__, [], name: @name)
   end
 
   def init(_) do
     children = [
-      worker(InternalCommunicator, []),
-      worker(Memory, []),
-      worker(PG2Communicator, []),
-      worker(RESTCommunicator, []),
-      worker(InternalClock, []),
-      supervisor(DetectorsSupervisor, []),
-      supervisor(ActuatorsSupervisor, [])
-      # TODO
+    InternalCommunicator,
+     Memory,
+      PG2Communicator,
+      RESTCommunicator,
+      InternalClock,
+      DetectorsSupervisor,
+      ActuatorsSupervisor,
+      BelieversSupervisor
     ]
     opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
   end
 
-  @doc "Start predicting processing"
+  @doc "Start predictive_processing processing"
   def start_cognition() do
     Logger.info("Starting embodied cognition")
     start_detectors()
     start_actuators()
-    # TODO - Start other agents of embodied cognition
+    start_believers()
+    # TODO - Start other cognition agents
   end
 
 
@@ -51,6 +52,12 @@ defmodule Andy.CognitionSupervisor do
     Logger.info("Starting actuators")
     Andy.actuation_logic() # returns actuator configs
     |> Enum.each(&(ActuatorsSupervisor.start_actuator(&1)))
+  end
+
+  defp start_believers() do
+    Logger.info("Starting believers")
+    Andy.prior_generative_models()
+    |> Enum.each(&(BelieversSupervisor.start_believer(&1)))
   end
 
 end

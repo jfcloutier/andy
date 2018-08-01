@@ -4,6 +4,15 @@ defmodule Andy.Intent do
   import Andy.Utils
   alias __MODULE__
 
+  @type t :: %__MODULE__{
+               about: atom,
+               value: any,
+               since: number,
+               source: any,
+               strong: boolean
+             }
+
+
   @doc """
   about: The nature of the intent
   value: The measure of the intent (a number, atom...)

@@ -9,6 +9,32 @@ defmodule Andy.InternalClock do
 
   @name __MODULE__
 
+  @doc "Child spec as supervised worker"
+  def child_spec(_) do
+    %{
+      id: __MODULE__,
+      start: { __MODULE__, :start_link, [] }
+    }
+  end
+
+  def start_link() do
+    { :ok, pid } = Agent.start_link(
+      fn () ->
+        register_internal()
+        %{ responsive: false, tock: nil, count: 0 }
+      end,
+      [name: @name]
+    )
+    spawn_link(
+      fn () ->
+        :timer.sleep(tick_interval())
+        tick_tock()
+      end
+    )
+    Logger.info("#{@name} started")
+    { :ok, pid }
+  end
+
   def tick() do
     Agent.cast(
       @name,
@@ -57,24 +83,6 @@ defmodule Andy.InternalClock do
   end
 
   ### Cognition Agent Behaviour
-
-  def start_link() do
-    { :ok, pid } = Agent.start_link(
-      fn () ->
-        register_internal()
-        %{ responsive: false, tock: nil, count: 0 }
-      end,
-      [name: @name]
-    )
-    spawn_link(
-      fn () ->
-        :timer.sleep(tick_interval())
-        tick_tock()
-      end
-    )
-    Logger.info("#{@name} started")
-    { :ok, pid }
-  end
 
   def handle_event(:faint, state) do
     pause()

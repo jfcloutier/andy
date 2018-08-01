@@ -94,12 +94,16 @@ defmodule Andy do
     profile_dispatch(:perception_logic)
   end
 
-  def motivation_logic() do
-    profile_dispatch(:motivation_logic)
+  def generative_models() do
+    profile_dispatch(:generative_models)
   end
 
-  def behavior_logic() do
-    profile_dispatch(:behavior_logic)
+  def prior_generative_models() do
+    Enum.filter(generative_models(), &(&1.hyper_prior == true))
+  end
+
+  def generative_model(name) do
+    Enum.find(generative_models(), &(&1.name == name))
   end
 
   def actuation_logic() do

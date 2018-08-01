@@ -3,7 +3,7 @@ defmodule Andy.ActuatorConfig do
 
 	defstruct name: nil, type: nil, specs: nil, activations: nil, intents: nil
 
-	@doc "Make a new actuator"
+	@doc "Make a new actuator conf"
 	def new(name: name, type: type, specs: specs, activations: activations) do
 		config = %Andy.ActuatorConfig{name: name,
 																 type: type,

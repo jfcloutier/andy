@@ -3,18 +3,26 @@ defmodule Andy.Actuator do
 
   require Logger
   alias Andy.{ Script, Device, MotorSpec, LEDSpec, SoundSpec, CommSpec, Communicators, InternalCommunicator,
-               Intent, Actuator }
+               Intent }
   import Andy.Utils
 
   @behaviour Andy.CognitionAgentBehaviour
 
+  @doc "Child spec asked by DynamicSupervisor"
+  def child_spec([actuator_config]) do
+    %{ # defaults to restart: permanent and type: :worker
+      id: __MODULE__,
+      start: { __MODULE__, :start_link, [actuator_config] }
+    }
+  end
+
   @doc "Start an actuator from a configuration"
   def start_link(actuator_config) do
     Logger.info("Starting #{__MODULE__} #{actuator_config.name}")
-    register_internal()
     Agent.start_link(
       fn () ->
-         case actuator_config.type do
+        register_internal()
+        case actuator_config.type do
           :motor ->
             %{
               actuator_config: actuator_config,
@@ -58,8 +66,8 @@ defmodule Andy.Actuator do
                fn (action) ->
                  script = action.(intent, state.devices)
                  Script.execute(state.actuator_config.type, script)
-                 InternalCommunicator.notify_realized(name, intent)
                  # This will have the intent stored in memory. Unrealized intents are not retained in memory.
+                 InternalCommunicator.notify_realized(name, intent)
                end
              )
         end
@@ -95,7 +103,7 @@ defmodule Andy.Actuator do
            Process.spawn(
              # allow parallelism
              fn () ->
-               Actuator.realize_intent(actuator_config.name, intent)
+               realize_intent(actuator_config.name, intent)
              end,
              [:link]
            )

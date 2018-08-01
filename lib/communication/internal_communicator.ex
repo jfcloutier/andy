@@ -9,6 +9,14 @@ defmodule Andy.InternalCommunicator do
   @topic :pp # single topic for all subscribers
   @faint_duration 2500
 
+  @doc "Child spec as supervised worker"
+  def child_spec(_) do
+    %{
+      id: __MODULE__,
+      start: { __MODULE__, :start_link, [] }
+    }
+  end
+
   @doc "Start the registry"
   def start_link() do
     Registry.start_link(

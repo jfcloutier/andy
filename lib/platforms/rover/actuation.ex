@@ -17,15 +17,15 @@ defmodule Andy.Rover.Actuation do
 												 ],
 												 activations: [ # scripted actions to be taken upon receiving intents
 													 %Activation{intent: :go_forward,
-																			 action: going_forward()},
+																			 script: going_forward()},
 													 %Activation{intent: :go_backward,
-																			 action: going_backward()},
+																			 script: going_backward()},
 													 %Activation{intent: :turn_right,
-																			 action: turning_right()},
+																			 script: turning_right()},
 													 %Activation{intent: :turn_left,
-																			 action: turning_left()},
+																			 script: turning_left()},
 													 %Activation{intent: :stop,
-																			 action: stopping()}
+																			 script: stopping()}
 												 ]),
 			ActuatorConfig.new(name: :manipulation,
 												 type: :motor,
@@ -34,7 +34,7 @@ defmodule Andy.Rover.Actuation do
 												 ],
 												 activations: [
 													 %Activation{intent: :eat,
-																			 action: eating()}
+																			 script: eating()}
 												 ]),
 			ActuatorConfig.new(name: :leds,
 												 type: :led,
@@ -46,11 +46,11 @@ defmodule Andy.Rover.Actuation do
 												 ],
 												 activations: [
 													 %Activation{intent: :green_lights,
-																			 action: green_lights()},
+																			 script: green_lights()},
 													 %Activation{intent: :red_lights,
-																			 action: red_lights()},
+																			 script: red_lights()},
 													 %Activation{intent: :orange_lights,
-																			 action: orange_lights()}
+																			 script: orange_lights()}
 												 ]),
       ActuatorConfig.new(name: :sounds,
                          type: :sound,
@@ -59,29 +59,29 @@ defmodule Andy.Rover.Actuation do
                          ],
                          activations: [
                            %Activation{intent: :say_hungry,
-                                       action: say_hungry()},
+                                       script: say_hungry()},
                            %Activation{intent: :say_full,
-                                       action: say_full()},
+                                       script: say_full()},
                            %Activation{intent: :say_tracking,
-                                       action: say_tracking()},
+                                       script: say_tracking()},
                            %Activation{intent: :say_scared,
-                                       action: say_scared()},
+                                       script: say_scared()},
                            %Activation{intent: :say_ok_now,
-                                       action: say_ok_now()},
+                                       script: say_ok_now()},
                            %Activation{intent: :say_curious,
-                                       action: say_curious()},
+                                       script: say_curious()},
                            %Activation{intent: :say_uh_oh,
-                                       action: say_uh_oh()},
+                                       script: say_uh_oh()},
                            %Activation{intent: :say_stuck,
-                                       action: say_stuck()},
+                                       script: say_stuck()},
                            %Activation{intent: :say_food,
-                                       action: say_food()},
+                                       script: say_food()},
                            %Activation{intent: :say_food_nearby,
-                                       action: say_food_nearby()},
+                                       script: say_food_nearby()},
                            %Activation{intent: :eating_noises,
-                                       action: eating_noises()},
+                                       script: eating_noises()},
                            %Activation{intent: :say,
-                                       action: say()}
+                                       script: say()}
                          ]),
       ActuatorConfig.new(name: :communicators,
 												 type: :comm,
@@ -91,9 +91,9 @@ defmodule Andy.Rover.Actuation do
 												 ],
 												 activations: [
 													 %Activation{intent: :broadcast, # intent value = %{info: info}
-																			 action: broadcast()},
+																			 script: broadcast()},
 													 %Activation{intent: :report, 
-																			 action: report()}  # intent value = %{info: info}
+																			 script: report()}  # intent value = %{info: info}
 												 ])													 
 		]
 	end

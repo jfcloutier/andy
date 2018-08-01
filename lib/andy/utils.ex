@@ -114,6 +114,11 @@ defmodule Andy.Utils do
     System.os_time() |> div(1_000_000_000)
   end
 
+  def choose_one(choices) do
+    [choice] = Enum.take_random(choices, 1)
+    choice
+  end
+
   ### PRIVATE
 
   defp extract_plain_env_arguments() do

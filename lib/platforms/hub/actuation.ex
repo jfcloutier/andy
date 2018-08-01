@@ -16,11 +16,11 @@ defmodule Andy.Hub.Actuation do
                          ],
                          activations: [
                            %Activation{intent: :say_calm_down,
-                                       action: say_calm_down()},
+                                       script: say_calm_down()},
                            %Activation{intent: :say_share_food,
-                                       action: say_share_food()},
+                                       script: say_share_food()},
                            %Activation{intent: :say_parenting,
-                                       action: say_parenting()}
+                                       script: say_parenting()}
                          ]),
       ActuatorConfig.new(name: :communicators,
 												 type: :comm,
@@ -30,7 +30,7 @@ defmodule Andy.Hub.Actuation do
 												 ],
 												 activations: [
 													 %Activation{intent: :command, 
-																			 action: command()}  # intent value = %{command: command, to_url: url}
+																			 script: command()}  # intent value = %{command: command, to_url: url}
 												 ])													 
 
 		]

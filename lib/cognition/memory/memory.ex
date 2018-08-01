@@ -13,6 +13,14 @@ defmodule Andy.Memory do
 
   ### API
 
+  @doc "Child spec as supervised worker"
+  def child_spec(_) do
+    %{
+      id: __MODULE__,
+      start: { __MODULE__, :start_link, [] }
+    }
+  end
+
   @doc "Start the memory server"
   def start_link() do
     Logger.info("Starting #{@name}")

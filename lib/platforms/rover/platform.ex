@@ -25,8 +25,8 @@ defmodule Andy.Rover.Platform do
 	def actuation_logic() do
 		Andy.Rover.Actuation.actuator_configs()
 	end
-	
-	def mode(device_type) do
+
+  def mode(device_type) do
     case device_type do
       :infrared -> "ev3-uart"
       :touch -> "ev3-analog"

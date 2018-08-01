@@ -7,12 +7,20 @@ defmodule Andy.Detector do
 
   @behaviour Andy.CognitionAgentBehaviour
 
+  @doc "Child spec asked by DynamicSupervisor"
+  def child_spec([device]) do
+    %{ # defaults to restart: permanent and type: :worker
+      id: __MODULE__,
+      start: { __MODULE__, :start_link, [device] }
+    }
+  end
+
   @doc "Start a detector on a sensing device, to be linked to its supervisor"
   def start_link(device) do
-    register_internal()
     name = Device.name(device)
     { :ok, pid } = Agent.start_link(
       fn () ->
+        register_internal()
         %{ device: device, previous_values: %{ } }
       end,
       [name: name]

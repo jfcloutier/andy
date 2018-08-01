@@ -3,7 +3,7 @@ defmodule Andy.Hub.Platform do
 
 	@behaviour Andy.PlatformBehaviour
 
-	alias Andy.{SoundPlayer, Device}
+	alias Andy.{SoundPlayer, Device, Hub}
 	require Logger
 
 	### PlatformBehaviour
@@ -21,9 +21,9 @@ defmodule Andy.Hub.Platform do
 	end
 
 	def actuation_logic() do
-		Andy.Hub.Actuation.actuator_configs()
+		Hub.Actuation.actuator_configs()
 	end
-	
+
 	def voice() do
 		"en-us+f1"
 	end
