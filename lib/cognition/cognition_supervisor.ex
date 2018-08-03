@@ -2,8 +2,9 @@ defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{ InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, InternalClock, PG2Communicator,
-               RESTCommunicator }
+  alias Andy.{ InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor,
+               InternalClock, PG2Communicator,
+               RESTCommunicator, GenerativeModels, Attention }
 
   @name __MODULE__
 
@@ -17,13 +18,16 @@ defmodule Andy.CognitionSupervisor do
 
   def init(_) do
     children = [
-    InternalCommunicator,
-     Memory,
+      InternalCommunicator,
+      Memory,
       PG2Communicator,
       RESTCommunicator,
       InternalClock,
+      Attention,
+      GenerativeModels,
       DetectorsSupervisor,
       ActuatorsSupervisor,
+      PredictorsSupervisor,
       BelieversSupervisor
     ]
     opts = [strategy: :one_for_one]
@@ -35,10 +39,8 @@ defmodule Andy.CognitionSupervisor do
     Logger.info("Starting embodied cognition")
     start_detectors()
     start_actuators()
-    start_believers()
-    # TODO - Start other cognition agents
+    start_prior_believers()
   end
-
 
   ### Private
 
@@ -54,9 +56,9 @@ defmodule Andy.CognitionSupervisor do
     |> Enum.each(&(ActuatorsSupervisor.start_actuator(&1)))
   end
 
-  defp start_believers() do
+  defp start_prior_believers() do
     Logger.info("Starting believers")
-    Andy.prior_generative_models()
+    GenerativeModels.hyper_prior_models()
     |> Enum.each(&(BelieversSupervisor.start_believer(&1)))
   end
 

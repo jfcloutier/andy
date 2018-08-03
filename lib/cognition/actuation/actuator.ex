@@ -100,7 +100,7 @@ defmodule Andy.Actuator do
     |> Enum.filter(&(intent.about in &1.intents))
     |> Enum.each(
          fn (actuator_config) ->
-           Process.spawn(
+           Task.async(
              # allow parallelism
              fn () ->
                realize_intent(actuator_config.name, intent)

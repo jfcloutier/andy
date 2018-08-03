@@ -55,11 +55,10 @@ defmodule Andy.Puppy.Modeling do
             believed: { :is, :others_safe },
             precision: :high,
             # That won't help but heh...
-            fulfillments: [Fulfillment.new(actions: [say_once("I am scared too!")])]
+            fulfillments: [Fulfillment.new(actions: [say_once("What's going on?")])]
           )
         ],
-        focus: :high,
-        hyper_prior: false
+        focus: :high
       ),
 
 
@@ -70,13 +69,12 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a well-light area",
         predictions: [
           Prediction.new(
-            perceived: { :sensor, :color, :ambient, { :gt, 50 }, :now },
+            perceived: [{ {:sensor, :color, :ambient}, { :gt, 50 }, :now }],
             precision: :high,
             fulfillments: [Fulfillment.new(model_name: :getting_lighter)]
           )
         ],
-        focus: :high,
-        hyper_prior: false
+        focus: :high
       ),
       # It's getting lighter
       GenerativeModel.new(
@@ -84,14 +82,13 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a better-lit area",
         predictions: [
           Prediction.new(
-            perceived: { :sensor, :color, :ambient, :ascending, { :past_secs, 5 } },
+            perceived: [{ {:sensor, :color, :ambient}, :ascending, { :past_secs, 5 } }],
             precision: :low,
             # keep going forward if it works, else turn
             fulfillments: [Fulfillment.new(actions: [forward(), turn()])]
           )
         ],
-        focus: :high,
-        hyper_prior: false
+        focus: :high
       )
 
 

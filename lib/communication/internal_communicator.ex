@@ -138,7 +138,7 @@ defmodule Andy.InternalCommunicator do
   ### Private
 
   defp notify(event) do
-    spawn(
+    Task.async(
       fn ->
         Registry.dispatch(
           @registry_name,
@@ -164,7 +164,7 @@ defmodule Andy.InternalCommunicator do
   end
 
   defp set_alarm_clock(msecs) do
-    spawn_link(
+    Task.async(
       fn () -> # make sure to revive
         :timer.sleep(msecs)
         notify_revive()

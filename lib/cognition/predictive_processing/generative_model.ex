@@ -9,7 +9,7 @@ defmodule Andy.GenerativeModel do
                description: String.t,
                predictions: [Prediction.t],
                focus: atom,
-               hyper_prior: boolean
+               hyper_prior?: boolean
              }
 
   defstruct name: nil,
@@ -23,22 +23,38 @@ defmodule Andy.GenerativeModel do
               # and their children models
             focus: :same,
               # Is it a "hyper prior" (a foundational/permanent model) or is it fulfillment-activated
-            hyper_prior: false
+            hyper_prior?: false
 
   def new(
         name: name,
         description: description,
         predictions: predictions,
         focus: focus,
-        hyper_prior: hyper_prior?
+        hyper_prior?: hyper_prior?
       ) do
     %GenerativeModel{
       name: name,
       description: description,
       predictions: predictions,
       focus: focus,
-      hyper_prior: hyper_prior?
+      hyper_prior?: hyper_prior?
     }
   end
+
+  def new(
+        name: name,
+        description: description,
+        predictions: predictions,
+        focus: focus
+      ) do
+    %GenerativeModel{
+      name: name,
+      description: description,
+      predictions: predictions,
+      focus: focus,
+      hyper_prior?: false
+    }
+  end
+
 
 end

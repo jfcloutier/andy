@@ -25,7 +25,7 @@ defmodule Andy.InternalClock do
       end,
       [name: @name]
     )
-    spawn_link(
+    Task.async(
       fn () ->
         :timer.sleep(tick_interval())
         tick_tock()

@@ -98,14 +98,6 @@ defmodule Andy do
     profile_dispatch(:generative_models)
   end
 
-  def prior_generative_models() do
-    Enum.filter(generative_models(), &(&1.hyper_prior == true))
-  end
-
-  def generative_model(name) do
-    Enum.find(generative_models(), &(&1.name == name))
-  end
-
   def actuation_logic() do
     platform_dispatch(:actuation_logic)
   end

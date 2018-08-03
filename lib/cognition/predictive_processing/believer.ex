@@ -8,10 +8,11 @@ defmodule Andy.Believer do
   @behaviour Andy.CognitionAgentBehaviour
 
   @doc "Child spec asked by DynamicSupervisor"
-  def child_spec([generative_model_conf]) do
-    %{ # defaults to restart: permanent and type: :worker
+  def child_spec([generative_model]) do
+    %{
+      # defaults to restart: permanent and type: :worker
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [generative_model_conf] }
+      start: { __MODULE__, :start_link, [generative_model] }
     }
   end
 
@@ -22,13 +23,89 @@ defmodule Andy.Believer do
         register_internal()
         %{
           model: generative_model,
-          belief: Belief.new()
+          belief: Belief.new(),
+          predictors: [],
+          for_predictors: MapSet.new()
         }
       end,
       [name: generative_model.name]
     )
+    Task.async(fn -> start_predictors(pid) end)
     Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
     { :ok, pid }
+  end
+
+  @doc "Get the name of a believer given it's process id"
+  def name(agent_pid) do
+    Agent.get(
+      agent_pid,
+      fn (%{ model: generative_model }) ->
+        generative_model.name
+      end
+    )
+  end
+
+  @doc "A believer was pressed into duty by a predictor"
+  def grabbed_by_predictor(believer_pid, predictor_pid) do
+    Agent.update(
+      believer_pid,
+      fn (%{ for_predictors: for_predictors } = state) ->
+        %{ state | for_predictors: MapSet.put(for_predictors, predictor_pid) }
+      end
+    )
+  end
+
+  @doc "A believer was released by a predictor"
+  def released_by_predictor(believer_pid, predictor_pid) do
+    Agent.update(
+      believer_pid,
+      fn (%{ for_predictors: for_predictors } = state) ->
+        %{ state | for_predictors: MapSet.delete(for_predictors, predictor_pid) }
+      end
+    )
+    if obsolete?(believer_pid) do
+      terminate_predictors(believer_pid)
+      BelieversSupervisor.terminate(believer_pid)
+    end
+  end
+
+
+  @doc "Is a believer not needed anymore?"
+  def obsolete?(believer_pid) do
+    Agent.get(
+      believer_pid,
+      fn (%{ for_predictors: for_predictors, model: model }) ->
+        not model.hyper_prior? and MapSet.size(for_predictors) == 0
+      end
+    )
+  end
+
+  @doc "Start a predictor for each prediction in the model"
+  def start_predictors(believer_pid) do
+    Agent.update(
+      believer_pid,
+      fn (%{ model: model } = state) ->
+        predictor_pids = Enum.map(
+          model.predictions,
+          fn (prediction) ->
+            PredictorsSupervisor.start_predictor(prediction, believer_pid)
+          end
+        )
+        %{ state | predictors: predictor_pids }
+      end
+    )
+  end
+
+  defp terminate_predictors(believer_pid) do
+    Agent.update(
+      believer_id,
+      fn (%{ predictors: predictor_ids }) ->
+        Enum.each(
+          predictor_ids,
+          &(PredictorsSupervisor.terminate(&1))
+        )
+      end
+    )
   end
 
   ### Cognition Agent Behaviour
@@ -49,6 +126,19 @@ defmodule Andy.Believer do
     state
   end
 
+  def handle_event(
+        { :prediction_fulfilled, %{ generative_model_name: model_name } = prediction_fulfilled },
+        %{
+          generative_model: %{
+            name: name
+          }
+        } = state
+      ) when model_name == name do
+    process_prediction_fulfilled(prediction_fulfilled, state)
+    state
+  end
+
+
   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
@@ -58,7 +148,17 @@ defmodule Andy.Believer do
 
   defp process_prediction_error(prediction_error, state) do
     # TODO
+    # Select and schedule (faster if high focus) having the associated predictor try a fulfillment
+    # Revise belief, notify of Belief if changed
+    # Somehow alter the effective precision of competing predictors
     state
+  end
+
+  defp process_prediction_fulfilled(prediction_fulfilled, state) do
+    # TODO
+    # Revise belief, notifiy if Belief changed
+    # Somehow un-alter the effective precision of competing predictors
+    # If for transient model (from action), terminate self
   end
 
 end

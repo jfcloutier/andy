@@ -5,45 +5,82 @@ defmodule Andy.Prediction do
   alias Andy.Fulfillment
 
   @type t :: %__MODULE__{
-               perceived: { atom, atom, atom, any } | nil,
-               believed: {:not | :is, atom},
+               perceived: [{ tuple(), any, any }],
+               believed: { :not | :is, atom } | nil,
                fulfillments: [Fulfillment.t]
              }
 
   # prediction name is unique within a generative model
-  defstruct perceived: nil,
+  defstruct perceived: [],
               # or generative model name
             believed: nil,
-              # One of :high, :medium, :low, :none
+              # One of :high, :medium, :low
             precision: nil,
               # how much the precision of lower priority predictions are reduced
             fulfillments: []
 
   def new(
-        perceived: { device_class, device_type, sense, value } = _perceived,
-        # {device_class, device_type, sense, value}
+        # {:is | :not, <model name>}
+        believed: believed,
+        # list of {{device_class, device_type, sense}, value desc, timeframe}
+        perceived: perceived,
         precision: default_precision,
-         fulfillments: fulfillments
+        fulfillments: fulfillments
       ) do
     %Prediction{
+      believed: believed,
       perceived: perceived,
-      precision: precision,
+      precision: default_precision,
       fulfillments: fulfillments
     }
   end
 
   def new(
         believed: believed,
-        # {device_class, device_type, sense, value}
-        # or generative model name
-        precision: precision,
+        precision: default_precision,
         fulfillments: fulfillments
       ) do
     %Prediction{
       believed: believed,
-      precision: precision,
+      perceived: [],
+      precision: default_precision,
       fulfillments: fulfillments
     }
+  end
+
+  def new(
+        # list of {{device_class, device_type, sense}, value desc, timeframe}
+        perceived: perceived,
+        precision: default_precision,
+        fulfillments: fulfillments
+      ) do
+    %Prediction{
+      believed: nil,
+      perceived: perceived,
+      precision: default_precision,
+      fulfillments: fulfillments
+    }
+  end
+
+  def summary(prediction) do
+    "#{prediction.precision} accuracy prediction that"
+    <>
+    (cond do
+       prediction.believed and prediction.perceived ->
+         "#{inspect prediction.believed} (believed) and #{inspect prediction.perceived} (perceived)"
+       prediction.believed ->
+         "#{inspect prediction.believed} (believed)"
+       prediction.perceived ->
+         "#{inspect prediction.perceived} (perceived)"
+     end)
+  end
+
+  def detector_specs(prediction) do
+    Enum.map(
+      prediction.perceived,
+      fn ({ detector_spec, _, _ }) -> detector_spec end
+    )
+    |> Enum.uniq()
   end
 
 end
