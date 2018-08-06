@@ -66,6 +66,16 @@ defmodule Andy.InternalCommunicator do
     notify({ :believed, belief })
   end
 
+  @doc "Handle notification of a prediction error"
+  def notify_prediction_error(prediction_error) do
+    notify({ :prediction_error, prediction_error })
+  end
+
+  @doc "Handle notification of a prediction fulfilled"
+  def notify_prediction_fulfilled(prediction_fulfilled) do
+    notify({ :prediction_fulfilled, prediction_fulfilled })
+  end
+
   @doc "Handle notification of something memorized"
   def notify_memorized(memorization, %Percept{ } = percept) do
     notify({ :memorized, memorization, percept })

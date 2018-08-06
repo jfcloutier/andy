@@ -23,7 +23,7 @@ defmodule Andy.Believer do
         register_internal()
         %{
           model: generative_model,
-          belief: Belief.new(),
+          belief: Belief.new(generative_model.name),
           predictors: [],
           for_predictors: MapSet.new()
         }
@@ -115,25 +115,21 @@ defmodule Andy.Believer do
   end
 
   def handle_event(
-        { :prediction_error, %{ generative_model_name: model_name } = prediction_error },
+        { :prediction_error, %{ model_name: model_name } = prediction_error },
         %{
-          generative_model: %{
-            name: name
-          }
+          model: model
         } = state
-      ) when model_name == name do
+      ) when model.name == model_name do
     process_prediction_error(prediction_error, state)
     state
   end
 
   def handle_event(
-        { :prediction_fulfilled, %{ generative_model_name: model_name } = prediction_fulfilled },
+        { :prediction_fulfilled, %{ model_name: model_name } = prediction_fulfilled },
         %{
-          generative_model: %{
-            name: name
-          }
+          model: model
         } = state
-      ) when model_name == name do
+      ) when model_name == model.name do
     process_prediction_fulfilled(prediction_fulfilled, state)
     state
   end

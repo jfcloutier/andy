@@ -25,7 +25,7 @@ defmodule Andy.Application do
     ]
     opts = [strategy: :one_for_one, name: :root_supervisor]
     result = Supervisor.start_link(children, opts)
- #   go()
+    go()
     result
   end
   
@@ -62,7 +62,7 @@ defmodule Andy.Application do
   end
 
   def go() do
-#    Task.async(fn() -> connect_to_nodes() end)
+    Task.async(fn() -> connect_to_nodes() end)
     CognitionSupervisor.start_cognition()
     Task.async(fn -> push_runtime_stats() end, [])
     InternalClock.resume()
@@ -122,6 +122,5 @@ defmodule Andy.Application do
     {i, _} = Integer.parse(s)
     i
   end
-  
 
 end

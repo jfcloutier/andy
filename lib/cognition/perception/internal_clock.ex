@@ -44,7 +44,7 @@ defmodule Andy.InternalClock do
           Logger.info("tick")
           InternalCommunicator.notify_tick()
           Percept.new_transient(
-            about: :time_elapsed,
+            about: %{class: :sensor, port: nil, type: :timer, sense: :time_elapsed},
             value: %{
               delta: tock - state.tock,
               count: state.count

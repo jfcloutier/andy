@@ -34,11 +34,14 @@ defmodule Andy.Detector do
     Agent.get_and_update(
       name,
       fn (state) ->
-        { value, updated_device } = read(state.device, sense)
+      device = state.device
+        { value, updated_device } = read(device, sense)
         if value != nil do
           previous_value = Map.get(state.previous_values, sense, nil)
           nudged_value = platform_dispatch(:nudge, [updated_device, sense, value, previous_value])
-          percept = Percept.new(about: sense, value: nudged_value)
+          about = %{class: device.class, port: device.port, type: device.type, sense: sense}
+          percept = Percept.new(about: about,
+            value: nudged_value)
           %Percept{
             percept |
             source: name,

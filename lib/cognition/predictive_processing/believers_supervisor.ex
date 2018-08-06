@@ -39,7 +39,7 @@ defmodule Andy.BelieversSupervisor do
   end
 
   @doc " A predictor releases a believer"
-  def release_believer(generative_model, predictor) do
+  def release_believer(generative_model, predictor_pid) do
     believer_pid = case find_believer(generative_model) do
       nil ->
         :ok

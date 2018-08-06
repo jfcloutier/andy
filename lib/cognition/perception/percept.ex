@@ -4,7 +4,7 @@ defmodule Andy.Percept do
   import Andy.Utils
 
   defstruct about: nil,
-              # What is being perceived
+              # What is being perceived - %{class: class, port: port, type: type, sense: sense}
             value: nil,
               # The measurement/value of the perception (a number, atom etc.)
             since: nil,
@@ -20,10 +20,10 @@ defmodule Andy.Percept do
             transient: false      # If true, the percept will not be memorized
 
   @doc "Create a new percept with sense and value set"
-  def new(about: sense, value: value) do
+  def new(about: about, value: value) do
     msecs = now()
     %Andy.Percept{
-      about: sense,
+      about: about,
       since: msecs,
       until: msecs,
       value: value
@@ -31,10 +31,10 @@ defmodule Andy.Percept do
   end
 
   @doc "Create a new percept with sense, value and source set"
-  def new(about: sense, value: value, source: source) do
+  def new(about: about, value: value, source: source) do
     msecs = now()
     %Andy.Percept{
-      about: sense,
+      about: about,
       since: msecs,
       until: msecs,
       value: value,
@@ -43,10 +43,10 @@ defmodule Andy.Percept do
   end
 
   @doc "Create a new percept with sense, value and source set"
-  def new(about: sense, value: value, source: source, ttl: ttl) do
+  def new(about: about, value: value, source: source, ttl: ttl) do
     msecs = now()
     %Andy.Percept{
-      about: sense,
+      about: about,
       since: msecs,
       until: msecs,
       value: value,
@@ -56,33 +56,15 @@ defmodule Andy.Percept do
   end
 
   @doc "Create a new transient percept with sense, value set"
-  def new_transient(about: sense, value: value) do
+  def new_transient(about: about, value: value) do
     msecs = now()
     %Andy.Percept{
-      about: sense,
+      about: about,
       since: msecs,
       until: msecs,
       value: value,
       transient: true
     }
-  end
-
-  @doc "Get the sense name, whether the sense is qualified or not"
-  def unqualified_sense(%Andy.Percept{ about: { sense_name, _qualifier } }) do
-    sense_name
-  end
-
-  def unqualified_sense(%Andy.Percept{ about: sense }) do
-    sense
-  end
-
-  @doc "Get the sense qualifier, nil if none"
-  def sense_qualifier(%Andy.Percept{ about: { _sense_name, qualifier } }) do
-    qualifier
-  end
-
-  def sense_qualifier(%Andy.Percept{ }) do
-    nil
   end
 
   @doc "Set the source"
@@ -103,13 +85,8 @@ defmodule Andy.Percept do
   end
 
   @doc "The sense of the percept"
-  def sense(percept) do
-    case percept.about do
-      { sense, _qualifier }
-      -> sense
-      sense when is_atom(sense)
-      -> sense
-    end
+  def sense(%{about: %{sense: sense}} = _percept) do
+    sense
   end
 
   def transient?(percept) do

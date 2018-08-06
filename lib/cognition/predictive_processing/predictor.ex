@@ -7,11 +7,11 @@ defmodule Andy.Predictor do
   @behaviour Andy.CognitionAgentBehaviour
 
   @doc "Child spec asked by DynamicSupervisor"
-  def child_spec([prediction]) do
+  def child_spec([prediction, believer_pid]) do
     %{
       # defaults to restart: permanent and type: :worker
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [prediction] }
+      start: { __MODULE__, :start_link, [prediction, believer_pid] }
     }
   end
 
@@ -21,9 +21,11 @@ defmodule Andy.Predictor do
       fn ->
         register_internal()
         %{
+          model_name: generative_model.name,
           believer: believer_pid,
           prediction: prediction,
           effective_precision: prediction.precision,
+          # For starters
           fullfilled?: true
         }
       end,
@@ -40,7 +42,6 @@ defmodule Andy.Predictor do
   end
 
   def about_to_be_terminated(predictor_pid) do
-    detector_specs = detector_specs(predictor_pid)
     Attention.lose_attention(predictor_pid)
   end
 
@@ -51,17 +52,17 @@ defmodule Andy.Predictor do
         case believed do
           nil ->
             state
-          { _, model_name } ->
+          { _is_or_not, model_name } ->
             model = GenerativeModels.named(model_name)
             if model == nil, do: raise "Model #{model_name} does not exist"
-            believer_id = BelieversSupervisor.grab_believer(model)
+            believer_id = BelieversSupervisor.grab_believer(model, predictor_pid)
             %{ state | believer: believer_id }
         end
       end
     )
   end
 
-  defp pay_attention(predictor_pid) do
+  defp direct_attention(predictor_pid) do
     detector_specs = detector_specs(predictor_pid)
     Attention.pay_attention(detector_specs, predictor_pid)
   end
@@ -81,26 +82,25 @@ defmodule Andy.Predictor do
     InternalCommunicator.register(__MODULE__)
   end
 
-  # TBD
-  # Listens to relevant predicted percepts or changed beliefs
-  # If prediction false enough given effective precision:
-  #   Raise prediction error
-  #
-  #
-  def handle_event(%Percept{ } = percept, state) do
+  def handle_event({ :perceived, %Percept{ } = percept }, %{ prediction: prediction } = state) do
     # Validate perceived if relevant
-    # Notify of prediction error if prediction not true enough
-    # Notify of prediction recovered if prediction becomes true enough
-    state
+    if percept_relevant?(percept, prediction) do
+      review_fulfilled(state)
+    else
+      state
+    end
   end
 
-  def handle_event(%Belief{ } = belief, state) do
+  def handle_event({ :believed, %Belief{ } = belief }, %{ prediction: prediction } = state) do
     # Validate believed if relevant
-    # Notify of prediction error if prediction not true enough
-    state
+    if belief_relevant?(belief, prediction) do
+      review_fulfilled(state)
+    else
+      state
+    end
   end
 
-  def handle_event(%Fulfill{ }, state) do
+  def handle_event({ :fulfill, %Fulfill{ } }, state) do
     # Try a fulfillment in response to a prediction error -
     # It might instantiate a temporary model believer for a fulfillment action
     #
@@ -112,5 +112,70 @@ defmodule Andy.Predictor do
     state
   end
 
+  #### Private
+
+  defp percept_relevant?(
+         %Percept{ about: percept_about },
+         %{ perceived: perceived_specs } = _prediction
+       ) do
+    Enum.any?(
+      perceived_specs,
+      fn (perceived_spec) ->
+        match?(perceived_spec, percept_about)
+      end
+    )
+  end
+
+  defp belief_relevant?(
+         %Belief{ model_name: model_name },
+         %{ believed: { _is_or_not, believed_model_name } }
+       ) do
+    model_name == believed_model_name
+  end
+
+  defp match?(perceived_spec, percept_about) do
+    # Both have the same keys
+    keys = Map.keys(perceived_spec)
+    Enum.all?(
+      keys,
+      fn (key) -> perceived.val = Map.fetch!(perceived_spec, key)
+                  percept.val = Map.fetch!(percept_about, key)
+                  perceived.val == "*"
+                  or percept_val == "*"
+                  or perceived_val == percept_val
+      end
+    )
+  end
+
+  defp review_fulfilled(%{ fulfilled?: fulfilled? } = state) do
+    if fulfilled?(prediction) do
+      fulfilled_state = %{ state | fulfilled?: true }
+      # Notify of prediction recovered if prediction becomes true enough
+      if not fulfilled? do
+        InternalCommunicator.notify_fulfilled(
+          PredictionFulfilled.new(
+            model_name: state.model_name,
+            prediction: state.prediction
+          )
+        )
+      end
+      fulfilled_state
+    else
+      unfulfilled_state = %{ state | fulfilled?: false }
+      # Notify of prediction error if prediction not true enough
+      prediction_error = prediction_error(state)
+      InternalCommunicator.notify_prediction_error(prediction_error)
+      unfulfilled_state
+    end
+  end
+
+  defp fulfilled?(prediction) do
+    # TODO
+    true
+  end
+  
+  defp prediction_error(state) do
+    #TODO
+  end
 
 end

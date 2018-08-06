@@ -69,7 +69,7 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a well-light area",
         predictions: [
           Prediction.new(
-            perceived: [{ {:sensor, :color, :ambient}, { :gt, 50 }, :now }],
+            perceived: [{ {:sensor, :any_port, :color, :ambient}, { :gt, 50 }, :now }],
             precision: :high,
             fulfillments: [Fulfillment.new(model_name: :getting_lighter)]
           )
@@ -82,7 +82,7 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a better-lit area",
         predictions: [
           Prediction.new(
-            perceived: [{ {:sensor, :color, :ambient}, :ascending, { :past_secs, 5 } }],
+            perceived: [{ {:sensor, :any_port, :color, :ambient}, :ascending, { :past_secs, 5 } }],
             precision: :low,
             # keep going forward if it works, else turn
             fulfillments: [Fulfillment.new(actions: [forward(), turn()])]
