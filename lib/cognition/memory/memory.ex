@@ -1,7 +1,7 @@
 defmodule Andy.Memory do
   @moduledoc "The memory of percepts"
 
-  alias Andy.{ Percept, Intent, InternalCommunicator }
+  alias Andy.{ Percept, Intent, PubSub }
   import Andy.Utils
   require Logger
 
@@ -40,6 +40,20 @@ defmodule Andy.Memory do
     Agent.cast(
       @name,
       fn (state) -> store(something, state) end
+    )
+  end
+
+  @doc "Recall all matching percepts in a time window until now"
+  def recall_percepts_since(about, { :past_secs, secs }) do
+    Agent.get(
+      @name,
+      fn (state) ->
+        percepts_since(
+          about,
+          secs,
+          state
+        )
+      end
     )
   end
 
@@ -83,7 +97,7 @@ defmodule Andy.Memory do
   ### Cognitive Agent behaviour
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
   def handle_event({ :perceived, percept }, state) do
@@ -134,28 +148,28 @@ defmodule Andy.Memory do
   end
 
   defp update_percepts(percept, []) do
-    InternalCommunicator.notify_memorized(:new, percept)
+    PubSub.notify_memorized(:new, percept)
     [percept]
   end
 
   defp update_percepts(percept, [previous | others]) do
     if not change_felt?(percept, previous) do
       extended_percept = %Percept{ previous | until: percept.since }
-      InternalCommunicator.notify_memorized(:extended, extended_percept)
+      PubSub.notify_memorized(:extended, extended_percept)
       [extended_percept | others]
     else
-      InternalCommunicator.notify_memorized(:new, percept)
+      PubSub.notify_memorized(:new, percept)
       [percept, previous | others]
     end
   end
 
   defp update_intents(intent, []) do
-    InternalCommunicator.notify_memorized(:new, intent)
+    PubSub.notify_memorized(:new, intent)
     [intent]
   end
 
   defp update_intents(intent, intents) do
-    InternalCommunicator.notify_memorized(:new, intent)
+    PubSub.notify_memorized(:new, intent)
     [intent | intents]
   end
 

@@ -69,7 +69,7 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a well-light area",
         predictions: [
           Prediction.new(
-            perceived: [{ {:sensor, :any_port, :color, :ambient}, { :gt, 50 }, :now }],
+            perceived: [{ {:sensor, :any_port, :color, :ambient}, { :gt, 50 }, { :past_secs, 2 } }],
             precision: :high,
             fulfillments: [Fulfillment.new(model_name: :getting_lighter)]
           )

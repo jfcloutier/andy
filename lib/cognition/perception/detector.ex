@@ -2,7 +2,7 @@ defmodule Andy.Detector do
   @moduledoc "A detector polling a sensor or motor for senses it implements"
 
   require Logger
-  alias Andy.{ Percept, InternalCommunicator, Device }
+  alias Andy.{ Percept, PubSub, Device }
   import Andy.Utils, only: [platform_dispatch: 2, timeout: 0, default_ttl: 1]
 
   @behaviour Andy.CognitionAgentBehaviour
@@ -48,7 +48,7 @@ defmodule Andy.Detector do
             ttl: default_ttl(:percept),
             resolution: sensitivity(updated_device, sense)
           }
-          |> InternalCommunicator.notify_perceived()
+          |> PubSub.notify_perceived()
           {
             :ok,
             %{
@@ -69,7 +69,7 @@ defmodule Andy.Detector do
   ### Cognition Agent Behaviour
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
   def handle_event({:poll, sensing_device, sense}, state) do

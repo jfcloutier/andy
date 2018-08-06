@@ -2,7 +2,7 @@ defmodule Andy.Attention do
   @moduledoc "Responsible for polling detectors as needed by predictors"
 
   require Logger
-  alias Andy.{ InternalCommunicator }
+  alias Andy.{ PubSub }
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -36,7 +36,7 @@ defmodule Andy.Attention do
   ### Cognition Agent Behaviour
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
   ## Handle timer events

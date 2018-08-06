@@ -3,7 +3,7 @@ defmodule Andy.RESTCommunicator do
 
 	@behaviour Andy.Communicating
 
-	alias Andy.InternalCommunicator
+	alias Andy.PubSub
 	require Logger
 	use GenServer
 	
@@ -41,7 +41,7 @@ defmodule Andy.RESTCommunicator do
 
 	def remote_percept(percept) do
 #		Logger.info("Received remote percept #{inspect(percept.about)}=#{inspect(percept.value)} from #{inspect(percept.source)}")
-		InternalCommunicator.notify_perceived(percept)
+		PubSub.notify_perceived(percept)
 	end
 	
 	### CALLBACKS

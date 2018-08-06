@@ -110,4 +110,15 @@ defmodule Andy do
     platform_dispatch(:senses_for_id_channel, [id_channel])
   end
 
+  def in_probable_range?(probability, precision) do
+    case precision do
+      :high ->
+        probability > 0.9
+      :medium ->
+        probability > 0.7
+      :low ->
+        probability > 0.5
+    end
+  end
+
 end

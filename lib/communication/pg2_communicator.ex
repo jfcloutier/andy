@@ -4,7 +4,7 @@ defmodule Andy.PG2Communicator do
 	@behaviour Andy.Communicating
 	
 	use GenServer
-	alias Andy.{Percept, InternalCommunicator}
+	alias Andy.{Percept, PubSub}
 	alias Andy
 	require Logger
 
@@ -64,8 +64,8 @@ defmodule Andy.PG2Communicator do
 			Logger.info("COMMUNICATOR #{inspect Node.self()} heard #{inspect info} from #{inspect from_node} in community #{community_name} and with id channel #{id_channel}")
 			percept = Percept.new(about: :heard,
 														value: %{from: from_node, info: info, id_channel: id_channel, community: community_name})
-			InternalCommunicator.notify_id_channel(id_channel, community_name) # not handled by anyone for now
-			InternalCommunicator.notify_perceived(%{percept |
+			PubSub.notify_id_channel(id_channel, community_name) # not handled by anyone for now
+			PubSub.notify_perceived(%{percept |
 														 ttl: @ttl,
 														 source: @name})
 			{:noreply, %{state | id_channels: ([id_channel | id_channels] |> Enum.uniq())}}

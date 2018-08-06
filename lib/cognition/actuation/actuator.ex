@@ -2,7 +2,7 @@ defmodule Andy.Actuator do
   @moduledoc "An actuator that translates intents into commands sent to motors"
 
   require Logger
-  alias Andy.{ Script, Device, MotorSpec, LEDSpec, SoundSpec, CommSpec, Communicators, InternalCommunicator,
+  alias Andy.{ Script, Device, MotorSpec, LEDSpec, SoundSpec, CommSpec, Communicators, PubSub,
                Intent }
   import Andy.Utils
 
@@ -67,7 +67,7 @@ defmodule Andy.Actuator do
                  script = action.(intent, state.devices)
                  Script.execute(state.actuator_config.type, script)
                  # This will have the intent stored in memory. Unrealized intents are not retained in memory.
-                 InternalCommunicator.notify_realized(name, intent)
+                 PubSub.notify_realized(name, intent)
                end
              )
         end
@@ -80,7 +80,7 @@ defmodule Andy.Actuator do
   ### Cognition agent
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
   def handle_event({ :intended, intent }, state) do
@@ -116,7 +116,7 @@ defmodule Andy.Actuator do
     factor = if intent.strong, do: strong_intent_factor(), else: 1
     if age > max_intent_age() * factor do
       Logger.warn("STALE #{Intent.strength(intent)} intent #{inspect intent.about} #{age}")
-      InternalCommunicator.notify_overwhelmed(:actuator, name)
+      PubSub.notify_overwhelmed(:actuator, name)
       false
     else
       true

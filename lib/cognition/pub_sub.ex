@@ -1,4 +1,4 @@
-defmodule Andy.InternalCommunicator do
+defmodule Andy.PubSub do
   @moduledoc "Enables embodied cognition agents to communicate via pub sub"
 
   require Logger

@@ -33,12 +33,17 @@ defmodule Andy.GenerativeModels do
   end
 
   def model_named(name) do
-    Agent.get(
+    model = Agent.get(
       @name,
       fn (%{ models: models }) ->
         Enum.find(models, &(&1.name == name))
       end
     )
+    if model == nil do
+      raise "Generative model #{name} not found"
+    else
+      model
+    end
   end
 
 

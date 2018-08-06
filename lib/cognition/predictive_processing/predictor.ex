@@ -2,7 +2,7 @@ defmodule Andy.Predictor do
   @moduledoc "Given a prediction, verify it and generate prediction errors if not verified"
 
   require Logger
-  alias Andy.{ InternalCommunicator, Prediction, GenerativeModels, Belief, Fulfillment }
+  alias Andy.{ PubSub, Prediction, GenerativeModels, Belief, Fulfillment, GenerativeModels }
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -21,11 +21,13 @@ defmodule Andy.Predictor do
       fn ->
         register_internal()
         %{
-          model_name: generative_model.name,
+          # believer making the prediction
           believer: believer_pid,
+          # the prediction made
           prediction: prediction,
+          # the effective precision for the prediction
           effective_precision: prediction.precision,
-          # For starters
+          # Is is currently fulfilled? For starters, yes
           fullfilled?: true
         }
       end,
@@ -54,7 +56,6 @@ defmodule Andy.Predictor do
             state
           { _is_or_not, model_name } ->
             model = GenerativeModels.named(model_name)
-            if model == nil, do: raise "Model #{model_name} does not exist"
             believer_id = BelieversSupervisor.grab_believer(model, predictor_pid)
             %{ state | believer: believer_id }
         end
@@ -79,13 +80,13 @@ defmodule Andy.Predictor do
   ### Cognition Agent Behaviour
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
   def handle_event({ :perceived, %Percept{ } = percept }, %{ prediction: prediction } = state) do
     # Validate perceived if relevant
     if percept_relevant?(percept, prediction) do
-      review_fulfilled(state)
+      review_prediction(state)
     else
       state
     end
@@ -94,7 +95,7 @@ defmodule Andy.Predictor do
   def handle_event({ :believed, %Belief{ } = belief }, %{ prediction: prediction } = state) do
     # Validate believed if relevant
     if belief_relevant?(belief, prediction) do
-      review_fulfilled(state)
+      review_prediction(state)
     else
       state
     end
@@ -128,7 +129,7 @@ defmodule Andy.Predictor do
 
   defp belief_relevant?(
          %Belief{ model_name: model_name },
-         %{ believed: { _is_or_not, believed_model_name } }
+         %{ believed: { _is_or_not, believed_model_name } = _prediction }
        ) do
     model_name == believed_model_name
   end
@@ -147,12 +148,18 @@ defmodule Andy.Predictor do
     )
   end
 
-  defp review_fulfilled(%{ fulfilled?: fulfilled? } = state) do
-    if fulfilled?(prediction) do
+  defp review_prediction(
+         %{
+           prediction: prediction,
+           fulfilled?: fulfilled?,
+           effective_precision: precision
+         } = state
+       ) do
+    if prediction_fulfilled?(prediction, precision) do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true enough
       if not fulfilled? do
-        InternalCommunicator.notify_fulfilled(
+        PubSub.notify_fulfilled(
           PredictionFulfilled.new(
             model_name: state.model_name,
             prediction: state.prediction
@@ -164,16 +171,61 @@ defmodule Andy.Predictor do
       unfulfilled_state = %{ state | fulfilled?: false }
       # Notify of prediction error if prediction not true enough
       prediction_error = prediction_error(state)
-      InternalCommunicator.notify_prediction_error(prediction_error)
+      PubSub.notify_prediction_error(prediction_error)
       unfulfilled_state
     end
   end
 
-  defp fulfilled?(prediction) do
+  defp prediction_fulfilled?(prediction, precision) do
+    believed_as_predicted?(prediction, precision)
+    and perceived_as_predicted?(prediction, precision)
+  end
+
+  defp believed_as_predicted?(
+         %{ believed: nil } = _prediction,
+         _precision
+       ) do
+    true
+  end
+
+  defp believed_as_predicted?(
+         %{ believed: { is_or_not, model_name } } = _prediction,
+         precision
+       ) do
+    believer = BelieversSupervisor.find_believer(model_name)
+    believes? = Believer.believes?(believer, precision)
+    case is_nor_not do
+      :is -> believes?
+      :not -> not believes?
+    end
+  end
+
+  defp perceived_as_predicted?(%{ perceived: [] } = _prediction, _precision) do
+    true
+  end
+
+  defp perceived_as_predicted?(%{ perceived: perceived_list } = _prediction, precision) do
+    probability = Enum.reduce(
+      perceived_list,
+      1.0,
+      fn (perceived, acc) ->
+        probability_of_perceived(perceived) * acc
+      end
+    )
+    Andy.in_probable_range?(probability, precision)
+  end
+
+  defp probability_of_perceived({percept_about, predicate, time_period} = _perceived) do
+    percepts = Memory.recall_percepts(percept_about, time_period)
+    fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1)))
+    Enum.count(fitting_percepts) / Enum.count(percepts)
+  end
+
+  defp apply_predicate(predicate, percept) do
     # TODO
     true
   end
-  
+
   defp prediction_error(state) do
     #TODO
   end

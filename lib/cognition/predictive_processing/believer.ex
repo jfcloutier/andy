@@ -3,7 +3,7 @@ defmodule Andy.Believer do
   @moduledoc "Given a generative model, updates belief in it upon prediction errors."
 
   require Logger
-  alias Andy.{ InternalCommunicator, Belief }
+  alias Andy.{ PubSub, Belief }
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -96,14 +96,11 @@ defmodule Andy.Believer do
     )
   end
 
-  defp terminate_predictors(believer_pid) do
-    Agent.update(
-      believer_id,
-      fn (%{ predictors: predictor_ids }) ->
-        Enum.each(
-          predictor_ids,
-          &(PredictorsSupervisor.terminate(&1))
-        )
+  def believes?(believer_pid, precision) do
+    Agent.get(
+      believer_pid,
+      fn (%{ belief: belief }) ->
+        in_acceptable_range?(belief.probability, precision)
       end
     )
   end
@@ -111,7 +108,7 @@ defmodule Andy.Believer do
   ### Cognition Agent Behaviour
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
   def handle_event(
@@ -141,6 +138,18 @@ defmodule Andy.Believer do
   end
 
   # PRIVATE
+
+  defp terminate_predictors(believer_pid) do
+    Agent.update(
+      believer_id,
+      fn (%{ predictors: predictor_ids }) ->
+        Enum.each(
+          predictor_ids,
+          &(PredictorsSupervisor.terminate(&1))
+        )
+      end
+    )
+  end
 
   defp process_prediction_error(prediction_error, state) do
     # TODO

@@ -9,7 +9,7 @@ defmodule Andy.Application do
 
   use Application
   require Logger
-  alias Andy.{CognitionSupervisor, InternalCommunicator, InternalClock}
+  alias Andy.{CognitionSupervisor, PubSub, InternalClock}
   import Supervisor.Spec
 
   def start(_type, _args) do
@@ -47,18 +47,18 @@ defmodule Andy.Application do
 
   @doc "Loop pushing runtime stats every @poll_runtime_delay seconds"
   def push_runtime_stats() do
-    InternalCommunicator.notify_runtime_stats(runtime_stats())
+    PubSub.notify_runtime_stats(runtime_stats())
     :timer.sleep(@poll_runtime_delay)
     push_runtime_stats()
   end
 
   @doc "Shut down the Prediction Processing"
   def shutdown() do
-    InternalCommunicator.notify_shutdown()
+    PubSub.notify_shutdown()
   end
 
   def toggle_paused() do
-    InternalCommunicator.toggle_paused()
+    PubSub.toggle_paused()
   end
 
   def go() do

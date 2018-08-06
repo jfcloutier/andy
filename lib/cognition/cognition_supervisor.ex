@@ -2,7 +2,7 @@ defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{ InternalCommunicator, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor,
+  alias Andy.{ PubSub, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor,
                InternalClock, PG2Communicator,
                RESTCommunicator, GenerativeModels, Attention }
 
@@ -18,7 +18,7 @@ defmodule Andy.CognitionSupervisor do
 
   def init(_) do
     children = [
-      InternalCommunicator,
+      PubSub,
       Memory,
       PG2Communicator,
       RESTCommunicator,

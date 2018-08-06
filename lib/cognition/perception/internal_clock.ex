@@ -2,7 +2,7 @@ defmodule Andy.InternalClock do
   @moduledoc "An internal clock"
 
   require Logger
-  alias Andy.{ Percept, InternalCommunicator }
+  alias Andy.{ Percept, PubSub }
   import Andy.Utils, only: [tick_interval: 0, now: 0]
 
   @behaviour Andy.CognitionAgentBehaviour
@@ -42,7 +42,7 @@ defmodule Andy.InternalClock do
         if state.responsive do
           tock = now()
           Logger.info("tick")
-          InternalCommunicator.notify_tick()
+          PubSub.notify_tick()
           Percept.new_transient(
             about: %{class: :sensor, port: nil, type: :timer, sense: :time_elapsed},
             value: %{
@@ -50,7 +50,7 @@ defmodule Andy.InternalClock do
               count: state.count
             }
           )
-          |> InternalCommunicator.notify_perceived()
+          |> PubSub.notify_perceived()
           %{ state | tock: tock, count: state.count + 1 }
         else
  #         Logger.debug(" no tick")
@@ -100,7 +100,7 @@ defmodule Andy.InternalClock do
   end
 
   def register_internal() do
-    InternalCommunicator.register(__MODULE__)
+    PubSub.register(__MODULE__)
   end
 
 

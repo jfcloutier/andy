@@ -27,7 +27,7 @@ defmodule Andy.BelieversSupervisor do
 
   @doc " A predictor grabs a believer"
   def grab_believer(generative_model, predictor_pid) do
-    believer_pid = case find_believer(generative_model) do
+    believer_pid = case find_believer(generative_model.name) do
       nil ->
         { :ok, believer_pid } = start_believer(generative_model)
         believer_pid
@@ -40,7 +40,7 @@ defmodule Andy.BelieversSupervisor do
 
   @doc " A predictor releases a believer"
   def release_believer(generative_model, predictor_pid) do
-    believer_pid = case find_believer(generative_model) do
+    believer_pid = case find_believer(generative_model.name) do
       nil ->
         :ok
       believer_pid ->
@@ -50,13 +50,13 @@ defmodule Andy.BelieversSupervisor do
   end
 
   @doc "Find an existing supervised believer in a model"
-  def find_believer(generative_model) do
+  def find_believer(model_name) do
     DynamicSupervisor.which_children(@name)
     |> Enum.find(
          # It is possible that instead of a pid we get :restarted if the believer is
          # being restarted. I chose to ignore that possibility.
          fn ({ _, believer_pid, _, _ }) ->
-           Believer.name(believer_pid) == generative_model.name
+           Believer.name(believer_pid) == model_name
          end
        )
   end
