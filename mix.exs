@@ -64,7 +64,8 @@ defmodule Andy.MixProject do
       { :httpoison, "~> 0.11" },
       { :poison, "~> 3.1.0" },
       { :gettext, "~> 0.11" },
-      { :cowboy, "~> 1.0" }
+      { :cowboy, "~> 1.0" },
+      { :elixir_uuid, "~> 1.2" }
     ] ++ deps(@target)
   end
 

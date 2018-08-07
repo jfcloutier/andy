@@ -6,7 +6,9 @@ cp rel/vm.args.andy rel/vm.args; mix firmware # or cp rel/vm.args.marv rel/vm.ar
 mix firmware.burn 
 or ./upload.sh 192.168.1.181 # SLOW
 
-Top open a console
+Top open a console:
+
+Get on WiFi
 ssh 192.168.1.181
 Type ~. to close it
 

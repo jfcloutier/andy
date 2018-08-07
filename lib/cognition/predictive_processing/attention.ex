@@ -16,12 +16,12 @@ defmodule Andy.Attention do
   end
 
   def start_link() do
-    {:ok, pid } = Agent.start_link(
-    fn ->
-    register_internal()
-    # detector_spec => [perceptor_id, ...]
-    %{}
-    end
+    { :ok, pid } = Agent.start_link(
+      fn ->
+        register_internal()
+        # detector_spec => [perceptor_id, ...]
+        %{ }
+      end
     )
   end
 
@@ -40,6 +40,21 @@ defmodule Andy.Attention do
   end
 
   ## Handle timer events
+
+  def handle_event({ :prediction_error, prediction_error }, state) do
+    # TODO
+   # Choose and initiate a fulfilment to correct the prediction error
+    # If fulfillment is via making a model true,
+    # adjust effective priorities of predictors of other models of lesser priority
+    state
+  end
+
+  def handle_event({ :prediction_fulfilled, prediction_fulfilled }, state) do
+    # TODO
+    # If fulfillment was by making a model true, then adjust effective priorities of predictors
+    state
+  end
+
 
   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")

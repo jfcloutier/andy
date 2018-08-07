@@ -43,7 +43,7 @@ defmodule Andy.Memory do
     )
   end
 
-  @doc "Recall all matching percepts in a time window until now"
+  @doc "Recall all matching, unexpired percepts in a time window until now, latest to oldest"
   def recall_percepts_since(about, { :past_secs, secs }) do
     Agent.get(
       @name,
@@ -57,39 +57,23 @@ defmodule Andy.Memory do
     )
   end
 
-
-  @doc "Return percepts memorized since window_width as %{percepts: [...], intents: [...]}"
-  def since(window_width, senses: senses, intents: intent_names) do
-    Agent.get(
-      @name,
-      fn (state) ->
-        since(
-          window_width,
-          senses,
-          intent_names,
-          state
-        )
-      end
-    )
-  end
-
-  @doc "Recall all percepts from any of given senses in a time window until now"
-  def recall_percepts(senses, window_width) do
-    Agent.get(
-      @name,
-      fn (state) ->
-        recent_percepts(window_width, senses, state)
-      end
-    )
+  @doc "Recall latest unexpired, matching percept, if any"
+  def recall_percepts_since(about, :now) do
+    case recall_percepts_since(about, { :past_secs, 1 }) do
+      [percept | _] ->
+        [percept]
+      [] ->
+        []
+    end
   end
 
 
   @doc "Recall the history of a named intent, within a time window until now"
-  def recall_intents(name, window_width) do
+  def recall_intents_since(name, { :past_secs, secs }) do
     Agent.get(
       @name,
       fn (state) ->
-        recent_intents(window_width, [name], state)
+        intents_since(name, secs, state)
       end
     )
   end
@@ -128,8 +112,8 @@ defmodule Andy.Memory do
     forget()
   end
 
-  defp store(%Percept{ } = percept, state) do
-    key = Percept.sense(percept)
+  defp store(%Percept{ about: about } = percept, state) do
+    key = about.sense
     percepts = Map.get(state.percepts, key, [])
     new_percepts = update_percepts(percept, percepts)
     %{ state | percepts: Map.put(state.percepts, key, new_percepts) }
@@ -141,21 +125,13 @@ defmodule Andy.Memory do
     %{ state | intents: Map.put(state.intents, intent.about, new_intents) }
   end
 
-  defp since(window_width, senses, intent_names, state) do
-    percepts = recent_percepts(window_width, senses, state)
-    intents = recent_intents(window_width, intent_names, state)
-    %{ percepts: percepts, intents: intents }
-  end
-
   defp update_percepts(percept, []) do
-    PubSub.notify_memorized(:new, percept)
     [percept]
   end
 
   defp update_percepts(percept, [previous | others]) do
     if not change_felt?(percept, previous) do
       extended_percept = %Percept{ previous | until: percept.since }
-      PubSub.notify_memorized(:extended, extended_percept)
       [extended_percept | others]
     else
       PubSub.notify_memorized(:new, percept)
@@ -164,46 +140,31 @@ defmodule Andy.Memory do
   end
 
   defp update_intents(intent, []) do
-    PubSub.notify_memorized(:new, intent)
     [intent]
   end
 
   defp update_intents(intent, intents) do
-    PubSub.notify_memorized(:new, intent)
     [intent | intents]
   end
 
 
-  defp recent_percepts(window_width, senses, state) do
+  defp percepts_since(about, secs, state) do
     msecs = now()
-    Enum.reduce(
-      senses,
-      [],
-      fn (sense, acc) ->
-        percepts = Enum.take_while(
-          Map.get(state.percepts, sense, []),
-          fn (percept) ->
-            window_width == nil or percept.until > (msecs - window_width)
-          end
-        )
-        acc ++ percepts
+    Enum.take_while(
+      Map.get(state.percepts, about.sense, []),
+      fn (percept) ->
+        secs == nil or percept.until > (msecs - (secs * 1000))
       end
     )
+    |> Enum.filter(&(Percept.about_match?(&1.about, about)))
   end
 
-  defp recent_intents(window_width, names, state) do
+  defp recent_intents(name, secs, state) do
     msecs = now()
-    Enum.reduce(
-      names,
-      [],
-      fn (name, acc) ->
-        intents = Enum.take_while(
-          Map.get(state.intents, name, []),
-          fn (intent) ->
-            window_width == nil or intent.since > (msecs - window_width)
-          end
-        )
-        acc ++ intents
+    Enum.take_while(
+      Map.get(state.intents, name, []),
+      fn (intent) ->
+        secs == nil or intent.since > (msecs - (secs * 1000))
       end
     )
   end

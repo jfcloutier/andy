@@ -8,11 +8,11 @@ defmodule Andy.PredictionFulfilled do
 
   def new(
         model_name: model_name,
-        prediction: prediction
+        prediction_name: prediction_name
       ) do
     %PredictionFulfilled{
       model_name: model_name,
-      prediction: prediction
+      prediction: prediction_name
     }
   end
 

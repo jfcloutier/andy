@@ -8,12 +8,13 @@ defmodule Andy.Belief do
 
   defstruct model_name: model_name,
               # initially belief is 100%
-            probability: 1,
+            value: true,
             as_of: nil
 
-  def new(model_name) do
+  def new(model_name, value) do
     %Belief{
       model_name: model_name,
+      value: value,
       as_of: time_secs()
     }
   end

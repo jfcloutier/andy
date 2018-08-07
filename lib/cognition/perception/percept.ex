@@ -23,6 +23,7 @@ defmodule Andy.Percept do
   def new(about: about, value: value) do
     msecs = now()
     %Andy.Percept{
+      id: UUID.uuid4(),
       about: about,
       since: msecs,
       until: msecs,
@@ -34,6 +35,7 @@ defmodule Andy.Percept do
   def new(about: about, value: value, source: source) do
     msecs = now()
     %Andy.Percept{
+      id: UUID.uuid4(),
       about: about,
       since: msecs,
       until: msecs,
@@ -46,6 +48,7 @@ defmodule Andy.Percept do
   def new(about: about, value: value, source: source, ttl: ttl) do
     msecs = now()
     %Andy.Percept{
+      id: UUID.uuid4(),
       about: about,
       since: msecs,
       until: msecs,
@@ -59,6 +62,7 @@ defmodule Andy.Percept do
   def new_transient(about: about, value: value) do
     msecs = now()
     %Andy.Percept{
+      id: UUID.uuid4(),
       about: about,
       since: msecs,
       until: msecs,
@@ -85,12 +89,32 @@ defmodule Andy.Percept do
   end
 
   @doc "The sense of the percept"
-  def sense(%{about: %{sense: sense}} = _percept) do
+  def sense(
+        %{
+          about: %{
+            sense: sense
+          }
+        } = _percept
+      ) do
     sense
   end
 
   def transient?(percept) do
     percept.transient
+  end
+
+  def about_match?(about1, about2) do
+    # Both have the same keys
+    keys = Map.keys(about1)
+    Enum.all?(
+      keys,
+      fn (key) -> val1 = Map.fetch!(about1, key)
+                  val2 = Map.fetch!(about2, key)
+                  val1 == "*"
+                  or val2 == "*"
+                  or val1 == val2
+      end
+    )
   end
 
   ### PRIVATE

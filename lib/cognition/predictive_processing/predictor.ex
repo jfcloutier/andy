@@ -11,16 +11,17 @@ defmodule Andy.Predictor do
     %{
       # defaults to restart: permanent and type: :worker
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [prediction, believer_pid] }
+      start: { __MODULE__, :start_link, [prediction, believer_pid, model_name] }
     }
   end
 
   @doc "Start the cognition agent responsible for believing in a generative model"
-  def start_link(prediction, believer_pid) do
+  def start_link(prediction, believer_pid, model_name) do
     { :ok, pid } = Agent.start_link(
       fn ->
         register_internal()
         %{
+          predicted_model_name: model_name,
           # believer making the prediction
           believer: believer_pid,
           # the prediction made
@@ -31,7 +32,7 @@ defmodule Andy.Predictor do
           fullfilled?: true
         }
       end,
-      [name: generative_model.name]
+      [name: "#{prediction.name}(#{model_name})"]
     )
     Task.async(fn -> predict(pid) end)
     Logger.info("#{__MODULE__} started on prediction #{Prediction.summary(prediction)}")
@@ -104,7 +105,7 @@ defmodule Andy.Predictor do
   def handle_event({ :fulfill, %Fulfill{ } }, state) do
     # Try a fulfillment in response to a prediction error -
     # It might instantiate a temporary model believer for a fulfillment action
-    #
+    # TODO
     state
   end
 
@@ -122,7 +123,7 @@ defmodule Andy.Predictor do
     Enum.any?(
       perceived_specs,
       fn (perceived_spec) ->
-        match?(perceived_spec, percept_about)
+        Percept.about_match?(perceived_spec, percept_about)
       end
     )
   end
@@ -132,20 +133,6 @@ defmodule Andy.Predictor do
          %{ believed: { _is_or_not, believed_model_name } = _prediction }
        ) do
     model_name == believed_model_name
-  end
-
-  defp match?(perceived_spec, percept_about) do
-    # Both have the same keys
-    keys = Map.keys(perceived_spec)
-    Enum.all?(
-      keys,
-      fn (key) -> perceived.val = Map.fetch!(perceived_spec, key)
-                  percept.val = Map.fetch!(percept_about, key)
-                  perceived.val == "*"
-                  or percept_val == "*"
-                  or perceived_val == percept_val
-      end
-    )
   end
 
   defp review_prediction(
@@ -160,18 +147,14 @@ defmodule Andy.Predictor do
       # Notify of prediction recovered if prediction becomes true enough
       if not fulfilled? do
         PubSub.notify_fulfilled(
-          PredictionFulfilled.new(
-            model_name: state.model_name,
-            prediction: state.prediction
-          )
+          prediction_fulfilled(state)
         )
       end
       fulfilled_state
     else
       unfulfilled_state = %{ state | fulfilled?: false }
       # Notify of prediction error if prediction not true enough
-      prediction_error = prediction_error(state)
-      PubSub.notify_prediction_error(prediction_error)
+      PubSub.notify_prediction_error(prediction_error(state))
       unfulfilled_state
     end
   end
@@ -215,19 +198,60 @@ defmodule Andy.Predictor do
     Andy.in_probable_range?(probability, precision)
   end
 
-  defp probability_of_perceived({percept_about, predicate, time_period} = _perceived) do
-    percepts = Memory.recall_percepts(percept_about, time_period)
-    fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1)))
+
+  defp probability_of_perceived({ percept_about, predicate, time_period } = _perceived) do
+    percepts = Memory.recall_percepts_since(percept_about, time_period)
+    fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1, percepts)))
     Enum.count(fitting_percepts) / Enum.count(percepts)
   end
 
-  defp apply_predicate(predicate, percept) do
-    # TODO
-    true
+  defp apply_predicate({ :gt, val }, percept, _percepts) do
+    percept.value > val
   end
 
+  defp apply_predicate({ :lt, val }, percept, _percepts) do
+    percept.value < val
+  end
+
+  defp apply_predicate({ :eq, val }, percept, _percepts) do
+    percept.value == val
+  end
+
+  defp apply_predicate({ :neq, val }, percept, _percepts) do
+    percept.value != val
+  end
+
+  defp apply_predicate({ :in, range }, percept, _percepts) do
+    percept.value in range
+  end
+
+  # Is the value greater than or equal to the average of previous values?
+  defp apply_predicate(:ascending, percept, percepts) do
+    { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
+    average = Enum.reduce(before, 0, &(&1.value + acc))
+    percept.value >= average
+  end
+
+  # Is the value greater than or equal to the average of previous values?
+  defp apply_predicate(:descending, percept, percepts) do
+    { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
+    average = Enum.reduce(before, 0, &(&1.value + acc))
+    percept.value <= average
+  end
+
+
   defp prediction_error(state) do
-    #TODO
+    Prediction.new(
+      model_name: state.model_name,
+      prediction_name: state.prediction_name
+    )
+  end
+
+  defp prediction_fulfilled(state) do
+    PredictionFulfilled.new(
+      model_name: state.model_name,
+      prediction_name: state.prediction
+    )
   end
 
 end

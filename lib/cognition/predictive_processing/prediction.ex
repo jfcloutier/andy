@@ -5,13 +5,15 @@ defmodule Andy.Prediction do
   alias Andy.Fulfillment
 
   @type t :: %__MODULE__{
+               name: :atom,
                perceived: [{ tuple(), any, any }],
                believed: { :not | :is, atom } | nil,
                fulfillments: [Fulfillment.t]
              }
 
   # prediction name is unique within a generative model
-  defstruct perceived: [],
+  defstruct name: nil,
+            perceived: [],
               # or generative model name
             believed: nil,
               # One of :high, :medium, :low
@@ -20,6 +22,7 @@ defmodule Andy.Prediction do
             fulfillments: []
 
   def new(
+        name: name,
         # {:is | :not, <model name>}
         believed: believed,
         # list of {{device_class, device_type, sense}, value desc, timeframe}
@@ -28,6 +31,7 @@ defmodule Andy.Prediction do
         fulfillments: fulfillments
       ) do
     %Prediction{
+      name: name,
       believed: believed,
       perceived: perceived,
       precision: default_precision,
@@ -36,11 +40,13 @@ defmodule Andy.Prediction do
   end
 
   def new(
+        name: name,
         believed: believed,
         precision: default_precision,
         fulfillments: fulfillments
       ) do
     %Prediction{
+      name: name,
       believed: believed,
       perceived: [],
       precision: default_precision,
@@ -55,6 +61,7 @@ defmodule Andy.Prediction do
         fulfillments: fulfillments
       ) do
     %Prediction{
+      name: name,
       believed: nil,
       perceived: perceived,
       precision: default_precision,

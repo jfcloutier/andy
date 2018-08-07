@@ -23,7 +23,7 @@ defmodule Andy.Believer do
         register_internal()
         %{
           model: generative_model,
-          belief: Belief.new(generative_model.name),
+          validation: %{ }, # prediction_name => true|false
           predictors: [],
           for_predictors: MapSet.new()
         }
@@ -88,10 +88,17 @@ defmodule Andy.Believer do
         predictor_pids = Enum.map(
           model.predictions,
           fn (prediction) ->
-            PredictorsSupervisor.start_predictor(prediction, believer_pid)
+            PredictorsSupervisor.start_predictor(prediction, believer_pid, model.name)
           end
         )
-        %{ state | predictors: predictor_pids }
+        validations = Enum.reduce(
+          model.predictions,
+          %{ },
+          fn (prediction, acc) ->
+            Map.put(acc, prediction.name, true)
+          end
+        )
+        %{ state | predictors: predictor_pids, validations: validations }
       end
     )
   end
@@ -118,7 +125,6 @@ defmodule Andy.Believer do
         } = state
       ) when model.name == model_name do
     process_prediction_error(prediction_error, state)
-    state
   end
 
   def handle_event(
@@ -151,19 +157,24 @@ defmodule Andy.Believer do
     )
   end
 
-  defp process_prediction_error(prediction_error, state) do
-    # TODO
-    # Select and schedule (faster if high focus) having the associated predictor try a fulfillment
-    # Revise belief, notify of Belief if changed
-    # Somehow alter the effective precision of competing predictors
-    state
+  defp process_prediction_error(prediction_error, %{ validations: validations } = state) do
+    PubSub.notify_believed(Belief.new(state.model.name, false))
+    %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
   end
 
-  defp process_prediction_fulfilled(prediction_fulfilled, state) do
-    # TODO
-    # Revise belief, notifiy if Belief changed
-    # Somehow un-alter the effective precision of competing predictors
-    # If for transient model (from action), terminate self
+  defp process_prediction_fulfilled(prediction_fulfilled, %{ validations: validations } = state state) do
+    was_validated? = validated?(state)
+    PubSub.notify_believed(Belief.new(state.model.name, true))
+    new_state = %{ state | validations: Map.put(validations, prediction_fulfilled.prediction_name, true) }
+    if not was_validated? and validated?(new_state) do
+      PubSub.notify_believed(Belief.new(state.model.name, true))
+      # TODO - Have BelieversSupervisor terminate self (and predictors) if transient (action-initiated)
+    end
+    new_state
+  end
+
+  defp validated?(%{ validations: validations } = state) do
+    Enum.all?(validations, fn ({ _, value }) -> value end)
   end
 
 end

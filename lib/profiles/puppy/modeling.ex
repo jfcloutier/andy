@@ -15,17 +15,20 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           # safe, sated and free are sinling models
           Prediction.new(
+            name: :puppy_is_safe,
             believed: { :is, :safe },
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [Fulfillment.new(actions: [say_once("I am scared!")])]
           ),
           Prediction.new(
+          name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :high,
             fulfillments: [Fulfillment.new(actions: [say_once("I am hungry!")])]
           ),
           Prediction.new(
+          name: :puppy_is_free,
             believed: { :is, :free },
             precision: :high,
             fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!")])]
@@ -42,16 +45,19 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is safe",
         predictions: [
           Prediction.new(
+            name: :puppy_not_bumped,
             believed: { :not, :bumped },
             precision: :high,
             fulfillments: [Fulfillment.new(actions: [backoff(), turn()])]
           ),
           Prediction.new(
+            name: :puppy_not_in_the_dark,
             believed: { :not, :in_the_dark },
             precision: :high,
             fulfillments: [Fulfillment.new(model_name: :in_the_light)]
           ),
           Prediction.new(
+            name: :other_puppies_safe,
             believed: { :is, :others_safe },
             precision: :high,
             # That won't help but heh...
@@ -69,6 +75,7 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a well-light area",
         predictions: [
           Prediction.new(
+          name: :puppy_in_well_lit_area,
             perceived: [{ {:sensor, :any_port, :color, :ambient}, { :gt, 50 }, { :past_secs, 2 } }],
             precision: :high,
             fulfillments: [Fulfillment.new(model_name: :getting_lighter)]
@@ -82,6 +89,7 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a better-lit area",
         predictions: [
           Prediction.new(
+            name: :puppy_in_better_lit_area,
             perceived: [{ {:sensor, :any_port, :color, :ambient}, :ascending, { :past_secs, 5 } }],
             precision: :low,
             # keep going forward if it works, else turn
