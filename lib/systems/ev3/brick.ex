@@ -8,10 +8,11 @@ defmodule Andy.Ev3.Brick do
     # Initialize
     load_ev3_modules()
     init_alsa()
+    init_uart()
     redirect_logging()
     # Define workers and child supervisors to be supervised
     children = [
-    #  worker(Andy.Ev3.Display, []),
+      #  worker(Andy.Ev3.Display, []),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
@@ -44,13 +45,20 @@ defmodule Andy.Ev3.Brick do
     :os.cmd('modprobe legoev3_battery')
   end
 
+  # Set IN ports 2, 3, 4 as UART sensor ports
+  defp init_uart() do
+    :os.cmd('/usr/sbin/ldattach 29 /dev/ttyS0')
+    :os.cmd('/usr/sbin/ldattach 29 /dev/ttySU1')
+    :os.cmd('/usr/sbin/ldattach 29 /dev/ttySU0')
+  end
+
   defp redirect_logging() do
     :ok = maybe_mount_appdata()
     Logger.add_backend { LoggerFileBackend, :error }
     Logger.configure_backend { LoggerFileBackend, :error },
                              path: "/mnt/system.log",
                              level: :info
-#    Logger.remove_backend :console
+    #    Logger.remove_backend :console
 
     # Turn off kernel logging to the console
     #System.cmd("dmesg", ["-n", "1"])

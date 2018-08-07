@@ -7,7 +7,8 @@ use Mix.Config
 
 # Customize non-Elixir parts of the firmware.  See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.
-config :nerves, :firmware, rootfs_overlay: "rootfs_overlay"
+config :nerves, :firmware,
+       rootfs_overlay: "rootfs_overlay"
 
 # Use shoehorn to start the main application. See the shoehorn
 # docs for separating out critical OTP applications such as those
@@ -44,7 +45,8 @@ config :nerves_init_gadget,
 
 # Replace the default Elixir logger
 # config :logger, backends: [RingLogger]
-config :logger, :console,
+config :logger,
+       :console,
        level: :info,
        format: "$time $metadata[$level] $message\n",
        metadata: [:request_id]
@@ -91,11 +93,15 @@ config :andy, :ttl,
 
 
 config :andy,
-       platforms: %{"mock_rover" => Andy.MockRover.Platform,
+       platforms: %{
+         "mock_rover" => Andy.MockRover.Platform,
          "rover" => Andy.Rover.Platform,
-         "hub" => Andy.Hub.Platform},
-       profiles: %{"puppy" => Andy.Puppy.Profile,
-         "mommy" => Andy.Mommy.Profile},
+         "hub" => Andy.Hub.Platform
+       },
+       profiles: %{
+         "puppy" => Andy.Puppy.Profile,
+         "mommy" => Andy.Mommy.Profile
+       },
        tick_interval: 1500,
        max_percept_age: 1500,
        max_motive_age: 3000,
