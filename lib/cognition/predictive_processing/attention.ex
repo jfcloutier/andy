@@ -4,6 +4,8 @@ defmodule Andy.Attention do
   require Logger
   alias Andy.{ PubSub }
 
+  @name __MODULE__
+
   @behaviour Andy.CognitionAgentBehaviour
 
   @doc "Child spec asked by DynamicSupervisor"
@@ -19,19 +21,82 @@ defmodule Andy.Attention do
     { :ok, pid } = Agent.start_link(
       fn ->
         register_internal()
-        # detector_spec => [perceptor_id, ...]
-        %{ }
-      end
+        %{
+          # [%{predictor_id: ..., detector_specs: ..., priority: ...}, ...] - priority in [:low, :medium, :high]
+          attended_list: []
+        }
+      end,
+      [name: @name]
     )
   end
 
-  def pay_attention(detector_specs, predictor_pid) do
-    # TODO
+  #
+  def pay_attention(detector_specs, predictor_pid, priority \\ :low) do
+    Agent.update(
+      @name,
+      fn (%{ attended_list: attended_list } = state) ->
+        attended_minus = Enum.reduce(
+          attended_list,
+          [],
+          fn (attended, acc) ->
+            if attended.predictor_id == predictor_id and Percept.about_match?(
+              detector_specs,
+              attended.detector_specs
+               ) do
+              acc
+            else
+              [attended | acc]
+            end
+          end
+        )
+        new_attended = %{ predictor_id: predictor_id, detector_specs: detector_specs, priority: priority }
+        %{ state | attended_list: [new_attended | attended_minus] }
+      end
+    )
+    set_polling_priority(detector_specs)
+  end
+
+  defp set_polling_priority(detector_specs) do
+    max_priority = Agent.get(
+      @name,
+      fn (%{ attended_list: attended_list }) ->
+        Enum.reduce(
+          attended_list,
+          :none,
+          fn (%{ detector_specs: specs, priority: priority }, acc) ->
+            if Percept.about_match?(detector_specs, specs) do
+              Andy.highest_priority(acc, priority)
+            else
+              acc
+            end
+          end
+        )
+      end
+    )
+    DetectorsSupervisor.set_polling_priority(detector_specs, max_priority)
   end
 
   def lose_attention(predictor_pid) do
-    # TODO
+    Agent.update(
+      @name,
+      fn (%{ attended_list: attended_list } = state) ->
+        attended_minus = Enum.reduce(
+          attended_list,
+          [],
+          fn (attended, acc) ->
+            if attended.predictor_id == predictor_id do
+              acc
+            else
+              [attended | acc]
+            end
+          end
+        )
+        %{ state | attended_list: attended_minus }
+      end
+    )
+    set_polling_priority(detector_specs)
   end
+
 
   ### Cognition Agent Behaviour
 
@@ -43,7 +108,7 @@ defmodule Andy.Attention do
 
   def handle_event({ :prediction_error, prediction_error }, state) do
     # TODO
-   # Choose and initiate a fulfilment to correct the prediction error
+    # Choose and initiate a fulfillment to correct the prediction error
     # If fulfillment is via making a model true,
     # adjust effective priorities of predictors of other models of lesser priority
     state

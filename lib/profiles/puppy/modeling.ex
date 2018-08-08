@@ -67,7 +67,6 @@ defmodule Andy.Puppy.Modeling do
         focus: :high
       ),
 
-
       # Action models
       # In a well-light area
       GenerativeModel.new(

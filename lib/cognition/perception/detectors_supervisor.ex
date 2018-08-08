@@ -22,10 +22,16 @@ defmodule Andy.DetectorsSupervisor do
   end
 
   @doc "Start a supervised detector worker for a sensing device"
-  def start_detector(sensing_device) do
-    #		Logger.debug("Starting Detector on #{sensing_device.path}")
-    spec = { Detector, [sensing_device] }
+  def start_detector(sensing_device, sense) do
+    #		Logger.debug("Starting Detector on #{sensing_device.path} for sense #{sense}")
+    spec = { Detector, [sensing_device, sense] }
     { :ok, _pid } = DynamicSupervisor.start_child(@name, spec)
+  end
+
+  def set_polling_priority(detector_specs, max_priority) do
+    # TODO
+    # Find all detectors that match and set their polling priority
+    # and call Detector.set_polling_priority(detector_pid, priority)
   end
 
   ## Callbacks

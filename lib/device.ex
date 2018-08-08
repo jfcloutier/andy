@@ -22,6 +22,10 @@ defmodule Andy.Device do
     apply(mod, :device_code, [type])
   end
 
+  def senses(%Device{ mod: mod } = device) do
+    apply(mod, :senses, [device])
+  end
+
   def name(%Device{ path: path }) do
     String.to_atom(path)
   end

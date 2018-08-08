@@ -39,12 +39,13 @@ defmodule Andy do
   end
 
   def default_ttl(kind) do
-  (Application.get_env(:andy, :ttl) || [])
+    (Application.get_env(:andy, :ttl) || [])
     |> Keyword.get(kind, @default_ttl)
   end
 
   def rest_port() do
-    {port, _} = (get_andy_env("ANDY_PORT", "4000")) |> Integer.parse()
+    { port, _ } = (get_andy_env("ANDY_PORT", "4000"))
+                  |> Integer.parse()
     port
   end
 
@@ -67,7 +68,8 @@ defmodule Andy do
   end
 
   def peer() do
-    (get_andy_env("ANDY_PEER", "???")) |> String.to_atom()
+    (get_andy_env("ANDY_PEER", "???"))
+    |> String.to_atom()
   end
 
   def sensors() do
@@ -111,13 +113,26 @@ defmodule Andy do
   end
 
   def in_probable_range?(probability, precision) do
-    case precision do
+    case
+    precision
+      do
       :high ->
         probability > 0.9
       :medium ->
         probability > 0.7
       :low ->
         probability > 0.5
+      :none ->
+        true
+    end
+  end
+
+  def highest_priority(priority1, priority2) do
+    cond do
+      :high in [priority1, priority2] -> :high
+      :medium in [priority1, priority2] -> :medium
+      :low in [priority1, priority2] -> :low
+      true -> :none
     end
   end
 

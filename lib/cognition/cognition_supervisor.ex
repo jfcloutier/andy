@@ -46,8 +46,11 @@ defmodule Andy.CognitionSupervisor do
 
   defp start_detectors() do
     Logger.info("Starting detectors")
-    sensing_devices = Andy.sensors() ++ Andy.motors()
-    Enum.each(sensing_devices, &(DetectorsSupervisor.start_detector(&1)))
+    for sensor <- Andy.sensors() do
+      for sense <- Device.senses(sensor) do
+        DetectorsSupervisor.start_detector(sensor, sense)
+      end
+    end
   end
 
   defp start_actuators() do
