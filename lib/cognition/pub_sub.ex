@@ -36,51 +36,60 @@ defmodule Andy.PubSub do
     Registry.register(@registry_name, @topic, module)
   end
 
-  @doc "Handle notification of a shutdown request"
+  @doc "Notify of a shutdown request"
   def notify_shutdown() do
     platform_dispatch(:shutdown)
   end
 
-  @doc "Handle notification of clock tick"
+  @doc "Notify of clock tick"
   def notify_tick() do
     notify(:tick)
   end
 
-  @doc "Handle notification of a new percept"
+  @doc "Notify of a new percept"
   def notify_perceived(percept) do
     notify({ :perceived, percept })
   end
 
-  @doc "Handle notification of a new intent"
+  @doc "Notify of a new intent"
   def notify_intended(intent) do
     notify({ :intended, intent })
   end
 
-  @doc "Handle notification of an intent actuated"
+  @doc "Notify of an intent actuated"
   def notify_realized(actuator_name, intent) do
     notify({ :actuated, actuator_name, intent })
   end
 
-  @doc "Handle notification of a belief"
+  @doc "Notify of a belief"
   def notify_believed(belief) do
     notify({ :believed, belief })
   end
 
-  @doc "Handle notification of a prediction error"
+  @doc "Notify of a prediction error"
   def notify_prediction_error(prediction_error) do
     notify({ :prediction_error, prediction_error })
   end
 
-  @doc "Handle notification of a prediction fulfilled"
+  @doc "Notify of a prediction fulfilled"
   def notify_prediction_fulfilled(prediction_fulfilled) do
     notify({ :prediction_fulfilled, prediction_fulfilled })
   end
 
-  @doc "Handle notification of something memorized"
-  def notify_memorized(memorization, %Percept{ } = percept) do
-    notify({ :memorized, memorization, percept })
+  @doc "Notify that a predictor is paying attention to some detection"
+  def notify_attention_on(detector_specs, predictor_pid, precision) do
+    notify({:attention_on, detector_specs, predictor_pid, precision})
   end
 
+  @doc "Notify that a predictor is no longer paying attention"
+  def notify_attention_off(predictor_pid) do
+    notify({:attention_off, predictor_pid})
+  end
+
+  @doc "Notify that a predictor is to use a givevn fulfillment"
+  def notify_fulfill(predictor_name, fulfillment_index) do
+    notify({:fullfill, predictor_name, fulfillment_index})
+  end
   @doc "Found the id channel of another member of the community"
   def notify_id_channel(id_channel, community_name) do
     notify({ :id_channel, id_channel, community_name })

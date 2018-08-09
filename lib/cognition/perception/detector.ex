@@ -37,7 +37,7 @@ defmodule Andy.Detector do
     { :ok, pid }
   end
 
-  def matches_percept_specs?(
+  def detect?(
         detector_pid,
         %{ class: class, port: port, type: type, sense: sense }
       ) do

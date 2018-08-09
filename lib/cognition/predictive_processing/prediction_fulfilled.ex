@@ -3,16 +3,22 @@ defmodule Andy.PredictionFulfilled do
 
   alias __MODULE__
 
-  defstruct model_name: nil,
-            prediction: nil
+  defstruct predictor_name: nil,
+            model_name: nil,
+            prediction_name: nil,
+            fulfillment_index: nil
 
   def new(
+        predictor_name: predictor_name,
         model_name: model_name,
-        prediction_name: prediction_name
+        prediction_name: prediction_name,
+        fulfillment_index: fulfillmen_index
       ) do
     %PredictionFulfilled{
+      predictor_name: predictor_name,
       model_name: model_name,
-      prediction: prediction_name
+      prediction_name: prediction_name,
+      fulfillment_index: fulfillmen_index
     }
   end
 

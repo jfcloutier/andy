@@ -26,9 +26,10 @@ defmodule Andy.BelieversSupervisor do
   end
 
   @doc " A predictor grabs a believer"
-  def grab_believer(generative_model, predictor_pid) do
-    believer_pid = case find_believer(generative_model.name) do
+  def grab_believer(model_name, predictor_pid) do
+    believer_pid = case find_believer(model_name) do
       nil ->
+      model = GenerativeModels.model_named(model_name)
         { :ok, believer_pid } = start_believer(generative_model)
         believer_pid
       believer_pid ->
@@ -39,8 +40,8 @@ defmodule Andy.BelieversSupervisor do
   end
 
   @doc " A predictor releases a believer"
-  def release_believer(generative_model, predictor_pid) do
-    believer_pid = case find_believer(generative_model.name) do
+  def release_believer(model_name, predictor_pid) do
+    believer_pid = case find_believer(model_name) do
       nil ->
         :ok
       believer_pid ->

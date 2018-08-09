@@ -4,14 +4,17 @@ defmodule Andy.PredictionError do
 
   alias __MODULE__
 
-  defstruct model_name: nil,
+  defstruct predictor_name: nil,
+            model_name: nil,
             prediction_name: nil
 
   def new(
+        predictor_name: predictor_name,
         model_name: model_name,
         prediction_name: prediction_name
       ) do
     %PredictionError{
+      predictor_name: predictor_name,
       model_name: model_name,
       prediction_name: prediction_name
     }

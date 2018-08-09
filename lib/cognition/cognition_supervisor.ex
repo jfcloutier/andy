@@ -4,7 +4,7 @@ defmodule Andy.CognitionSupervisor do
   require Logger
   alias Andy.{ PubSub, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor,
                InternalClock, PG2Communicator,
-               RESTCommunicator, GenerativeModels, Attention }
+               RESTCommunicator, GenerativeModels, Attention, Experience, Interest }
 
   @name __MODULE__
 
@@ -24,6 +24,8 @@ defmodule Andy.CognitionSupervisor do
       RESTCommunicator,
       InternalClock,
       Attention,
+      Experience,
+      Interest,
       GenerativeModels,
       DetectorsSupervisor,
       ActuatorsSupervisor,

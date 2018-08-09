@@ -127,11 +127,11 @@ defmodule Andy do
     end
   end
 
-  def highest_priority(priority1, priority2) do
+  def highest_level(level1, level2) do
     cond do
-      :high in [priority1, priority2] -> :high
-      :medium in [priority1, priority2] -> :medium
-      :low in [priority1, priority2] -> :low
+      :high in [level1, level2] -> :high
+      :medium in [level1, level2] -> :medium
+      :low in [level1, level2] -> :low
       true -> :none
     end
   end

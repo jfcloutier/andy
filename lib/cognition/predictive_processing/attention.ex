@@ -22,7 +22,7 @@ defmodule Andy.Attention do
       fn ->
         register_internal()
         %{
-          # [%{predictor_id: ..., detector_specs: ..., priority: ...}, ...] - priority in [:low, :medium, :high]
+          # [%{predictor_id: ..., detector_specs: ..., precision: ...}, ...] - precision in [:low, :medium, :high]
           attended_list: []
         }
       end,
@@ -30,8 +30,31 @@ defmodule Andy.Attention do
     )
   end
 
-  #
-  def pay_attention(detector_specs, predictor_pid, priority \\ :low) do
+
+  ### Cognition Agent Behaviour
+
+  def register_internal() do
+    PubSub.register(__MODULE__)
+  end
+
+  ## Handle timer events
+
+  def handle_event({:attention_on, detector_specs, predictor_pid, precision}, state) do
+    pay_attention(detector_specs, predictor_pid, precision)
+  end
+
+  def handle_event({:attention_off, predictor_pid}, state) do
+    lose_attention(predictor_pid)
+  end
+
+  def handle_event(_event, state) do
+    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
+    state
+  end
+
+  ### PRIVATE
+
+  defp pay_attention(detector_specs, predictor_pid, precision) do
     Agent.update(
       @name,
       fn (%{ attended_list: attended_list } = state) ->
@@ -49,34 +72,25 @@ defmodule Andy.Attention do
             end
           end
         )
-        new_attended = %{ predictor_id: predictor_id, detector_specs: detector_specs, priority: priority }
+        new_attended = %{ predictor_id: predictor_id, detector_specs: detector_specs, precision: precision }
         %{ state | attended_list: [new_attended | attended_minus] }
       end
     )
-    set_polling_priority(detector_specs)
+    set_polling_precision(detector_specs)
   end
 
-  defp set_polling_priority(detector_specs) do
-    max_priority = Agent.get(
+  defp lose_attention(predictor_pid) do
+    detector_specs = Agent.get(
       @name,
       fn (%{ attended_list: attended_list }) ->
-        Enum.reduce(
-          attended_list,
-          :none,
-          fn (%{ detector_specs: specs, priority: priority }, acc) ->
-            if Percept.about_match?(detector_specs, specs) do
-              Andy.highest_priority(acc, priority)
-            else
-              acc
-            end
-          end
-        )
+        case Enum.find(attended_list, &(&1.predictor_pid == predictor_pid)) do
+          nil ->
+            nil
+          %{ detector_specs: specs } ->
+            specs
+        end
       end
     )
-    DetectorsSupervisor.set_polling_priority(detector_specs, max_priority)
-  end
-
-  def lose_attention(predictor_pid) do
     Agent.update(
       @name,
       fn (%{ attended_list: attended_list } = state) ->
@@ -94,36 +108,31 @@ defmodule Andy.Attention do
         %{ state | attended_list: attended_minus }
       end
     )
-    set_polling_priority(detector_specs)
+    set_polling_precision(detector_specs)
   end
 
-
-  ### Cognition Agent Behaviour
-
-  def register_internal() do
-    PubSub.register(__MODULE__)
+  defp set_polling_precision(nil) do
+    :ok
   end
 
-  ## Handle timer events
-
-  def handle_event({ :prediction_error, prediction_error }, state) do
-    # TODO
-    # Choose and initiate a fulfillment to correct the prediction error
-    # If fulfillment is via making a model true,
-    # adjust effective priorities of predictors of other models of lesser priority
-    state
-  end
-
-  def handle_event({ :prediction_fulfilled, prediction_fulfilled }, state) do
-    # TODO
-    # If fulfillment was by making a model true, then adjust effective priorities of predictors
-    state
-  end
-
-
-  def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
-    state
+  defp set_polling_precision(detector_specs) do
+    max_precision = Agent.get(
+      @name,
+      fn (%{ attended_list: attended_list }) ->
+        Enum.reduce(
+          attended_list,
+          :none,
+          fn (%{ detector_specs: specs, precision: precision }, acc) ->
+            if Percept.about_match?(detector_specs, specs) do
+              Andy.highest_level(acc, precision)
+            else
+              acc
+            end
+          end
+        )
+      end
+    )
+    DetectorsSupervisor.set_polling_precision(detector_specs, max_precision)
   end
 
 end
