@@ -8,7 +8,7 @@ defmodule Andy.GenerativeModel do
                name: atom,
                description: String.t,
                predictions: [Prediction.t],
-               focus: atom,
+               priority: atom,
                hyper_prior?: boolean
              }
 
@@ -21,7 +21,7 @@ defmodule Andy.GenerativeModel do
               # One of :total, :higher, :same
               # How much prediction precisions are lowered for sibling models
               # and their children models
-            focus: :same,
+            priority: :same,
               # Is it a "hyper prior" (a foundational/permanent model) or is it fulfillment-activated
             hyper_prior?: false
 
@@ -29,14 +29,14 @@ defmodule Andy.GenerativeModel do
         name: name,
         description: description,
         predictions: predictions,
-        focus: focus,
+        priority: priority,
         hyper_prior?: hyper_prior?
       ) do
     %GenerativeModel{
       name: name,
       description: description,
       predictions: predictions,
-      focus: focus,
+      priority: priority,
       hyper_prior?: hyper_prior?
     }
   end
@@ -45,13 +45,13 @@ defmodule Andy.GenerativeModel do
         name: name,
         description: description,
         predictions: predictions,
-        focus: focus
+        priority: priority
       ) do
     %GenerativeModel{
       name: name,
       description: description,
       predictions: predictions,
-      focus: focus,
+      priority: priority,
       hyper_prior?: false
     }
   end

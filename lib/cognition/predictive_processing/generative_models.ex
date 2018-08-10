@@ -46,5 +46,22 @@ defmodule Andy.GenerativeModels do
     end
   end
 
+  @doc "Find all models that are either siblings or children of siblings"
+  def competing_model_names(model) do
+    siblings = siblings(model)
+    (Enum.map(siblings, &(descendants(&1))) ++ siblings)
+    |> List.flatten()
+    |> Enum.uniq()
+  end
+
+  defp siblings(model) do
+    # TODO
+    []
+  end
+
+  defp descendants(model) do
+    # TODO
+    []
+  end
 
 end

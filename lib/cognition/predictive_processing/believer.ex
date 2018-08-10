@@ -31,12 +31,18 @@ defmodule Andy.Believer do
       [name: generative_model.name]
     )
     Task.async(fn -> start_predictors(pid) end)
+    PubSub.notify_believer_started(generative_model.name)
     Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
     { :ok, pid }
   end
 
   @doc "Get the name of a believer given it's process id"
   def name(agent_pid) do
+    model_name(agent_pid)
+  end
+
+  @doc "Get the name of a believer's model given it's process id"
+  def model_name(agent_pid) do
     Agent.get(
       agent_pid,
       fn (%{ model: generative_model }) ->
@@ -44,6 +50,7 @@ defmodule Andy.Believer do
       end
     )
   end
+
 
   @doc "A believer was pressed into duty by a predictor"
   def grabbed_by_predictor(believer_pid, predictor_pid) do
@@ -66,6 +73,7 @@ defmodule Andy.Believer do
     if obsolete?(believer_pid) do
       terminate_predictors(believer_pid)
       BelieversSupervisor.terminate(believer_pid)
+      PubSub.notify_believer_terminated(model_name(believer_id))
     end
   end
 

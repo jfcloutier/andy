@@ -76,7 +76,12 @@ defmodule Andy.Predictor do
     end
   end
 
-  def handle_event({ :believed, %Belief{ } = belief }, %{ prediction: prediction } = state) do
+  def handle_event(
+        { :believed, %Belief{ } = belief },
+        %{
+          prediction: prediction
+        } = state
+      ) do
     # Validate believed if relevant
     if belief_relevant?(belief, prediction) do
       review_prediction(state)
@@ -91,12 +96,26 @@ defmodule Andy.Predictor do
       ) do
     # Try a given fulfillment in response to a prediction error -
     # It might instantiate a temporary model believer for a fulfillment action
-    # TODO
     if new_fulfillment_index != current_fulfillment_index do
       updated_state = deactivate_current_fulfillment(state)
-      activate_fulfillment(fulfillment_index, updated_state)
+      activate_fulfillment(fulfillment_index, updated_state, :first_time)
     else
-      activate_fulfillment(fulfillment_index, state)
+      activate_fulfillment(fulfillment_index, state, :repeated)
+    end
+  end
+
+  def handle_event(
+        { :model_deprioritized, model_name, priority },
+        %{
+          predicted_model_name: predicted_model_name,
+          precision: precision
+        } = state
+      ) do
+    if model_name == predicted_model_name do
+      updated_effective_precision = reduce_precision_by(precision, priority)
+      %{ state | effective_precision: updated_effective_precision }
+    else
+      state
     end
   end
 
@@ -293,20 +312,28 @@ defmodule Andy.Predictor do
     %{ state | fulfillment_index: nil }
   end
 
-  defp activate_fulfillment(fulfillment_index, state) do
+  defp activate_fulfillment(
+         fulfillment_index,
+         state,
+         first_time_or_repeated
+       ) do
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
-    if  fulfillment.model_name != nil do
-      BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name)
+    if  fulfillment.model_name != nil and first_time_or_repeated == :first_time do
+      BelieversSupervisor.grab_believer(fulfillment.model_name, state.predictor_name)
     end
     if fulfillment.actions != nil do
-      carry_out_actions(fulfillment.actions)
+      Enum.each(fulfillment.actions, Action.execute(&1))
     end
     %{ state | fulfillment_index: fulfillment_index }
   end
 
-  defp carry_out_actions(fulfillment_actions) do
-    # TODO
-    :ok
+  defp reduce_precision_by(precision, priority) do
+    case priority do
+      :none ->
+        precision
+      other ->
+        Andy.reduce_level_by(precision, priority)
+    end
   end
 
 end

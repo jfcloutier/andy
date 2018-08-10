@@ -34,7 +34,8 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!")])]
           )
         ],
-        focus: :same, # does not matter since no sibling models
+        # Let activated sub-models dictate priority
+        priority: nil,
         hyper_prior: true
       ),
       # Hyper-prior sub-models
@@ -64,7 +65,8 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(actions: [say_once("What's going on?")])]
           )
         ],
-        focus: :high
+      # Whereas the priorities for :free and :stated would be :medium
+        priority: :high
       ),
 
       # Action models
@@ -80,7 +82,7 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(model_name: :getting_lighter)]
           )
         ],
-        focus: :high
+        priority: :high
       ),
       # It's getting lighter
       GenerativeModel.new(
@@ -95,7 +97,7 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(actions: [forward(), turn()])]
           )
         ],
-        focus: :high
+        priority: :high
       )
 
 
@@ -113,8 +115,7 @@ defmodule Andy.Puppy.Modeling do
           intent_value: %{
             speed: :fast,
             time: 1
-          },
-          once: false
+          }
         )
       ]
     end
@@ -138,8 +139,7 @@ defmodule Andy.Puppy.Modeling do
       [
         Action.new(
           intent_name: choose_one([:turn_right, :turn_left]),
-          value: choose_one(1..10) / 10,
-          once: false
+          value: choose_one(1..10) / 10
         )
       ]
     end
@@ -150,8 +150,7 @@ defmodule Andy.Puppy.Modeling do
       [
         Action.new(
           intent_name: :say,
-          intent_value: words,
-          once: true
+          intent_value: words
         )
       ]
     end

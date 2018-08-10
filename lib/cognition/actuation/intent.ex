@@ -8,7 +8,6 @@ defmodule Andy.Intent do
                about: atom,
                value: any,
                since: number,
-               source: any,
                strong: boolean
              }
 
@@ -17,24 +16,31 @@ defmodule Andy.Intent do
   about: The nature of the intent
   value: The measure of the intent (a number, atom...)
   since: When the intent was created
-  source: The source of the intent (the name of a behavior)
+  source: The source of the intent
   strong: If true, the intent takes longer to become stale
   """
-  defstruct about: nil, value: nil, since: nil, source: nil, strong: false
+  defstruct about: nil,
+            value: nil,
+            since: nil,
+            strong: false
 
   @doc "Create an intent"
   def new(about: about, value: params) do
-    %Intent{about: about,
+    %Intent{
+      about: about,
       since: now(),
-      value: params}
+      value: params
+    }
   end
 
   @doc "Create a strong intent"
   def new_strong(about: about, value: params) do
-    %Intent{about: about,
+    %Intent{
+      about: about,
       since: now(),
       value: params,
-      strong: true}
+      strong: true
+    }
   end
 
 

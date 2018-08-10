@@ -127,6 +127,7 @@ defmodule Andy do
     end
   end
 
+  @doc "Of two levels give the highest one"
   def highest_level(level1, level2) do
     cond do
       :high in [level1, level2] -> :high
@@ -135,5 +136,41 @@ defmodule Andy do
       true -> :none
     end
   end
+
+  @doc "Is the first level higher than the second?"
+  def higher_level?(level1, level2) do
+    level1 != level2
+    and highest_level(level1, level2) == level1
+  end
+
+  def reduce_level_by(_level, :none) do
+    level
+  end
+
+  def reduce_level_by(_level, :high) do
+    :none
+  end
+
+  def reduce_level_by(level, level) do
+    :none
+  end
+
+  def reduce_level_by(:low, _level) do
+    :none
+  end
+
+  def reduce_level_by(:medium, :low) do
+    :low
+  end
+
+  def reduce_level_by(:high, :medium) do
+    :low
+  end
+
+  def reduce_level_by(:high, :low) do
+    :medium
+  end
+
+
 
 end
