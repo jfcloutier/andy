@@ -173,12 +173,7 @@ defmodule Andy.Believer do
   defp process_prediction_fulfilled(prediction_fulfilled, %{ validations: validations } = state state) do
     was_validated? = validated?(state)
     PubSub.notify_believed(Belief.new(state.model.name, true))
-    new_state = %{ state | validations: Map.put(validations, prediction_fulfilled.prediction_name, true) }
-    if not was_validated? and validated?(new_state) do
-      PubSub.notify_believed(Belief.new(state.model.name, true))
-      # TODO - Have BelieversSupervisor terminate self (and predictors) if transient (action-initiated)
-    end
-    new_state
+    %{ state | validations: Map.put(validations, prediction_fulfilled.prediction_name, true) }
   end
 
   defp validated?(%{ validations: validations } = state) do
