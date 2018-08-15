@@ -53,7 +53,7 @@ defmodule Andy.GenerativeModels do
 
   @doc "Find all models that are either siblings or children of siblings of a model, but not the model or its descendants"
   def competing_model_names(model) do
-    Agent.get(
+    competing_model_names = Agent.get(
       @name,
       fn (state) ->
         sibling_names = sibling_names(model.name, state.analysis)
@@ -63,6 +63,8 @@ defmodule Andy.GenerativeModels do
         |> Enum.reject(&(&1 in [model.name | descendant_names(model.name, state.analysis)]))
       end
     )
+    Logger.info("Model #{model.name} has competitors #{inspect competing_model_names}")
+    competing_model_names
   end
 
   ### PRIVATE

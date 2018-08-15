@@ -29,7 +29,7 @@ defmodule Andy.Memory do
         pid = spawn_link(fn () -> forget()  end)
         Process.register(pid, :forgetting)
         register_internal()
-        %{ percepts: %{ }, intents: %{ } }
+        %{ percepts: %{ }, intents: %{ } , beliefs: []}
       end,
       [name: @name]
     )
@@ -95,7 +95,10 @@ defmodule Andy.Memory do
   # {:intended, intent} events are ignored
   def handle_event({ :realized, _actuator_name, intent }, state) do
     store(intent)
-    state
+  end
+
+  def handle_event({ :believed, belied }, state) do
+    store(belief)
   end
 
   def handle_event(_event, state) do
@@ -123,6 +126,11 @@ defmodule Andy.Memory do
     intents = Map.get(state.intents, intent.about, [])
     new_intents = update_intents(intent, intents)
     %{ state | intents: Map.put(state.intents, intent.about, new_intents) }
+  end
+
+  defp store(%Belief{ } = belief, %{ beliefs: beliefs } = state) do
+    PubSub.notify(:belief_memorized, belief)
+    %{ state | beliefs: [belief | beliefs] }
   end
 
   defp update_percepts(percept, []) do

@@ -66,6 +66,11 @@ defmodule Andy.PubSub do
     notify({ :believed, belief })
   end
 
+  @doc "Notify of a belief memorized"
+  def notify_belief_memorized(belief) do
+    notify({ :belief_memorized, belief })
+  end
+
   @doc "Notify of a prediction error"
   def notify_prediction_error(prediction_error) do
     notify({ :prediction_error, prediction_error })

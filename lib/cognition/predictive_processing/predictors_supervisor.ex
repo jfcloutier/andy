@@ -20,14 +20,14 @@ def Andy.PredictorsSupervisor do
     DynamicSupervisor.start_link(@name, [] [name: @name])
   end
 
-  def start_predictor(prediction, believer_pid, model_name) do
-    spec = { Predictor, [prediction, believer_pid, model_name] }
-    { :ok, _pid } = DynamicSupervisor.start_child(@name, spec)
+  def start_predictor(prediction, believer_name, model_name) do
+    spec = { Predictor, [prediction, believer_name, model_name] }
+    { :ok, _name } = DynamicSupervisor.start_child(@name, spec)
   end
 
-  def terminate(predictor_pid) do
-    Predictor.about_to_be_terminated(predictor_pid)
-    DynamicSupervisor.terminate_child(@name, predictor_pid)
+  def terminate(predictor_name) do
+    Predictor.about_to_be_terminated(predictor_name)
+    DynamicSupervisor.terminate_child(@name, predictor_name)
   end
 
 end

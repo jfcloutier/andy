@@ -7,16 +7,16 @@ defmodule Andy.Predictor do
   @behaviour Andy.CognitionAgentBehaviour
 
   @doc "Child spec asked by DynamicSupervisor"
-  def child_spec([prediction, believer_pid, model_name]) do
+  def child_spec([prediction, believer_name, model_name]) do
     %{
       # defaults to restart: permanent and type: :worker
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [prediction, believer_pid, model_name] }
+      start: { __MODULE__, :start_link, [prediction, believer_name, model_name] }
     }
   end
 
   @doc "Start the cognition agent responsible for believing in a generative model"
-  def start_link(prediction, believer_pid, model_name) do
+  def start_link(prediction, believer_name, model_name) do
     predictor_name = "#{prediction.name}(#{model_name})"
     { :ok, pid } = Agent.start_link(
       fn ->
@@ -25,7 +25,7 @@ defmodule Andy.Predictor do
           predictor_name: predictor_name,
           predicted_model_name: model_name,
           # believer making (owning) the prediction
-          believer: believer_pid,
+          believer_name: believer_name,
           # the prediction made
           prediction: prediction,
           # the effective precision for the prediction
@@ -43,13 +43,13 @@ defmodule Andy.Predictor do
     { :ok, pid }
   end
 
-  def predict(predictor_pid) do
-    grab_believer(predictor_pid)
-    direct_attention(predictor_pid)
+  def predict(predictor_name) do
+    grab_believer(predictor_name)
+    direct_attention(predictor_name)
   end
 
-  def about_to_be_terminated(predictor_pid) do
-    PubSub.notify_attention_off(predictor_pid)
+  def about_to_be_terminated(predictor_name) do
+    PubSub.notify_attention_off(predictor_name)
   end
 
   defp fulfillment_data(predictor_name) do
@@ -77,7 +77,7 @@ defmodule Andy.Predictor do
   end
 
   def handle_event(
-        { :believed, %Belief{ } = belief },
+        { :belief_memorized, %Belief{ } = belief },
         %{
           prediction: prediction
         } = state
@@ -126,29 +126,29 @@ defmodule Andy.Predictor do
 
   #### Private
 
-  defp grab_believer(predictor_pid) do
+  defp grab_believer(predictor_name) do
     Agent.update(
-      predictor_pid,
+      predictor_name,
       fn (%{ prediction: %{ believed: believed } = _prediction } = state) ->
         case believed do
           nil ->
             state
           { _is_or_not, model_name } ->
-            believer_id = BelieversSupervisor.grab_believer(model_name, predictor_pid)
-            %{ state | believer: believer_id }
+            believer_name = BelieversSupervisor.grab_believer(model_name, predictor_name)
+            %{ state | believer_name: believer_name }
         end
       end
     )
   end
 
-  defp direct_attention(predictor_pid) do
-    { detector_specs, precision } = required_detection(predictor_pid)
-    PubSub.notify_attention_on(detector_specs, predictor_pid, precision)
+  defp direct_attention(predictor_name) do
+    { detector_specs_list, precision } = required_detection(predictor_name)
+    detector_specs_list |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, precision)))
   end
 
-  defp required_detection(predictor_pid) do
+  defp required_detection(predictor_name) do
     Agent.get(
-      predictor_pid,
+      predictor_name,
       fn (%{ prediction: prediction, effective_precision: effective_precision }) ->
         { Prediction.detector_specs(prediction), effective_precision }
       end
@@ -177,14 +177,14 @@ defmodule Andy.Predictor do
   defp review_prediction(
          %{
            prediction: prediction,
-           fulfilled?: fulfilled?,
+           fulfilled?: was_fulfilled?,
            effective_precision: precision
          } = state
        ) do
     if prediction_fulfilled?(prediction, precision) do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true
-      if not fulfilled? do
+      if not was_fulfilled? do
         PubSub.notify_fulfilled(
           prediction_fulfilled(state)
         )
@@ -215,8 +215,8 @@ defmodule Andy.Predictor do
          %{ believed: { is_or_not, model_name } } = _prediction,
          precision
        ) do
-    believer = BelieversSupervisor.find_believer(model_name)
-    believes? = Believer.believes?(believer, precision)
+    believer_name = BelieversSupervisor.find_believer_name(model_name)
+    believes? = Believer.believes?(believer_name, precision)
     case is_nor_not do
       :is -> believes?
       :not -> not believes?
@@ -322,7 +322,7 @@ defmodule Andy.Predictor do
       BelieversSupervisor.grab_believer(fulfillment.model_name, state.predictor_name)
     end
     if fulfillment.actions != nil do
-      Enum.each(fulfillment.actions, Action.execute(&1))
+      Enum.each(fulfillment.actions, Action.execute(&1, first_time_or_repeated))
     end
     %{ state | fulfillment_index: fulfillment_index }
   end

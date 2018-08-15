@@ -150,7 +150,8 @@ defmodule Andy.Puppy.Modeling do
       [
         Action.new(
           intent_name: :say,
-          intent_value: words
+          intent_value: words,
+          once?: true
         )
       ]
     end

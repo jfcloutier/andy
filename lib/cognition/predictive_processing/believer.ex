@@ -18,33 +18,35 @@ defmodule Andy.Believer do
 
   @doc "Start the cognition agent responsible for believing in a generative model"
   def start_link(generative_model) do
+    believer_name = generative_model.name
     { :ok, pid } = Agent.start_link(
       fn () ->
         register_internal()
         %{
           model: generative_model,
-          validation: %{ }, # prediction_name => true|false
-          predictors: [],
+          validation: %{ }, # prediction_name => true|false -- the believer is validated if all prediction are true
+          predictors: [], # predictor names
           for_predictors: MapSet.new()
+          # predictor name
         }
       end,
-      [name: generative_model.name]
+      [name: believer_name]
     )
-    Task.async(fn -> start_predictors(pid) end)
-    PubSub.notify_believer_started(generative_model.name)
+    Task.async(fn -> start_predictors(believer_name) end)
+    PubSub.notify_believer_started(believer_name)
     Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
     { :ok, pid }
   end
 
   @doc "Get the name of a believer given it's process id"
-  def name(agent_pid) do
-    model_name(agent_pid)
+  def name(believer_pid) do
+    model_name(believer_pid)
   end
 
   @doc "Get the name of a believer's model given it's process id"
-  def model_name(agent_pid) do
+  def model_name(believer_name) do
     Agent.get(
-      agent_pid,
+      believer_name,
       fn (%{ model: generative_model }) ->
         generative_model.name
       end
@@ -53,35 +55,35 @@ defmodule Andy.Believer do
 
 
   @doc "A believer was pressed into duty by a predictor"
-  def grabbed_by_predictor(believer_pid, predictor_pid) do
+  def grabbed_by_predictor(believer_name, predictor_name) do
     Agent.update(
-      believer_pid,
+      believer_name,
       fn (%{ for_predictors: for_predictors } = state) ->
-        %{ state | for_predictors: MapSet.put(for_predictors, predictor_pid) }
+        %{ state | for_predictors: MapSet.put(for_predictors, predictor_name) }
       end
     )
   end
 
   @doc "A believer was released by a predictor"
-  def released_by_predictor(believer_pid, predictor_pid) do
+  def released_by_predictor(believer_name, predictor_name) do
     Agent.update(
-      believer_pid,
+      believer_name,
       fn (%{ for_predictors: for_predictors } = state) ->
-        %{ state | for_predictors: MapSet.delete(for_predictors, predictor_pid) }
+        %{ state | for_predictors: MapSet.delete(for_predictors, predictor_name) }
       end
     )
-    if obsolete?(believer_pid) do
-      terminate_predictors(believer_pid)
-      BelieversSupervisor.terminate(believer_pid)
-      PubSub.notify_believer_terminated(model_name(believer_id))
+    if obsolete?(believer_name) do
+      terminate_predictors(believer_name)
+      BelieversSupervisor.terminate(believer_name)
+      PubSub.notify_believer_terminated(believer_name)
     end
   end
 
 
   @doc "Is a believer not needed anymore?"
-  def obsolete?(believer_pid) do
+  def obsolete?(believer_name) do
     Agent.get(
-      believer_pid,
+      believer_name,
       fn (%{ for_predictors: for_predictors, model: model }) ->
         not model.hyper_prior? and MapSet.size(for_predictors) == 0
       end
@@ -89,14 +91,14 @@ defmodule Andy.Believer do
   end
 
   @doc "Start a predictor for each prediction in the model"
-  def start_predictors(believer_pid) do
+  def start_predictors(believer_name) do
     Agent.update(
-      believer_pid,
+      believer_name,
       fn (%{ model: model } = state) ->
-        predictor_pids = Enum.map(
+        predictor_names = Enum.map(
           model.predictions,
           fn (prediction) ->
-            PredictorsSupervisor.start_predictor(prediction, believer_pid, model.name)
+            PredictorsSupervisor.start_predictor(prediction, believer_name, model.name)
           end
         )
         validations = Enum.reduce(
@@ -106,16 +108,17 @@ defmodule Andy.Believer do
             Map.put(acc, prediction.name, true)
           end
         )
-        %{ state | predictors: predictor_pids, validations: validations }
+        %{ state | predictors: predictor_names, validations: validations }
       end
     )
   end
 
-  def believes?(believer_pid, precision) do
+  @doc "Are all of the model's predictions validated?"
+  def believes?(believer_name, precision) do
     Agent.get(
-      believer_pid,
-      fn (%{ belief: belief }) ->
-        in_acceptable_range?(belief.probability, precision)
+      believer_name,
+      fn (%{ validations: validations }) ->
+        Enum.all?(validations, fn ({ _, value }) -> value end)
       end
     )
   end
@@ -153,12 +156,12 @@ defmodule Andy.Believer do
 
   # PRIVATE
 
-  defp terminate_predictors(believer_pid) do
+  defp terminate_predictors(believer_name) do
     Agent.update(
-      believer_id,
-      fn (%{ predictors: predictor_ids }) ->
+      believer_name,
+      fn (%{ predictors: predictor_names }) ->
         Enum.each(
-          predictor_ids,
+          predictor_names,
           &(PredictorsSupervisor.terminate(&1))
         )
       end
@@ -171,13 +174,11 @@ defmodule Andy.Believer do
   end
 
   defp process_prediction_fulfilled(prediction_fulfilled, %{ validations: validations } = state state) do
-    was_validated? = validated?(state)
-    PubSub.notify_believed(Belief.new(state.model.name, true))
+    was_already_believed? = believes?(state)
+    if not was_already_believed? do
+      PubSub.notify_believed(Belief.new(state.model.name, true))
+    end
     %{ state | validations: Map.put(validations, prediction_fulfilled.prediction_name, true) }
-  end
-
-  defp validated?(%{ validations: validations } = state) do
-    Enum.all?(validations, fn ({ _, value }) -> value end)
   end
 
 end

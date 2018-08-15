@@ -4,24 +4,63 @@ defmodule Andy.Action do
   alias __MODULE__
 
   alias Andy.{ Intent }
+  require Logger
 
   @type t :: %__MODULE__{
-               intent_about: :atom,
-               intent_value: any
+               intent_name: :atom,
+               intent_value: any,
+               once?: boolean
              }
 
-  defstruct actuator_name: nil,
-              # e.g. :locomotion
-            intent_name: nil,
+  defstruct intent_name: nil,
               # e.g. :forward
-            intent_value: nil # %{speed: 10, duration: 3}
+            intent_value: nil,
+              # %{speed: 10, duration: 3}
+            once?: false
 
-  def execute(action) do
-    intent = Intent.new(
-      about: action.intent_about,
-      value: intent_value
+  def new(
+        intent_name: intent_name,
+        intent_value: intent_value,
+        once?: once?
+      ) do
+    %Action{
+      intent_name: intent_name,
+      intent_value: intent_value,
+      once?: once?
+    }
+  end
+
+  def new(
+        intent_name: intent_name,
+        intent_value: intent_value
+      ) do
+    %Action{
+      intent_name: intent_name,
+      intent_value: intent_value
+    }
+  end
+
+  def execute(action, :first_time) do
+    PubSub.notify_intended(
+      Intent.new(
+        about: action.intent_about,
+        value: action.intent_value
+      )
     )
-    PubSub.notify_intended(intent)
+  end
+
+  def execute(action, :repeated) do
+    if not action.once?  do
+      PubSub.notify_intended(
+        Intent.new(
+          about: action.intent_about,
+          value: action.intent_value
+        )
+      )
+    else
+      Logger.info("Not repeating one-time action #{action.intent_about}")
+      :ok
+    end
   end
 
 end

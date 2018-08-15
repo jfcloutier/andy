@@ -33,11 +33,10 @@ defmodule Andy.Detector do
       [name: name]
     )
     Logger.info("#{__MODULE__} started on #{inspect device.type} device")
-    spawn(&(detect(name)))
     { :ok, pid }
   end
 
-  def detect?(
+  def detects?(
         detector_pid,
         %{ class: class, port: port, type: type, sense: sense }
       ) do
@@ -53,10 +52,11 @@ defmodule Andy.Detector do
   end
 
   defp set_polling_priority(detector_pid, priority) do
-     Agent.update(
+    Agent.update(
       detector_pid,
       fn (%{
             device: device,
+            sense: sense,
             polling_interval_secs: polling_interval_secs,
             polling_task: polling_task
           } = state) ->
@@ -67,6 +67,7 @@ defmodule Andy.Detector do
             state
           secs == :infinity ->
             if polling_task != nil, do: Task.shutdown(polling_task)
+            Logger.info("Stopped polling #{device.mod} about #{sense}")
             %{
               state |
               polling_task: nil,
@@ -74,6 +75,7 @@ defmodule Andy.Detector do
             }
           true ->
             if polling_task != nil, do: Task.shutdown(polling_task)
+            Logger.info("Now polling #{device.mod} about #{sense} every #{secs} secs")
             %{
               state |
               polling_task: Task.async(&(detect(name))),
