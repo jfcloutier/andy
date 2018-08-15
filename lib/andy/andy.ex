@@ -113,9 +113,7 @@ defmodule Andy do
   end
 
   def in_probable_range?(probability, precision) do
-    case
-    precision
-      do
+    case precision  do
       :high ->
         probability > 0.9
       :medium ->
@@ -143,7 +141,7 @@ defmodule Andy do
     and highest_level(level1, level2) == level1
   end
 
-  def reduce_level_by(_level, :none) do
+  def reduce_level_by(level, :none) do
     level
   end
 

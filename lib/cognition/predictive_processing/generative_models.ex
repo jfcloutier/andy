@@ -20,7 +20,7 @@ defmodule Andy.GenerativeModels do
         %{
           models: models,
           # %{model_name => %{parent_name: <name>, children_names: [<name>, ...]}
-          analysis: analyse_models(models())
+          analysis: analyse_models(models)
         }
       end
     )

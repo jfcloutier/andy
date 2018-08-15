@@ -3,7 +3,6 @@ defmodule Andy.PubSub do
 
   require Logger
   import Andy.Utils
-  alias Andy.Percept
 
   @registry_name :registry
   @topic :pp # single topic for all subscribers
@@ -66,6 +65,16 @@ defmodule Andy.PubSub do
     notify({ :believed, belief })
   end
 
+  @doc "Notify of a percept memorized"
+  def notify_percept_memorized(percept) do
+    notify({ :percept_memorized, percept })
+  end
+
+  @doc "Notify of an intent memorized"
+  def notify_intent_memorized(intent) do
+    notify({ :intent_memorized, intent })
+  end
+
   @doc "Notify of a belief memorized"
   def notify_belief_memorized(belief) do
     notify({ :belief_memorized, belief })
@@ -92,8 +101,8 @@ defmodule Andy.PubSub do
   end
 
   @doc "Notify that a predictor is to use a given fulfillment"
-  def notify_fulfill(predictor_name, fulfillment_index) do
-    notify({:fullfill, predictor_name, fulfillment_index})
+  def notify_fulfill(fulfill) do
+    notify({:fullfill, fulfill})
   end
 
   @doc "Notify that a believer started on a model"
@@ -179,6 +188,7 @@ defmodule Andy.PubSub do
   ### Private
 
   defp notify(event) do
+    Logger.info("Notify #{inspect event}")
     Task.async(
       fn ->
         Registry.dispatch(

@@ -23,6 +23,7 @@ defmodule Andy.Detector do
       fn () ->
         register_internal()
         %{
+          detector_name: name,
           device: device,
           sense: sense,
           previous_values: %{ },
@@ -51,10 +52,11 @@ defmodule Andy.Detector do
     )
   end
 
-  defp set_polling_priority(detector_pid, priority) do
+  def set_polling_priority(detector_pid, priority) do
     Agent.update(
       detector_pid,
       fn (%{
+            detector_name: detector_name,
             device: device,
             sense: sense,
             polling_interval_secs: polling_interval_secs,
@@ -78,7 +80,7 @@ defmodule Andy.Detector do
             Logger.info("Now polling #{device.mod} about #{sense} every #{secs} secs")
             %{
               state |
-              polling_task: Task.async(&(detect(name))),
+              polling_task: Task.async(fn -> detect(detector_name) end),
               polling_interval_secs: secs
             }
         end
@@ -92,14 +94,21 @@ defmodule Andy.Detector do
     PubSub.register(__MODULE__)
   end
 
-  def handle_event({ :poll, sensing_device, sense }, state) do
-    poll(Device.name(sensing_device), sense)
-    state
-  end
-
   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
+  end
+
+  def detect(detector_name) do
+    polling_interval = Agent.get(
+      detector_name,
+      fn (%{ polling_interval_secs: interval } = _state) ->
+        interval
+      end
+    )
+    poll(detector_name)
+    Process.sleep(polling_interval * 1000)
+    detect(detector_name)
   end
 
   ### Private
@@ -115,21 +124,9 @@ defmodule Andy.Detector do
     end
   end
 
-  defp detect(name) do
-    polling_interval = Agent.get(
-      name,
-      fn (%{ polling_interval_secs: interval } = _state) ->
-        interval
-      end
-    )
-    poll(name)
-    Process.sleep(polling_interval * 1000)
-    detect(name)
-  end
-
-  defp poll(name) do
+  defp poll(detector_name) do
     Agent.update(
-      name,
+      detector_name,
       fn (%{ device: device, sense: sense } = state) ->
         { value, updated_device } = read(device, sense)
         if value != nil do
@@ -142,7 +139,7 @@ defmodule Andy.Detector do
           )
           %Percept{
             percept |
-            source: name,
+            source: detector_name,
             ttl: default_ttl(:percept),
             resolution: sensitivity(updated_device, sense)
           }

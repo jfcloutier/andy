@@ -3,7 +3,7 @@ defmodule Andy.BelieversSupervisor do
 
   @name __MODULE__
   use DynamicSupervisor
-  alias Andy.Believer
+  alias Andy.{Believer, GenerativeModels}
   require Logger
 
   @doc "Child spec as supervised supervisor"
@@ -28,6 +28,7 @@ defmodule Andy.BelieversSupervisor do
 
   @doc " A predictor grabs a believer"
   def grab_believer(model_name, predictor_name) do
+    Logger.info("Grabbing believer of model #{model_name} for predictor #{predictor_name}")
     believer_name = case find_believer_name(model_name) do
       nil ->
         model = GenerativeModels.model_named(model_name)
@@ -40,15 +41,20 @@ defmodule Andy.BelieversSupervisor do
     believer_name
   end
 
-  @doc " A predictor releases a believer"
+  @doc " A predictor releases a believer by its model name"
   def release_believer(model_name, predictor_name) do
-    believer_name = case find_believer_name(model_name) do
+    Logger.info("Releasing believer of model #{model_name} from predictor #{predictor_name}")
+    case find_believer_name(model_name) do
       nil ->
         :ok
       believer_name ->
-        believer_name
         Believer.released_by_predictor(believer_name, predictor_name)
     end
+  end
+
+  @doc " A predictor releases a believer by its name"
+  def release_believer_named(believer_name, predictor_name) do
+    Believer.released_by_predictor(believer_name, predictor_name)
   end
 
   @doc "Find an existing supervised believer in a model"
@@ -69,7 +75,6 @@ defmodule Andy.BelieversSupervisor do
   end
 
   def terminate(believer_name) do
-    Believer.about_to_be_terminated(believer_name)
     DynamicSupervisor.terminate_child(@name, believer_name)
   end
 

@@ -7,11 +7,12 @@ defmodule Andy.Fulfillment do
 
   @type t :: %__MODULE__{
                model_name: String.t,
-               actions: [[Action.t] | fun()] # actions or a function that produce actions
+               actions: [[Action.t] | fun()]
+               # actions or a function that produce actions
              }
 
   # Fulfillment name is unique within a prediction
-  defstruct action_model_name: nil,
+  defstruct model_name: nil,
               # and/or actions to carry out
             actions: [] # alternate individual actions or sequences of actions, prioritized
 
@@ -40,6 +41,5 @@ defmodule Andy.Fulfillment do
       model_name: model_name
     }
   end
-
 
 end

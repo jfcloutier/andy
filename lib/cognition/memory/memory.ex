@@ -1,7 +1,7 @@
 defmodule Andy.Memory do
   @moduledoc "The memory of percepts"
 
-  alias Andy.{ Percept, Intent, PubSub }
+  alias Andy.{ Percept, Intent, Belief, PubSub }
   import Andy.Utils
   require Logger
 
@@ -29,7 +29,7 @@ defmodule Andy.Memory do
         pid = spawn_link(fn () -> forget()  end)
         Process.register(pid, :forgetting)
         register_internal()
-        %{ percepts: %{ }, intents: %{ } , beliefs: []}
+        %{ percepts: %{ }, intents: %{ }, beliefs: %{ } }
       end,
       [name: @name]
     )
@@ -86,7 +86,7 @@ defmodule Andy.Memory do
 
   def handle_event({ :perceived, percept }, state) do
     if not percept.transient do
-      store(percept)
+      store(percept, state)
     end
     state
   end
@@ -94,11 +94,11 @@ defmodule Andy.Memory do
   # Intends are memorized only when realized by actuators
   # {:intended, intent} events are ignored
   def handle_event({ :realized, _actuator_name, intent }, state) do
-    store(intent)
+    store(intent, state)
   end
 
-  def handle_event({ :believed, belied }, state) do
-    store(belief)
+  def handle_event({ :believed, belief }, state) do
+    store(belief, state)
   end
 
   def handle_event(_event, state) do
@@ -119,18 +119,20 @@ defmodule Andy.Memory do
     key = about.sense
     percepts = Map.get(state.percepts, key, [])
     new_percepts = update_percepts(percept, percepts)
+    PubSub.notify_percept_memorized(percept)
     %{ state | percepts: Map.put(state.percepts, key, new_percepts) }
   end
 
   defp store(%Intent{ } = intent, state) do
     intents = Map.get(state.intents, intent.about, [])
     new_intents = update_intents(intent, intents)
+    PubSub.notify_intent_memorized(intent)
     %{ state | intents: Map.put(state.intents, intent.about, new_intents) }
   end
 
   defp store(%Belief{ } = belief, %{ beliefs: beliefs } = state) do
-    PubSub.notify(:belief_memorized, belief)
-    %{ state | beliefs: [belief | beliefs] }
+    PubSub.notify_belief_memorized(belief)
+    %{ state | beliefs: Map.put(beliefs, belief.model_name, belief) }
   end
 
   defp update_percepts(percept, []) do
@@ -142,7 +144,6 @@ defmodule Andy.Memory do
       extended_percept = %Percept{ previous | until: percept.since }
       [extended_percept | others]
     else
-      PubSub.notify_memorized(:new, percept)
       [percept, previous | others]
     end
   end
@@ -167,7 +168,7 @@ defmodule Andy.Memory do
     |> Enum.filter(&(Percept.about_match?(&1.about, about)))
   end
 
-  defp recent_intents(name, secs, state) do
+  defp intents_since(name, secs, state) do
     msecs = now()
     Enum.take_while(
       Map.get(state.intents, name, []),

@@ -5,7 +5,7 @@ defmodule Andy.Interest do
   """
 
   require Logger
-  alias Andy.{ PubSub }
+  alias Andy.{ PubSub, GenerativeModels }
 
   @name __MODULE__
 
@@ -21,7 +21,7 @@ defmodule Andy.Interest do
   end
 
   def start_link() do
-    { :ok, pid } = Agent.start_link(
+    { :ok, _pid } = Agent.start_link(
       fn ->
         register_internal()
         # %{focus: %{model_name => %{competing_model_names: [competing_model_name,...],
@@ -84,12 +84,18 @@ defmodule Andy.Interest do
 
   ### PRIVATE
 
+  # Deprioritize competing models of lower priority that have not been deprioritizeded enough
   defp deprioritize_competing_models(competing_model_names, model, focus) do
+    Logger.info("Looking at deprioritizing models #{inspect competing_model_names} that compete with #{model.name}")
     competing_model_names
+    # competing models from their names
     |> Enum.map(&(GenerativeModels.model_named(&1)))
+    # only keep competing models of lower priority
     |> Enum.filter(&(Andy.higher_level?(model.priority, &1.priority)))
+    # reject those already deprioritized enough
     |> Enum.reject(&(already_deprioritized_enough?(&1, model.priority, focus)))
-    |> PubSub.notify_model_deprioritized(&1.name, model_priority)
+    # notify the deprioritization of applicable competing models
+    |> Enum.each(&(PubSub.notify_model_deprioritized(&1.name, model.priority)))
   end
 
   defp reprioritize_competing_models(
@@ -97,6 +103,7 @@ defmodule Andy.Interest do
          focus
        ) do
     %{ competing_model_names: competing_model_names } = Map.get(focus, deactivated_model_name)
+    Logger.info("Reprioritizing #{inspect competing_model_names} that were competing with #{deactivated_model_name}")
     competing_model_names
     |> Enum.each(
          fn (competing_model_name) ->
@@ -134,12 +141,11 @@ defmodule Andy.Interest do
       fn ({
         model_name,
         %{
-          competing_model_names: other_competing_model_names,
-          priority: other_priority
+          competing_model_names: other_competing_model_names
         }
-      }) ->
+      }, acc) ->
         if model_name != deactivated_model_name and competing_model_name in other_competing_model_names do
-          model = GenerativeModels.model_named()
+          model = GenerativeModels.model_named(model_name)
           Andy.highest_level(acc, model.priority)
         else
           acc

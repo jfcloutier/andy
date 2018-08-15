@@ -6,7 +6,7 @@ defmodule Andy.Belief do
 
   alias __MODULE__
 
-  defstruct model_name: model_name,
+  defstruct model_name: nil,
               # initially belief is 100%
             value: true,
             as_of: nil

@@ -2,7 +2,8 @@ defmodule Andy.Predictor do
   @moduledoc "Given a prediction, verify it and generate prediction errors if not verified"
 
   require Logger
-  alias Andy.{ PubSub, Prediction, GenerativeModels, Belief, Fulfillment, GenerativeModels }
+  alias Andy.{ PubSub, Prediction, Percept, Belief, Fulfill, Action,
+               Believer, BelieversSupervisor, Memory, PredictionFulfilled }
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -50,9 +51,11 @@ defmodule Andy.Predictor do
 
   def about_to_be_terminated(predictor_name) do
     PubSub.notify_attention_off(predictor_name)
+    release_believer(predictor_name)
+    deactivate_predictor_fulfillment(predictor_name)
   end
 
-  defp fulfillment_data(predictor_name) do
+  def fulfillment_data(predictor_name) do
     Agent.get(
       predictor_name,
       fn (state) ->
@@ -67,7 +70,10 @@ defmodule Andy.Predictor do
     PubSub.register(__MODULE__)
   end
 
-  def handle_event({ :perceived, %Percept{ } = percept }, %{ prediction: prediction } = state) do
+  def handle_event(
+        { :percept_memorized, %Percept{ } = percept },
+        %{ prediction: prediction } = state
+      ) do
     # Validate perceived if relevant
     if percept_relevant?(percept, prediction) do
       review_prediction(state)
@@ -91,16 +97,16 @@ defmodule Andy.Predictor do
   end
 
   def handle_event(
-        { :fulfill, %Fulfill{ predictor_name, new_fulfillment_index } },
+        { :fulfill, %Fulfill{ fulfillment_index: new_fulfillment_index } },
         %{ fulfillment_index: current_fulfillment_index } = state
       ) do
     # Try a given fulfillment in response to a prediction error -
     # It might instantiate a temporary model believer for a fulfillment action
     if new_fulfillment_index != current_fulfillment_index do
-      updated_state = deactivate_current_fulfillment(state)
-      activate_fulfillment(fulfillment_index, updated_state, :first_time)
+      updated_state = deactivate_fulfillment(state)
+      activate_fulfillment(new_fulfillment_index, updated_state, :first_time)
     else
-      activate_fulfillment(fulfillment_index, state, :repeated)
+      activate_fulfillment(new_fulfillment_index, state, :repeated)
     end
   end
 
@@ -141,9 +147,22 @@ defmodule Andy.Predictor do
     )
   end
 
+  defp release_believer(predictor_name) do
+    Agent.update(
+      predictor_name,
+      fn (%{ believer_name: believer_name } = state) ->
+        if believer_name != nil do
+          BelieversSupervisor.release_believer_named(believer_name, predictor_name)
+          %{ state | believer_name: nil }
+        end
+      end
+    )
+  end
+
   defp direct_attention(predictor_name) do
     { detector_specs_list, precision } = required_detection(predictor_name)
-    detector_specs_list |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, precision)))
+    detector_specs_list
+    |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, precision)))
   end
 
   defp required_detection(predictor_name) do
@@ -185,7 +204,7 @@ defmodule Andy.Predictor do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true
       if not was_fulfilled? do
-        PubSub.notify_fulfilled(
+        PubSub.notify_prediction_fulfilled(
           prediction_fulfilled(state)
         )
         deactivate_fulfillment(state)
@@ -200,24 +219,22 @@ defmodule Andy.Predictor do
   end
 
   defp prediction_fulfilled?(prediction, precision) do
-    believed_as_predicted?(prediction, precision)
+    believed_as_predicted?(prediction)
     and perceived_as_predicted?(prediction, precision)
   end
 
   defp believed_as_predicted?(
-         %{ believed: nil } = _prediction,
-         _precision
+         %{ believed: nil } = _prediction
        ) do
     true
   end
 
   defp believed_as_predicted?(
-         %{ believed: { is_or_not, model_name } } = _prediction,
-         precision
+         %{ believed: { is_or_not, model_name } } = _prediction
        ) do
     believer_name = BelieversSupervisor.find_believer_name(model_name)
-    believes? = Believer.believes?(believer_name, precision)
-    case is_nor_not do
+    believes? = Believer.believes?(believer_name)
+    case is_or_not do
       :is -> believes?
       :not -> not believes?
     end
@@ -268,14 +285,14 @@ defmodule Andy.Predictor do
   # Is the value greater than or equal to the average of previous values?
   defp apply_predicate(:ascending, percept, percepts) do
     { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
-    average = Enum.reduce(before, 0, &(&1.value + acc))
+    average = Enum.reduce(before, 0, &(&1.value + &2))
     percept.value >= average
   end
 
   # Is the value greater than or equal to the average of previous values?
   defp apply_predicate(:descending, percept, percepts) do
     { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
-    average = Enum.reduce(before, 0, &(&1.value + acc))
+    average = Enum.reduce(before, 0, &(&1.value + &2))
     percept.value <= average
   end
 
@@ -297,6 +314,23 @@ defmodule Andy.Predictor do
     )
   end
 
+  defp deactivate_predictor_fulfillment(predictor_name) do
+    Agent.update(
+      predictor_name,
+      fn (state) ->
+        deactivate_fulfillment(state)
+      end
+    )
+  end
+
+  defp deactivate_fulfillment(
+         %{
+           fulfillment_index: nil
+         } = state
+       ) do
+    state
+  end
+
   defp deactivate_fulfillment(
          %{
            fulfillment_index: fulfillment_index,
@@ -314,15 +348,18 @@ defmodule Andy.Predictor do
 
   defp activate_fulfillment(
          fulfillment_index,
-         state,
+         %{
+           prediction: prediction,
+           predictor_name: predictor_name
+         } = state,
          first_time_or_repeated
        ) do
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
-    if  fulfillment.model_name != nil and first_time_or_repeated == :first_time do
-      BelieversSupervisor.grab_believer(fulfillment.model_name, state.predictor_name)
+    if  fulfillment.model_name != nil do
+      BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name)
     end
     if fulfillment.actions != nil do
-      Enum.each(fulfillment.actions, Action.execute(&1, first_time_or_repeated))
+      Enum.each(fulfillment.actions, &(Action.execute(&1, first_time_or_repeated)))
     end
     %{ state | fulfillment_index: fulfillment_index }
   end
@@ -331,7 +368,7 @@ defmodule Andy.Predictor do
     case priority do
       :none ->
         precision
-      other ->
+      _other ->
         Andy.reduce_level_by(precision, priority)
     end
   end

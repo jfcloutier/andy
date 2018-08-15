@@ -2,7 +2,7 @@ defmodule Andy.Prediction do
 
   @moduledoc "A prediction by a generative model"
 
-  alias Andy.Fulfillment
+  alias Andy.{ Fulfillment, Prediction }
 
   @type t :: %__MODULE__{
                name: :atom,
@@ -55,6 +55,7 @@ defmodule Andy.Prediction do
   end
 
   def new(
+        name: name,
         # list of {{device_class, device_type, sense}, value desc, timeframe}
         perceived: perceived,
         precision: default_precision,

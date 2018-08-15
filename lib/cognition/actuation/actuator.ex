@@ -104,8 +104,7 @@ defmodule Andy.Actuator do
              # allow parallelism
              fn () ->
                realize_intent(actuator_config.name, intent)
-             end,
-             [:link]
+             end
            )
          end
        )

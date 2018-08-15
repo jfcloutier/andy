@@ -3,7 +3,7 @@ defmodule Andy.Action do
 
   alias __MODULE__
 
-  alias Andy.{ Intent }
+  alias Andy.{ Intent, PubSub }
   require Logger
 
   @type t :: %__MODULE__{

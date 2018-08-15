@@ -64,12 +64,12 @@ defmodule Andy.Ev3.Brick do
     #System.cmd("dmesg", ["-n", "1"])
   end
 
-  defp format_appdata() do
-    case System.cmd("mke2fs", ["-t", "ext4", "-L", "APPDATA", "/dev/mmcblk0p4"]) do
-      { _, 0 } -> :ok
-      _ -> :error
-    end
-  end
+#  defp format_appdata() do
+#    case System.cmd("mke2fs", ["-t", "ext4", "-L", "APPDATA", "/dev/mmcblk0p4"]) do
+#      { _, 0 } -> :ok
+#      _ -> :error
+#    end
+#  end
 
   defp maybe_mount_appdata() do
     if !File.exists?("/mnt/.initialized") do

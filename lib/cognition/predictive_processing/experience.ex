@@ -5,7 +5,7 @@ defmodule Andy.Experience do
   """
 
   require Logger
-  alias Andy.{ PubSub, Predictor }
+  alias Andy.{ PubSub, Predictor, PredictionError, PredictionFulfilled, Fulfill }
 
   @name __MODULE__
 
@@ -21,11 +21,11 @@ defmodule Andy.Experience do
   end
 
   def start_link() do
-    { :ok, pid } = Agent.start_link(
+    { :ok, _pid } = Agent.start_link(
       fn ->
         register_internal()
         %{
-          # %{predictor_name: [{successes, failures}, nil, nil]}
+          # %{predictor_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
           fulfillment_stats: []
         }
       end,
@@ -47,12 +47,14 @@ defmodule Andy.Experience do
     # Choose a fulfillment to correct the prediction error
     fulfillment_index = choose_fulfillment(prediction_error, state)
     # Activate fulfillment
-    PubSub.notify_fulfill(prediction_error.predictor_name, fulfillment_index)
+    PubSub.notify_fulfill(
+      Fulfill.new(predictor_name: prediction_error.predictor_name, fulfillment_index: fulfillment_index)
+    )
     updated_state
   end
 
-  def handle_event({ :prediction_fulfilled, prediction_fulfilled }, state) do
-    update_fulfillment_stats(prediction_fulfilled, state)
+  def handle_event({ :prediction_fulfilled, predictor_name }, state) do
+    update_fulfillment_stats(predictor_name, state)
   end
 
 
@@ -67,25 +69,25 @@ defmodule Andy.Experience do
          %PredictionError{ predictor_name: predictor_name },
          state
        ) do
-    learn(predictor_name, :failures, state)
+    learn(predictor_name, :failure, state)
   end
 
   defp update_fulfillment_stats(
-         %PredictionFulfillment{ predictor_name: predictor_name },
+         %PredictionFulfilled{predictor_name: predictor_name},
          state
-       ) do
+       )  do
     learn(predictor_name, :success, state)
   end
 
   defp learn(
          predictor_name,
          success_or_failure,
-         %{ fulfillment_stats: all_stats } = state
+         %{ fulfillment_stats: fulfillment_stats } = state
        ) do
     { fulfillment_index, fulfillment_count } = Predictor.fulfillment_data(predictor_name)
     if fulfillment_index != nil do
       # The predictor has an active fulfillment we are learning about
-      new_predictor_stats = case Map.get(all_stats, predictor_name) do
+      new_predictor_stats = case Map.get(fulfillment_stats, predictor_name) do
         nil ->
           predictor_stats = List.duplicate({ 0, 0 }, fulfillment_count)
                             |> List.replace_at(fulfillment_index, increment({ 0, 0 }, success_or_failure))
@@ -93,7 +95,7 @@ defmodule Andy.Experience do
           { successes, failures } = Enum.at(predictor_stats, fulfillment_index)
           List.replace_at(predictor_stats, fulfillment_index, increment({ successes, failures }, success_or_failure))
       end
-      updated_fulfillment_stats = Map.put(all_stats, predictor_name, new_predictor_stats)
+      updated_fulfillment_stats = Map.put(fulfillment_stats, predictor_name, new_predictor_stats)
       %{ state | fulfillment_stats: updated_fulfillment_stats }
     else
       # Nothing to learn
@@ -105,7 +107,7 @@ defmodule Andy.Experience do
     { successes + 1, failures }
   end
 
-  defp increment({ successes, failures }, :failures) do
+  defp increment({ successes, failures }, :failure) do
     { successes, failures + 1 }
   end
 

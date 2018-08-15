@@ -3,7 +3,8 @@ defmodule Andy.Percept do
 
   import Andy.Utils
 
-  defstruct about: nil,
+  defstruct id: nil,
+            about: nil,
               # What is being perceived - %{class: class, port: port, type: type, sense: sense}
             value: nil,
               # The measurement/value of the perception (a number, atom etc.)

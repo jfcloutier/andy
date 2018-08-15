@@ -1,4 +1,4 @@
-def Andy.PredictorsSupervisor do
+defmodule Andy.PredictorsSupervisor do
   @moduledoc "Supervisor of dynamically started predictors"
 
   @name __MODULE__
@@ -20,12 +20,17 @@ def Andy.PredictorsSupervisor do
     DynamicSupervisor.start_link(@name, [] [name: @name])
   end
 
+  def init(_arg) do
+    DynamicSupervisor.init(strategy: :one_for_one)
+  end
+
   def start_predictor(prediction, believer_name, model_name) do
     spec = { Predictor, [prediction, believer_name, model_name] }
     { :ok, _name } = DynamicSupervisor.start_child(@name, spec)
   end
 
   def terminate(predictor_name) do
+    Logger.info("Terminating predictor #{predictor_name}")
     Predictor.about_to_be_terminated(predictor_name)
     DynamicSupervisor.terminate_child(@name, predictor_name)
   end

@@ -2,7 +2,7 @@ defmodule Andy.Attention do
   @moduledoc "Responsible for polling detectors as needed by predictors"
 
   require Logger
-  alias Andy.{ PubSub }
+  alias Andy.{ PubSub, DetectorsSupervisor, Percept }
 
   @name __MODULE__
 
@@ -18,11 +18,11 @@ defmodule Andy.Attention do
   end
 
   def start_link() do
-    { :ok, pid } = Agent.start_link(
+    { :ok, _pid } = Agent.start_link(
       fn ->
         register_internal()
         %{
-          # [%{predictor_id: ..., detector_specs: ..., precision: ...}, ...] - precision in [:low, :medium, :high]
+          # [%{predictor_name: ..., detector_specs: ..., precision: ...}, ...] - precision in [:none, :low, :medium, :high]
           attended_list: []
         }
       end,
@@ -39,12 +39,12 @@ defmodule Andy.Attention do
 
   ## Handle timer events
 
-  def handle_event({:attention_on, detector_specs, predictor_pid, precision}, state) do
-    pay_attention(detector_specs, predictor_pid, precision)
+  def handle_event({ :attention_on, detector_specs, predictor_name, precision }, state) do
+    pay_attention(detector_specs, predictor_name, precision, state)
   end
 
-  def handle_event({:attention_off, predictor_pid}, state) do
-    lose_attention(predictor_pid)
+  def handle_event({ :attention_off, predictor_name }, state) do
+    lose_attention(predictor_name, state)
   end
 
   def handle_event(_event, state) do
@@ -54,36 +54,38 @@ defmodule Andy.Attention do
 
   ### PRIVATE
 
-  defp pay_attention(detector_specs, predictor_pid, precision) do
-    Agent.update(
-      @name,
-      fn (%{ attended_list: attended_list } = state) ->
-        attended_minus = Enum.reduce(
-          attended_list,
-          [],
-          fn (attended, acc) ->
-            if attended.predictor_id == predictor_id and Percept.about_match?(
-              detector_specs,
-              attended.detector_specs
-               ) do
-              acc
-            else
-              [attended | acc]
-            end
-          end
-        )
-        new_attended = %{ predictor_id: predictor_id, detector_specs: detector_specs, precision: precision }
-        %{ state | attended_list: [new_attended | attended_minus] }
+  defp pay_attention(
+         detector_specs,
+         predictor_name,
+         precision,
+         %{ attended_list: attended_list } = state
+       ) do
+    Logger.info("Paying attention to #{inspect detector_specs} for predictor #{predictor_name}")
+    attended_minus = Enum.reduce(
+      attended_list,
+      [],
+      fn (attended, acc) ->
+        if attended.predictor_name == predictor_name and Percept.about_match?(
+          detector_specs,
+          attended.detector_specs
+           ) do
+          acc
+        else
+          [attended | acc]
+        end
       end
     )
+    new_attended = %{ predictor_name: predictor_name, detector_specs: detector_specs, precision: precision }
     set_polling_precision(detector_specs)
+    %{ state | attended_list: [new_attended | attended_minus] }
   end
 
-  defp lose_attention(predictor_pid) do
+  defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
+    Logger.info("Losing attention for predictor #{predictor_name}")
     detector_specs = Agent.get(
       @name,
       fn (%{ attended_list: attended_list }) ->
-        case Enum.find(attended_list, &(&1.predictor_pid == predictor_pid)) do
+        case Enum.find(attended_list, &(&1.predictor_name == predictor_name)) do
           nil ->
             nil
           %{ detector_specs: specs } ->
@@ -91,24 +93,19 @@ defmodule Andy.Attention do
         end
       end
     )
-    Agent.update(
-      @name,
-      fn (%{ attended_list: attended_list } = state) ->
-        attended_minus = Enum.reduce(
-          attended_list,
-          [],
-          fn (attended, acc) ->
-            if attended.predictor_id == predictor_id do
-              acc
-            else
-              [attended | acc]
-            end
-          end
-        )
-        %{ state | attended_list: attended_minus }
+    attended_minus = Enum.reduce(
+      attended_list,
+      [],
+      fn (attended, acc) ->
+        if attended.predictor_name == predictor_name do
+          acc
+        else
+          [attended | acc]
+        end
       end
     )
     set_polling_precision(detector_specs)
+    %{ state | attended_list: attended_minus }
   end
 
   defp set_polling_precision(nil) do
@@ -132,7 +129,7 @@ defmodule Andy.Attention do
         )
       end
     )
-    DetectorsSupervisor.set_polling_precision(detector_specs, max_precision)
+    DetectorsSupervisor.set_polling_priority(detector_specs, max_precision)
   end
 
 end

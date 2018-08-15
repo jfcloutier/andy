@@ -3,7 +3,7 @@ defmodule Andy.Believer do
   @moduledoc "Given a generative model, updates belief in it upon prediction errors."
 
   require Logger
-  alias Andy.{ PubSub, Belief }
+  alias Andy.{ PubSub, Belief, BelieversSupervisor, PredictorsSupervisor }
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -114,7 +114,7 @@ defmodule Andy.Believer do
   end
 
   @doc "Are all of the model's predictions validated?"
-  def believes?(believer_name, precision) do
+  def believes?(believer_name) do
     Agent.get(
       believer_name,
       fn (%{ validations: validations }) ->
@@ -134,8 +134,12 @@ defmodule Andy.Believer do
         %{
           model: model
         } = state
-      ) when model.name == model_name do
-    process_prediction_error(prediction_error, state)
+      ) do
+    if  model.name == model_name do
+      process_prediction_error(prediction_error, state)
+    else
+      state
+    end
   end
 
   def handle_event(
@@ -143,9 +147,12 @@ defmodule Andy.Believer do
         %{
           model: model
         } = state
-      ) when model_name == model.name do
-    process_prediction_fulfilled(prediction_fulfilled, state)
-    state
+      ) do
+    if  model.name == model_name do
+      process_prediction_fulfilled(prediction_fulfilled, state)
+    else
+      state
+    end
   end
 
 
@@ -173,7 +180,7 @@ defmodule Andy.Believer do
     %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
   end
 
-  defp process_prediction_fulfilled(prediction_fulfilled, %{ validations: validations } = state state) do
+  defp process_prediction_fulfilled(prediction_fulfilled, %{ validations: validations } = state) do
     was_already_believed? = believes?(state)
     if not was_already_believed? do
       PubSub.notify_believed(Belief.new(state.model.name, true))
