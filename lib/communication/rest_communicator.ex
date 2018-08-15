@@ -10,7 +10,7 @@ defmodule Andy.RESTCommunicator do
 	@name __MODULE__
 	@timeout 20_000
 
-  def start_link() do
+  def start_link(_) do
 		Logger.info("Starting #{@name}")
 		GenServer.start_link(@name, [], [name: @name])
 	end

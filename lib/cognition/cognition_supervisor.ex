@@ -2,7 +2,8 @@ defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{ PubSub, Memory, DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor,
+  alias Andy.{ PubSub, Memory,
+               DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, PredictorsSupervisor,
                InternalClock, PG2Communicator, Device,
                RESTCommunicator, GenerativeModels, Attention, Experience, Interest }
 

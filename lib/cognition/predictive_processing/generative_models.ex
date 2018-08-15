@@ -40,7 +40,7 @@ defmodule Andy.GenerativeModels do
   def model_named(name) do
     model = Agent.get(
       @name,
-      fn (%{ models: models }) ->
+      fn (%{ models: models } = _state) ->
         Enum.find(models, &(&1.name == name))
       end
     )
@@ -102,18 +102,18 @@ defmodule Andy.GenerativeModels do
     { analysis, _ } = Enum.reduce(
       roots,
       { %{ }, nil },
-      fn (model, acc) -> analyse_model(model, acc)
+      fn (model, acc) -> analyse_model(model, acc, models)
       end
     )
     analysis
   end
 
-  defp analyse_model(model, { analysis, parent_name }) do
+  defp analyse_model(model, { analysis, parent_name }, models) do
     # No strange loops allowed
     if model.name in Map.keys(analysis) do
       { analysis, parent_name }
     else
-      children = children(model)
+      children = children(model, models)
       updated_analysis =
         Map.put(
           analysis,
@@ -124,13 +124,13 @@ defmodule Andy.GenerativeModels do
         children,
         { updated_analysis, model.name },
         fn (child, acc) ->
-          analyse_model(child, acc)
+          analyse_model(child, acc, models)
         end
       )
     end
   end
 
-  defp children(model) do
+  defp children(model, models) do
     Enum.reduce(
       model.predictions,
       [],
@@ -139,7 +139,7 @@ defmodule Andy.GenerativeModels do
           nil ->
             []
           { _, predicted_model_name } ->
-            [predicted_model_name]
+            [predicted_model_name | acc]
         end
         to_fulfill = Enum.reduce(
           prediction.fulfillments,
@@ -156,7 +156,15 @@ defmodule Andy.GenerativeModels do
         [(predicted ++ to_fulfill) | acc]
       end
     )
+    |> List.flatten()
     |> Enum.uniq()
+    |> Enum.map(
+         fn (name) ->
+           Enum.find(models, &(&1.name == name))
+         end
+       )
+      # TODO - for now, until the modeling is complete
+    |> Enum.reject(&(&1 == nil))
   end
 
 end

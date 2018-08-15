@@ -33,7 +33,7 @@ defmodule Andy.Prediction do
     %Prediction{
       name: name,
       believed: believed,
-      perceived: as_percept_abouts(perceived),
+      perceived: process_perceived(perceived),
       precision: default_precision,
       fulfillments: fulfillments
     }
@@ -64,7 +64,7 @@ defmodule Andy.Prediction do
     %Prediction{
       name: name,
       believed: nil,
-      perceived: as_percept_abouts(perceived),
+      perceived: process_perceived(perceived),
       precision: default_precision,
       fulfillments: fulfillments
     }
@@ -93,27 +93,31 @@ defmodule Andy.Prediction do
 
   ### PRIVATE
 
-  defp as_percept_abouts(nil) do
+  defp process_perceived(nil) do
     []
   end
 
-  defp as_percept_abouts(perceived_specs) do
+  defp process_perceived(perceived) do
     Enum.map(
-      perceived_specs,
-      fn (spec) ->
-        if is_map(spec) do
-          spec
-        else
-          { class, port, type, sense } = spec
-          %{
-            class: class,
-            port: port,
-            type: type,
-            sense: sense
-          }
-        end
+      perceived,
+      fn ({ percept_specs, predicate, timing }) ->
+        { as_percept_about(percept_specs), predicate, timing }
       end
     )
+  end
+
+  defp as_percept_about(percept_specs) do
+    if is_map(percept_specs) do
+      percept_specs
+    else
+      { class, port, type, sense } = percept_specs
+      %{
+        class: class,
+        port: port,
+        type: type,
+        sense: sense
+      }
+    end
   end
 
 end

@@ -14,7 +14,7 @@ defmodule Andy.PG2Communicator do
 	### API
 
 	@doc "Star the communication server"
-	def start_link() do
+	def start_link(_) do
 		Logger.info("Starting #{@name}")
 		GenServer.start_link(@name, [], [name: @name])
 	end

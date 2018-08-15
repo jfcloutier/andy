@@ -36,7 +36,7 @@ defmodule Andy.Puppy.Modeling do
         ],
         # Let activated sub-models dictate priority
         priority: nil,
-        hyper_prior: true
+        hyper_prior?: true
       ),
       # Hyper-prior sub-models
 

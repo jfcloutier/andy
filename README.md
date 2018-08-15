@@ -17,3 +17,7 @@ ISSUES:
 UART sensors detectors but not "mounted" under /sys/class/lego-sensor
 tacho-motors not detected when plugged into port A
 
+To test on PC: 
+
+    > MIX_TARGET=host iex -S mix phx.server
+

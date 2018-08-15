@@ -25,7 +25,7 @@ defmodule Andy.Application do
     ]
     opts = [strategy: :one_for_one, name: :root_supervisor]
     result = Supervisor.start_link(children, opts)
-    go()
+ #   go()
     result
   end
   
