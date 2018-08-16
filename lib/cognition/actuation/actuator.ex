@@ -19,10 +19,9 @@ defmodule Andy.Actuator do
   @doc "Start an actuator from a configuration"
   def start_link(actuator_config) do
     Logger.info("Starting #{__MODULE__} #{actuator_config.name}")
-    Agent.start_link(
+    {:ok, pid} = Agent.start_link(
       fn () ->
-        register_internal()
-        case actuator_config.type do
+         case actuator_config.type do
           :motor ->
             %{
               actuator_config: actuator_config,
@@ -47,6 +46,8 @@ defmodule Andy.Actuator do
       end,
       [name: actuator_config.name]
     )
+    listen_to_events(pid, __MODULE__)
+    {:ok, pid}
   end
 
   def realize_intent(name, intent) do
@@ -79,10 +80,6 @@ defmodule Andy.Actuator do
 
   ### Cognition agent
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
   def handle_event({ :intended, intent }, state) do
     process_intent(intent, state)
     { :ok, state }
@@ -100,7 +97,7 @@ defmodule Andy.Actuator do
     |> Enum.filter(&(intent.about in &1.intents))
     |> Enum.each(
          fn (actuator_config) ->
-           Task.async(
+           spawn(
              # allow parallelism
              fn () ->
                realize_intent(actuator_config.name, intent)

@@ -62,11 +62,11 @@ defmodule Andy.Application do
   end
 
   def go() do
-    Task.async(fn() -> connect_to_nodes() end)
+    spawn(fn() -> connect_to_nodes() end)
     CognitionSupervisor.start_cognition()
-    Task.async(fn -> push_runtime_stats() end)
+    spawn(fn -> push_runtime_stats() end)
     InternalClock.resume()
-  end
+   end
   
   ## PRIVATE
 

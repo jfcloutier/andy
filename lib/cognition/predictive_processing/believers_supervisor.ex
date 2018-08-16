@@ -32,8 +32,7 @@ defmodule Andy.BelieversSupervisor do
     believer_name = case find_believer_name(model_name) do
       nil ->
         model = GenerativeModels.model_named(model_name)
-        { :ok, believer_name } = start_believer(model)
-        believer_name
+        start_believer(model)
       believer_name ->
         believer_name
     end

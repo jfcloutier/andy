@@ -4,6 +4,7 @@ defmodule Andy.Predictor do
   require Logger
   alias Andy.{ PubSub, Prediction, Percept, Belief, Fulfill, Action,
                Believer, BelieversSupervisor, Memory, PredictionFulfilled }
+  import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -21,7 +22,6 @@ defmodule Andy.Predictor do
     predictor_name = String.to_atom("#{prediction.name} in #{model_name}")
     { :ok, pid } = Agent.start_link(
       fn ->
-        register_internal()
         %{
           predictor_name: predictor_name,
           predicted_model_name: model_name,
@@ -39,8 +39,9 @@ defmodule Andy.Predictor do
       end,
       [name: predictor_name]
     )
-    Task.async(fn -> predict(predictor_name) end)
+    spawn(fn -> predict(predictor_name) end)
     Logger.info("#{__MODULE__} started on prediction #{Prediction.summary(prediction)}")
+    listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
 
@@ -65,10 +66,6 @@ defmodule Andy.Predictor do
   end
 
   ### Cognition Agent Behaviour
-
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
 
   def handle_event(
         { :percept_memorized, %Percept{ } = percept },

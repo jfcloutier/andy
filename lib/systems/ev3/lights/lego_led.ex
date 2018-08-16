@@ -59,7 +59,7 @@ defmodule Andy.Ev3.LegoLED do
 	@doc "Execute an LED command"
 	def execute_command(led, command, params) do
 #		Logger.info("--- Executing LED #{led.path} #{command} #{inspect params}")
-		Task.async(fn() -> apply(module_for(led), command, [led | params]) end) # call to LEDs seems to be time-consuming
+		spawn(fn() -> apply(module_for(led), command, [led | params]) end) # call to LEDs seems to be time-consuming
     led
 	end
 

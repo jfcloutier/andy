@@ -4,6 +4,7 @@ defmodule Andy.Believer do
 
   require Logger
   alias Andy.{ PubSub, Belief, BelieversSupervisor, PredictorsSupervisor }
+  import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -21,8 +22,7 @@ defmodule Andy.Believer do
     believer_name = generative_model.name
     { :ok, pid } = Agent.start_link(
       fn () ->
-        register_internal()
-        %{
+         %{
           model: generative_model,
           validations: %{ }, # prediction_name => true|false -- the believer is validated if all prediction are true
           predictors: [], # predictor names
@@ -32,9 +32,10 @@ defmodule Andy.Believer do
       end,
       [name: believer_name]
     )
-    Task.async(fn -> start_predictors(believer_name) end)
+    spawn(fn -> start_predictors(believer_name) end)
     PubSub.notify_believer_started(believer_name)
     Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
+    listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
 
@@ -125,11 +126,7 @@ defmodule Andy.Believer do
 
   ### Cognition Agent Behaviour
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
-  def handle_event(
+   def handle_event(
         { :prediction_error, %{ model_name: model_name } = prediction_error },
         %{
           model: model

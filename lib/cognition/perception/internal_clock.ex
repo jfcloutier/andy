@@ -3,40 +3,28 @@ defmodule Andy.InternalClock do
 
   require Logger
   alias Andy.{ Percept, PubSub }
-  import Andy.Utils, only: [tick_interval: 0, now: 0]
+  import Andy.Utils, only: [tick_interval: 0, now: 0, listen_to_events: 2]
+  use Agent
 
   @behaviour Andy.CognitionAgentBehaviour
 
   @name __MODULE__
 
-  @doc "Child spec as supervised worker"
-  def child_spec(_) do
-    %{
-      id: __MODULE__,
-      start: { __MODULE__, :start_link, [] }
-    }
-  end
-
-  def start_link() do
+  def start_link(_) do
     { :ok, pid } = Agent.start_link(
       fn () ->
-        register_internal()
         %{ responsive: false, tock: nil, count: 0 }
       end,
       [name: @name]
     )
-    Task.async(
-      fn () ->
-        :timer.sleep(tick_interval())
-        tick_tock()
-      end
-    )
+    Process.register(spawn(fn -> tick_tock() end), :tick_tock)
     Logger.info("#{@name} started")
+    listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
 
   def tick() do
-    Agent.cast(
+    Agent.update(
       @name,
       fn (state) ->
         if state.responsive do
@@ -44,7 +32,12 @@ defmodule Andy.InternalClock do
           Logger.info("tick")
           PubSub.notify_tick()
           Percept.new_transient(
-            about: %{class: :sensor, port: nil, type: :timer, sense: :time_elapsed},
+            about: %{
+              class: :sensor,
+              port: nil,
+              type: :timer,
+              sense: :time_elapsed
+            },
             value: %{
               delta: tock - state.tock,
               count: state.count
@@ -53,7 +46,7 @@ defmodule Andy.InternalClock do
           |> PubSub.notify_perceived()
           %{ state | tock: tock, count: state.count + 1 }
         else
- #         Logger.debug(" no tick")
+          # Logger.debug(" no tick")
           state
         end
       end
@@ -94,20 +87,15 @@ defmodule Andy.InternalClock do
     state
   end
 
-  def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
+  def handle_event(event, state) do
+   # Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
-
-  ### Private
+   ### Private
 
   defp tick_tock() do
-    :timer.sleep(tick_interval())
+    Process.sleep(tick_interval())
     tick()
     tick_tock()
   end

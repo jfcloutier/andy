@@ -2,7 +2,8 @@ defmodule Andy.Attention do
   @moduledoc "Responsible for polling detectors as needed by predictors"
 
   require Logger
-  alias Andy.{ PubSub, DetectorsSupervisor, Percept }
+  alias Andy.{ DetectorsSupervisor, Percept }
+  import Andy.Utils, only: [listen_to_events: 2]
 
   @name __MODULE__
 
@@ -18,9 +19,8 @@ defmodule Andy.Attention do
   end
 
   def start_link() do
-    { :ok, _pid } = Agent.start_link(
+    { :ok, pid } = Agent.start_link(
       fn ->
-        register_internal()
         %{
           # [%{predictor_name: ..., detector_specs: ..., precision: ...}, ...] - precision in [:none, :low, :medium, :high]
           attended_list: []
@@ -28,14 +28,12 @@ defmodule Andy.Attention do
       end,
       [name: @name]
     )
+    listen_to_events(pid, __MODULE__)
+    {:ok, pid}
   end
 
 
   ### Cognition Agent Behaviour
-
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
 
   ## Handle timer events
 

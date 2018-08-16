@@ -3,7 +3,7 @@ defmodule Andy.Detector do
 
   require Logger
   alias Andy.{ Percept, PubSub, Device }
-  import Andy.Utils, only: [platform_dispatch: 2, timeout: 0, default_ttl: 1]
+  import Andy.Utils, only: [platform_dispatch: 2, timeout: 0, default_ttl: 1, listen_to_events: 2]
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -21,8 +21,7 @@ defmodule Andy.Detector do
     name = String.to_atom("#{Device.name(device)}-#{inspect sense}")
     { :ok, pid } = Agent.start_link(
       fn () ->
-        register_internal()
-        %{
+         %{
           detector_name: name,
           device: device,
           sense: sense,
@@ -34,6 +33,7 @@ defmodule Andy.Detector do
       [name: name]
     )
     Logger.info("#{__MODULE__} started on #{inspect device.type} device")
+    listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
 
@@ -80,7 +80,7 @@ defmodule Andy.Detector do
             Logger.info("Now polling #{device.mod} about #{sense} every #{secs} secs")
             %{
               state |
-              polling_task: Task.async(fn -> detect(detector_name) end),
+              polling_task: spawn(fn -> detect(detector_name) end),
               polling_interval_secs: secs
             }
         end
@@ -90,11 +90,7 @@ defmodule Andy.Detector do
 
   ### Cognition Agent Behaviour
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
-  def handle_event(_event, state) do
+   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end

@@ -6,6 +6,7 @@ defmodule Andy.Experience do
 
   require Logger
   alias Andy.{ PubSub, Predictor, PredictionError, PredictionFulfilled, Fulfill }
+  import Andy.Utils, only: [listen_to_events: 2]
 
   @name __MODULE__
 
@@ -21,9 +22,8 @@ defmodule Andy.Experience do
   end
 
   def start_link() do
-    { :ok, _pid } = Agent.start_link(
+    { :ok, pid } = Agent.start_link(
       fn ->
-        register_internal()
         %{
           # %{predictor_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
           fulfillment_stats: []
@@ -31,15 +31,13 @@ defmodule Andy.Experience do
       end,
       [name: @name]
     )
+    listen_to_events(pid, __MODULE__)
+    {:ok, pid}
   end
 
   ### Cognition Agent Behaviour
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
-  ## Handle timer events
+   ## Handle timer events
 
   def handle_event({ :prediction_error, prediction_error }, state) do
     # Update fulfillment stats

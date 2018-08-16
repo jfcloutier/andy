@@ -19,7 +19,7 @@ defmodule Andy.PubSub do
   @doc "Start the registry"
   def start_link() do
     Registry.start_link(
-      keys: :unique,
+      keys: :duplicate,
       name: @registry_name,
       partitions: System.schedulers_online(),
       meta: [
@@ -32,6 +32,7 @@ defmodule Andy.PubSub do
 
   @doc "Register a subscriber"
   def register(module) do
+    Logger.info("Registering #{module} to pubsub")
     Registry.register(@registry_name, @topic, module)
   end
 
@@ -92,32 +93,32 @@ defmodule Andy.PubSub do
 
   @doc "Notify that a predictor is paying attention to some detection"
   def notify_attention_on(detector_specs, predictor_pid, precision) do
-    notify({:attention_on, detector_specs, predictor_pid, precision})
+    notify({ :attention_on, detector_specs, predictor_pid, precision })
   end
 
   @doc "Notify that a predictor is no longer paying attention"
   def notify_attention_off(predictor_pid) do
-    notify({:attention_off, predictor_pid})
+    notify({ :attention_off, predictor_pid })
   end
 
   @doc "Notify that a predictor is to use a given fulfillment"
   def notify_fulfill(fulfill) do
-    notify({:fullfill, fulfill})
+    notify({ :fullfill, fulfill })
   end
 
   @doc "Notify that a believer started on a model"
   def notify_believer_started(model_name) do
-    notify({:believer_started, model_name})
+    notify({ :believer_started, model_name })
   end
 
   @doc "Notify that a believer terminated on a model"
   def notify_believer_terminated(model_name) do
-    notify({:believer_terminated, model_name})
+    notify({ :believer_terminated, model_name })
   end
 
   @doc "Notify that a model has been deprioritized"
   def notify_model_deprioritized(model_name, priority) do
-    notify({:model_deprioritized, model_name, priority})
+    notify({ :model_deprioritized, model_name, priority })
   end
 
 
@@ -189,7 +190,7 @@ defmodule Andy.PubSub do
 
   defp notify(event) do
     Logger.info("Notify #{inspect event}")
-    Task.async(
+    spawn(
       fn ->
         Registry.dispatch(
           @registry_name,
@@ -198,7 +199,10 @@ defmodule Andy.PubSub do
             for { pid, module } <- subscribers,
                 do: Agent.cast(
                   pid,
-                  fn (state) -> apply(module, :handle_event, [event, state]) end
+                  fn (state) ->
+                    # Logger.debug("SENDING :handle_event #{inspect event} to #{module}")
+                    apply(module, :handle_event, [event, state])
+                  end
                 )
           end
         )
@@ -215,7 +219,7 @@ defmodule Andy.PubSub do
   end
 
   defp set_alarm_clock(msecs) do
-    Task.async(
+    spawn(
       fn () -> # make sure to revive
         :timer.sleep(msecs)
         notify_revive()

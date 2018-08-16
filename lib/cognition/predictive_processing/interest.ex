@@ -6,6 +6,8 @@ defmodule Andy.Interest do
 
   require Logger
   alias Andy.{ PubSub, GenerativeModels }
+  import Andy.Utils, only: [listen_to_events: 2]
+
 
   @name __MODULE__
 
@@ -21,10 +23,9 @@ defmodule Andy.Interest do
   end
 
   def start_link() do
-    { :ok, _pid } = Agent.start_link(
+    { :ok, pid } = Agent.start_link(
       fn ->
-        register_internal()
-        # %{focus: %{model_name => %{competing_model_names: [competing_model_name,...],
+         # %{focus: %{model_name => %{competing_model_names: [competing_model_name,...],
         #                                    priority: priority}
         #                                   }
         #                   }
@@ -32,15 +33,13 @@ defmodule Andy.Interest do
       end,
       [name: @name]
     )
+    listen_to_events(pid, __MODULE__)
+    {:ok, pid}
   end
 
   ### Cognition Agent Behaviour
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
-  def handle_event(
+   def handle_event(
         { :believer_started, model_name },
         %{ focus: focus } = state
       ) do

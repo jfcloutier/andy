@@ -24,15 +24,16 @@ defmodule Andy.Memory do
   @doc "Start the memory server"
   def start_link() do
     Logger.info("Starting #{@name}")
-    Agent.start_link(
+    {:ok, pid} = Agent.start_link(
       fn () ->
-        pid = spawn_link(fn () -> forget()  end)
-        Process.register(pid, :forgetting)
-        register_internal()
+        forgetting_pid = spawn_link(fn () -> forget()  end)
+        Process.register(forgetting_pid, :forgetting)
         %{ percepts: %{ }, intents: %{ }, beliefs: %{ } }
       end,
       [name: @name]
     )
+    listen_to_events(pid, __MODULE__)
+    {:ok, pid}
   end
 
   @doc "Remember a percept or intent"
@@ -80,11 +81,7 @@ defmodule Andy.Memory do
 
   ### Cognitive Agent behaviour
 
-  def register_internal() do
-    PubSub.register(__MODULE__)
-  end
-
-  def handle_event({ :perceived, percept }, state) do
+   def handle_event({ :perceived, percept }, state) do
     if not percept.transient do
       store(percept, state)
     end

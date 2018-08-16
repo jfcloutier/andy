@@ -2,7 +2,24 @@ defmodule Andy.Utils do
 
   @moduledoc "Utility functions"
 
+  alias Andy.PubSub
+
   @ttl 10_000
+
+  def listen_to_events(pid, module) do
+    spawn(
+       fn ->
+         Process.sleep(1000)
+         Agent.cast(
+          pid,
+          fn (state) ->
+            PubSub.register(module)
+            state
+          end
+        )
+      end
+    )
+  end
 
   def timeout() do
     10000
