@@ -22,7 +22,8 @@ defmodule Andy.GenerativeModels do
           # %{model_name => %{parent_name: <name>, children_names: [<name>, ...]}
           analysis: analyse_models(models)
         }
-      end
+      end,
+      [name: @name]
     )
     Logger.info("#{@name} started")
     { :ok, pid }

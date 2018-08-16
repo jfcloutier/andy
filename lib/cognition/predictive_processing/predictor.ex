@@ -18,7 +18,7 @@ defmodule Andy.Predictor do
 
   @doc "Start the cognition agent responsible for believing in a generative model"
   def start_link(prediction, believer_name, model_name) do
-    predictor_name = "#{prediction.name}(#{model_name})"
+    predictor_name = String.to_atom("#{prediction.name} in #{model_name}")
     { :ok, pid } = Agent.start_link(
       fn ->
         register_internal()
@@ -39,7 +39,7 @@ defmodule Andy.Predictor do
       end,
       [name: predictor_name]
     )
-    Task.async(fn -> predict(pid) end)
+    Task.async(fn -> predict(predictor_name) end)
     Logger.info("#{__MODULE__} started on prediction #{Prediction.summary(prediction)}")
     { :ok, pid }
   end

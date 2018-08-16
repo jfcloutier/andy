@@ -74,11 +74,11 @@ defmodule Andy.Prediction do
     "#{prediction.precision} accuracy prediction that"
     <>
     (cond do
-       prediction.believed and prediction.perceived ->
+       prediction.believed != nil and prediction.perceived != [] ->
          "#{inspect prediction.believed} (believed) and #{inspect prediction.perceived} (perceived)"
-       prediction.believed ->
+       prediction.believed != nil ->
          "#{inspect prediction.believed} (believed)"
-       prediction.perceived ->
+       prediction.perceived != [] ->
          "#{inspect prediction.perceived} (perceived)"
      end)
   end

@@ -24,7 +24,7 @@ defmodule Andy.Believer do
         register_internal()
         %{
           model: generative_model,
-          validation: %{ }, # prediction_name => true|false -- the believer is validated if all prediction are true
+          validations: %{ }, # prediction_name => true|false -- the believer is validated if all prediction are true
           predictors: [], # predictor names
           for_predictors: MapSet.new()
           # predictor name

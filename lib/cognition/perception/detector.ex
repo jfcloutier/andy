@@ -18,7 +18,7 @@ defmodule Andy.Detector do
 
   @doc "Start a detector on a sensing device, to be linked to its supervisor"
   def start_link(device, sense) do
-    name = "#{Device.name(device)}:#{sense}"
+    name = String.to_atom("#{Device.name(device)}-#{inspect sense}")
     { :ok, pid } = Agent.start_link(
       fn () ->
         register_internal()
