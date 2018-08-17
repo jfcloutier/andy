@@ -31,7 +31,7 @@ defmodule Andy.DetectorsSupervisor do
   def set_polling_priority(detector_specs, priority) do
     # Find all detectors that match and set their polling priority
     # and call Detector.set_polling_priority(detector_pid, priority)
-    for detector_pid <- DynamicSupervisor.which_children(@name) do
+    for {_, detector_pid, _, _} <- DynamicSupervisor.which_children(@name) do
       if Detector.detects?(detector_pid, detector_specs) do
         Detector.set_polling_priority(detector_pid, priority)
       end

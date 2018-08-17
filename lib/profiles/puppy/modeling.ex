@@ -20,25 +20,25 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [Fulfillment.new(actions: [say_once("I am scared!")])]
-          ),
-          Prediction.new(
-          name: :puppy_is_sated,
-            believed: { :is, :sated },
-            precision: :high,
-            fulfillments: [Fulfillment.new(actions: [say_once("I am hungry!")])]
-          ),
-          Prediction.new(
-          name: :puppy_is_free,
-            believed: { :is, :free },
-            precision: :high,
-            fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!")])]
           )
+          #  ,
+          #          Prediction.new(
+          #          name: :puppy_is_sated,
+          #            believed: { :is, :sated },
+          #            precision: :high,
+          #            fulfillments: [Fulfillment.new(actions: [say_once("I am hungry!")])]
+          #          ),
+          #          Prediction.new(
+          #          name: :puppy_is_free,
+          #           believed: { :is, :free },
+          #            precision: :high,
+          #            fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!")])]
+          #          )
         ],
         # Let activated sub-models dictate priority
         priority: nil,
         hyper_prior?: true
       ),
-      # Hyper-prior sub-models
 
       # SAFE
       GenerativeModel.new(
@@ -52,20 +52,21 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(actions: [backoff(), turn()])]
           ),
           Prediction.new(
-            name: :puppy_not_in_the_dark,
-            believed: { :not, :in_the_dark },
+            name: :puppy_is_in_the_light,
+            believed: { :is, :in_the_light },
             precision: :high,
-            fulfillments: [Fulfillment.new(model_name: :in_the_light)]
-          ),
-          Prediction.new(
-            name: :other_puppies_safe,
-            believed: { :is, :others_safe },
-            precision: :high,
-            # That won't help but heh...
-            fulfillments: [Fulfillment.new(actions: [say_once("What's going on?")])]
+            fulfillments: [Fulfillment.new(actions: [say_once("It's too dark")])]
           )
+          #  ,
+          #          Prediction.new(
+          #            name: :other_puppies_safe,
+          #            believed: { :is, :others_safe },
+          #            precision: :high,
+          #            # That won't help but heh...
+          #            fulfillments: [Fulfillment.new(actions: [say_once("What's going on?")])]
+          #          )
         ],
-      # Whereas the priorities for :free and :stated would be :medium
+        # Whereas the priorities for :free and :stated would be :medium
         priority: :high
       ),
 
@@ -76,8 +77,8 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is in a well-light area",
         predictions: [
           Prediction.new(
-          name: :puppy_in_well_lit_area,
-            perceived: [{ {:sensor, :any_port, :color, :ambient}, { :gt, 50 }, { :past_secs, 2 } }],
+            name: :puppy_in_well_lit_area,
+            perceived: [{ { :sensor, :any, :color, :ambient }, { :gt, 50 }, { :past_secs, 2 } }],
             precision: :high,
             fulfillments: [Fulfillment.new(model_name: :getting_lighter)]
           )
@@ -91,15 +92,29 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           Prediction.new(
             name: :puppy_in_better_lit_area,
-            perceived: [{ {:sensor, :any_port, :color, :ambient}, :ascending, { :past_secs, 5 } }],
+            perceived: [{ { :sensor, :any, :color, :ambient }, :ascending, { :past_secs, 5 } }],
             precision: :low,
             # keep going forward if it works, else turn
             fulfillments: [Fulfillment.new(actions: [forward(), turn()])]
           )
         ],
         priority: :high
+      ),
+      # Recently got bumped
+      GenerativeModel.new(
+        name: :bumped,
+        description: "The puppy bumped into something",
+        predictions: [
+          Prediction.new(
+            name: :puppy_recently_touched,
+            perceived: [{ { :sensor, :any, :touch, :touch }, { :eq, :touched }, { :past_secs, 1 } }],
+            precision: :medium,
+            # keep going forward if it works, else turn
+            fulfillments: []
+          )
+        ],
+        priority: :high
       )
-
 
     ]
     # TODO

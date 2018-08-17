@@ -46,7 +46,7 @@ defmodule Andy.Attention do
   end
 
   def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
+    # Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
 
@@ -74,8 +74,9 @@ defmodule Andy.Attention do
       end
     )
     new_attended = %{ predictor_name: predictor_name, detector_specs: detector_specs, precision: precision }
-    set_polling_precision(detector_specs)
-    %{ state | attended_list: [new_attended | attended_minus] }
+    new_state = %{ state | attended_list: [new_attended | attended_minus] }
+    set_polling_precision(detector_specs, new_state)
+    new_state
   end
 
   defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
@@ -102,19 +103,17 @@ defmodule Andy.Attention do
         end
       end
     )
-    set_polling_precision(detector_specs)
-    %{ state | attended_list: attended_minus }
+    new_state = %{ state | attended_list: attended_minus }
+    set_polling_precision(detector_specs, new_state)
+    new_state
   end
 
-  defp set_polling_precision(nil) do
+  defp set_polling_precision(nil, state) do
     :ok
   end
 
-  defp set_polling_precision(detector_specs) do
-    max_precision = Agent.get(
-      @name,
-      fn (%{ attended_list: attended_list }) ->
-        Enum.reduce(
+  defp set_polling_precision(detector_specs, %{ attended_list: attended_list } = state) do
+    max_precision = Enum.reduce(
           attended_list,
           :none,
           fn (%{ detector_specs: specs, precision: precision }, acc) ->
@@ -125,8 +124,6 @@ defmodule Andy.Attention do
             end
           end
         )
-      end
-    )
     DetectorsSupervisor.set_polling_priority(detector_specs, max_precision)
   end
 

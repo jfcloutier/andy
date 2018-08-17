@@ -18,6 +18,7 @@ defmodule Andy.PubSub do
 
   @doc "Start the registry"
   def start_link() do
+    Logger.info("Starting #{__MODULE__}")
     Registry.start_link(
       keys: :duplicate,
       name: @registry_name,
@@ -103,7 +104,7 @@ defmodule Andy.PubSub do
 
   @doc "Notify that a predictor is to use a given fulfillment"
   def notify_fulfill(fulfill) do
-    notify({ :fullfill, fulfill })
+    notify({ :fulfill, fulfill })
   end
 
   @doc "Notify that a believer started on a model"

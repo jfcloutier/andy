@@ -26,7 +26,7 @@ defmodule Andy.Experience do
       fn ->
         %{
           # %{predictor_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
-          fulfillment_stats: []
+          fulfillment_stats: %{}
         }
       end,
       [name: @name]
@@ -43,7 +43,8 @@ defmodule Andy.Experience do
     # Update fulfillment stats
     updated_state = update_fulfillment_stats(prediction_error, state)
     # Choose a fulfillment to correct the prediction error
-    fulfillment_index = choose_fulfillment(prediction_error, state)
+    fulfillment_index = choose_fulfillment_index(prediction_error, state)
+    Logger.info("Experience chose fulfillment #{fulfillment_index} to address #{inspect prediction_error}")
     # Activate fulfillment
     PubSub.notify_fulfill(
       Fulfill.new(predictor_name: prediction_error.predictor_name, fulfillment_index: fulfillment_index)
@@ -110,11 +111,11 @@ defmodule Andy.Experience do
   end
 
   # Returns a number between 1 and the number of alternative fulfillments a prediction has (inclusive)
-  defp choose_fulfillment(
+  defp choose_fulfillment_index(
          %{ predictor_name: predictor_name } = _prediction_error,
          %{ fulfillment_stats: fulfillment_stats } = _state
        ) do
-    ratings = for { successes, failures } <- Map.fetch!(fulfillment_stats, predictor_name) do
+    ratings = for { successes, failures } <- Map.get(fulfillment_stats, predictor_name, []) do
       # A fulfillment has a 10% minimum probability of being selected
       if successes == 0, do: 0.1, else: max(successes / (successes + failures), 0.1)
     end

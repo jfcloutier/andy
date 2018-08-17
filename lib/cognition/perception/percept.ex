@@ -111,8 +111,8 @@ defmodule Andy.Percept do
       keys,
       fn (key) -> val1 = Map.fetch!(about1, key)
                   val2 = Map.fetch!(about2, key)
-                  val1 == "*"
-                  or val2 == "*"
+                  val1 in [:any, nil]
+                  or val2 in [:any, nil]
                   or val1 == val2
       end
     )

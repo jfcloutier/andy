@@ -25,24 +25,30 @@ defmodule Andy.CognitionSupervisor do
       PG2Communicator,
       RESTCommunicator,
       InternalClock,
-      Attention,
-      Experience,
-      Interest,
       DetectorsSupervisor,
       ActuatorsSupervisor,
       PredictorsSupervisor,
-      BelieversSupervisor
-    ]
+      BelieversSupervisor,
+      Experience,
+      Interest,
+      Attention
+              ]
     opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
   end
 
   @doc "Start predictive_processing processing"
   def start_cognition() do
-    Logger.info("Starting embodied cognition")
-    start_detectors()
-    start_actuators()
-    start_prior_believers()
+    spawn(
+      fn ->
+        Process.sleep(2000)
+        Logger.info("Starting embodied cognition")
+        start_detectors()
+        start_actuators()
+        start_prior_believers()
+        #   InternalClock.resume() # TODO
+      end
+    )
   end
 
   ### Private

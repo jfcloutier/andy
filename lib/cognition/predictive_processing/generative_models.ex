@@ -78,7 +78,7 @@ defmodule Andy.GenerativeModels do
       parent_name ->
         parent_model_info = Map.fetch!(analysis, parent_name)
         parent_model_info.children_names
-        |> Enum.reject(&(&1.name == model_name))
+        |> Enum.reject(&(&1 == model_name))
     end
   end
 

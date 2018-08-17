@@ -71,7 +71,7 @@ defmodule Andy.Prediction do
   end
 
   def summary(prediction) do
-    "#{prediction.precision} accuracy prediction that"
+    "#{prediction.precision} accuracy prediction that "
     <>
     (cond do
        prediction.believed != nil and prediction.perceived != [] ->

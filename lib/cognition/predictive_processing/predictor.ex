@@ -3,7 +3,7 @@ defmodule Andy.Predictor do
 
   require Logger
   alias Andy.{ PubSub, Prediction, Percept, Belief, Fulfill, Action,
-               Believer, BelieversSupervisor, Memory, PredictionFulfilled }
+               Believer, BelieversSupervisor, Memory, PredictionFulfilled, PredictionError }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.CognitionAgentBehaviour
@@ -32,7 +32,7 @@ defmodule Andy.Predictor do
           # the effective precision for the prediction
           effective_precision: prediction.precision,
           # Is is currently fulfilled? For starters, yes
-          fullfilled?: true,
+          fulfilled?: true,
           # index of the fulfillment being tried. Nil if none.
           fulfillment_index: nil
         }
@@ -40,7 +40,7 @@ defmodule Andy.Predictor do
       [name: predictor_name]
     )
     spawn(fn -> predict(predictor_name) end)
-    Logger.info("#{__MODULE__} started on prediction #{Prediction.summary(prediction)}")
+    Logger.info("#{__MODULE__} started on #{Prediction.summary(prediction)}")
     listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
@@ -173,19 +173,26 @@ defmodule Andy.Predictor do
 
   defp percept_relevant?(
          %Percept{ about: percept_about },
-         %{ perceived: perceived_specs } = _prediction
+         %Prediction{ perceived: perceived_specs } = _prediction
        ) do
     Enum.any?(
       perceived_specs,
-      fn (perceived_spec) ->
-        Percept.about_match?(perceived_spec, percept_about)
+      fn ({perceived_about, _predicate, _time} = _perceived_spec) ->
+        Percept.about_match?(perceived_about, percept_about)
       end
     )
   end
 
   defp belief_relevant?(
+         _belief,
+         %Prediction{ believed: nil} = _prediction
+       ) do
+    false
+  end
+
+  defp belief_relevant?(
          %Belief{ model_name: model_name },
-         %{ believed: { _is_or_not, believed_model_name } = _prediction }
+         %Prediction{ believed: { _is_or_not, believed_model_name } = _prediction }
        ) do
     model_name == believed_model_name
   end
@@ -256,7 +263,8 @@ defmodule Andy.Predictor do
   defp probability_of_perceived({ percept_about, predicate, time_period } = _perceived) do
     percepts = Memory.recall_percepts_since(percept_about, time_period)
     fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1, percepts)))
-    Enum.count(fitting_percepts) / Enum.count(percepts)
+    percepts_count = Enum.count(percepts)
+    if percepts_count == 0, do: 0, else: Enum.count(fitting_percepts) / percepts_count
   end
 
   defp apply_predicate({ :gt, val }, percept, _percepts) do
@@ -294,9 +302,9 @@ defmodule Andy.Predictor do
   end
 
   defp prediction_error(state) do
-    Prediction.new(
+    PredictionError.new(
       predictor_name: state.predictor_name,
-      model_name: state.model_name,
+      model_name: state.predicted_model_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index
     )
@@ -351,7 +359,7 @@ defmodule Andy.Predictor do
          } = state,
          first_time_or_repeated
        ) do
-    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
+    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index - 1)
     if  fulfillment.model_name != nil do
       BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name)
     end

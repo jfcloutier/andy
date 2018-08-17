@@ -64,9 +64,8 @@ defmodule Andy.Application do
   def go() do
     spawn(fn() -> connect_to_nodes() end)
     CognitionSupervisor.start_cognition()
-    spawn(fn -> push_runtime_stats() end)
-    InternalClock.resume()
-   end
+#    spawn(fn -> push_runtime_stats() end) # TODO
+    end
   
   ## PRIVATE
 

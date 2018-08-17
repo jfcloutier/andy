@@ -21,7 +21,7 @@ defmodule Andy.Detector do
     name = String.to_atom("#{Device.name(device)}-#{inspect sense}")
     { :ok, pid } = Agent.start_link(
       fn () ->
-         %{
+        %{
           detector_name: name,
           device: device,
           sense: sense,
@@ -43,11 +43,11 @@ defmodule Andy.Detector do
       ) do
     Agent.get(
       detector_pid,
-      fn (device: device, sense: sense_detected) ->
-        (class == "*" or device.class == class)
-        and (port == "*" or device.port == port)
-        and (type == "*" or device.type == type)
-        and (sense == "*" or sense_detected == sense)
+      fn (%{ device: device, sense: sense_detected }) ->
+        (class in [:any, nil] or device.class == class)
+        and (port in [:any, nil] or device.port == port)
+        and (type in [:any, nil] or device.type == type)
+        and (sense in [:any, nil] or sense_detected == sense)
       end
     )
   end
@@ -63,6 +63,7 @@ defmodule Andy.Detector do
             polling_task: polling_task
           } = state) ->
         secs = polling_interval_from_priority(device, sense, priority)
+        Logger.info("Setting polling priority of detector #{detector_name} to #{priority} (every #{secs} secs)")
         cond do
           secs == polling_interval_secs ->
             # Change nothing
@@ -90,20 +91,14 @@ defmodule Andy.Detector do
 
   ### Cognition Agent Behaviour
 
-   def handle_event(_event, state) do
+  def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
 
   def detect(detector_name) do
-    polling_interval = Agent.get(
-      detector_name,
-      fn (%{ polling_interval_secs: interval } = _state) ->
-        interval
-      end
-    )
     poll(detector_name)
-    Process.sleep(polling_interval * 1000)
+    Process.sleep(polling_interval(detector_name))
     detect(detector_name)
   end
 
@@ -121,6 +116,7 @@ defmodule Andy.Detector do
   end
 
   defp poll(detector_name) do
+    Logger.info("Polling detector #{detector_name}")
     Agent.update(
       detector_name,
       fn (%{ device: device, sense: sense } = state) ->
@@ -152,6 +148,15 @@ defmodule Andy.Detector do
       timeout()
     )
     :ok
+  end
+
+  defp polling_interval(detector_name) do
+    Agent.get(
+      detector_name,
+      fn (%{ polling_interval_secs: interval } = _state) ->
+        interval
+      end
+    )
   end
 
   defp read(device, sense) do
