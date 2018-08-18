@@ -70,7 +70,7 @@ defmodule Andy.Action do
             )
           )
         else
-          Logger.info("Not repeating one-time action #{action.intent_about}")
+          Logger.info("Not repeating one-time action #{action.intent_name}")
           :ok
         end
       end

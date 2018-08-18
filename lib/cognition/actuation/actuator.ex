@@ -10,7 +10,8 @@ defmodule Andy.Actuator do
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([actuator_config]) do
-    %{ # defaults to restart: permanent and type: :worker
+    %{
+      # defaults to restart: permanent and type: :worker
       id: __MODULE__,
       start: { __MODULE__, :start_link, [actuator_config] }
     }
@@ -19,93 +20,66 @@ defmodule Andy.Actuator do
   @doc "Start an actuator from a configuration"
   def start_link(actuator_config) do
     Logger.info("Starting #{__MODULE__} #{actuator_config.name}")
-    {:ok, pid} = Agent.start_link(
+    { :ok, pid } = Agent.start_link(
       fn () ->
-         case actuator_config.type do
+        devices = case actuator_config.type do
           :motor ->
-            %{
-              actuator_config: actuator_config,
-              devices: find_motors(actuator_config.specs)
-            }
+            find_motors(actuator_config.specs)
           :led ->
-            %{
-              actuator_config: actuator_config,
-              devices: find_leds(actuator_config.specs)
-            }
+            find_leds(actuator_config.specs)
           :sound ->
-            %{
-              actuator_config: actuator_config,
-              devices: find_sound_players(actuator_config.specs)
-            }
+            find_sound_players(actuator_config.specs)
           :comm ->
-            %{
-              actuator_config: actuator_config,
-              devices: find_communicators(actuator_config.specs)
-            }
+            find_communicators(actuator_config.specs)
         end
+        %{
+          actuator_config: actuator_config,
+          devices: devices,
+          name: actuator_config.name
+        }
       end,
       [name: actuator_config.name]
     )
     listen_to_events(pid, __MODULE__)
-    {:ok, pid}
+    { :ok, pid }
   end
 
-  def realize_intent(name, intent) do
-    Agent.update(
-      name,
-      fn (state) ->
-        if check_freshness(name, intent) do
-          state.actuator_config.activations
-          |> Enum.filter(
-               fn (activation) -> activation.intent == intent.about end
-             )
-          |> Enum.map(
-               fn (activation) -> activation.action end
-             )
-          |> Enum.each(
-               # execute activated actions sequentially
-               fn (action) ->
-                 script = action.(intent, state.devices)
-                 Script.execute(state.actuator_config.type, script)
-                 # This will have the intent stored in memory. Unrealized intents are not retained in memory.
-                 PubSub.notify_realized(name, intent)
-               end
-             )
-        end
-        state
-      end,
-      30_000
-    )
+  def realize_intent(intent, %{ name: name, actuator_config: actuator_config } = state) do
+    if check_freshness(name, intent) do
+      actuator_config.activations
+      |> Enum.filter(
+           fn (activation) -> activation.intent == intent.about end
+         )
+      |> Enum.map(
+           fn (activation) -> activation.script end
+         )
+      |> Enum.each(
+           # execute activated script sequentially
+           fn (script_generator) ->
+             script = script_generator.(intent, state.devices)
+             Script.execute(actuator_config.type, script)
+             # This will have the intent stored in memory. Unrealized intents are not retained in memory.
+             PubSub.notify_realized(name, intent)
+           end
+         )
+    end
   end
 
   ### Cognition agent
 
-  def handle_event({ :intended, intent }, state) do
-    process_intent(intent, state)
-    { :ok, state }
+  def handle_event({ :intended, intent }, %{ actuator_config: actuator_config } = state) do
+    if intent.about in actuator_config.intents do
+      realize_intent(intent, state)
+    end
+    state
   end
 
   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
-    { :ok, state }
+    state
   end
 
   ### Private
-
-  defp process_intent(intent, %{ actuator_config: actuator_config }) do
-    actuator_config
-    |> Enum.filter(&(intent.about in &1.intents))
-    |> Enum.each(
-         fn (actuator_config) ->
-           spawn(
-             # allow parallelism
-             fn () ->
-               realize_intent(actuator_config.name, intent)
-             end
-           )
-         end
-       )
-  end
 
   defp check_freshness(name, intent) do
     age = Intent.age(intent)

@@ -154,7 +154,7 @@ defmodule Andy.Puppy.Modeling do
       [
         Action.new(
           intent_name: choose_one([:turn_right, :turn_left]),
-          value: choose_one(1..10) / 10
+          intent_value: choose_one(1..10) / 10
         )
       ]
     end

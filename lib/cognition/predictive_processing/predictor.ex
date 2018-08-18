@@ -94,16 +94,29 @@ defmodule Andy.Predictor do
   end
 
   def handle_event(
-        { :fulfill, %Fulfill{ fulfillment_index: new_fulfillment_index } },
-        %{ fulfillment_index: current_fulfillment_index } = state
+        {
+          :fulfill,
+          %Fulfill{
+            predictor_name: fulfill_predictor_name,
+            fulfillment_index: new_fulfillment_index
+          }
+        },
+        %{
+          predictor_name: predictor_name,
+          fulfillment_index: current_fulfillment_index
+        } = state
       ) do
     # Try a given fulfillment in response to a prediction error -
     # It might instantiate a temporary model believer for a fulfillment action
-    if new_fulfillment_index != current_fulfillment_index do
-      updated_state = deactivate_fulfillment(state)
-      activate_fulfillment(new_fulfillment_index, updated_state, :first_time)
+    if predictor_name == fulfill_predictor_name do
+      if new_fulfillment_index != current_fulfillment_index do
+        updated_state = deactivate_fulfillment(state)
+        activate_fulfillment(new_fulfillment_index, updated_state, :first_time)
+      else
+        activate_fulfillment(new_fulfillment_index, state, :repeated)
+      end
     else
-      activate_fulfillment(new_fulfillment_index, state, :repeated)
+      state
     end
   end
 
@@ -177,7 +190,7 @@ defmodule Andy.Predictor do
        ) do
     Enum.any?(
       perceived_specs,
-      fn ({perceived_about, _predicate, _time} = _perceived_spec) ->
+      fn ({ perceived_about, _predicate, _time } = _perceived_spec) ->
         Percept.about_match?(perceived_about, percept_about)
       end
     )
@@ -185,7 +198,7 @@ defmodule Andy.Predictor do
 
   defp belief_relevant?(
          _belief,
-         %Prediction{ believed: nil} = _prediction
+         %Prediction{ believed: nil } = _prediction
        ) do
     false
   end
@@ -343,11 +356,20 @@ defmodule Andy.Predictor do
            predictor_name: predictor_name
          } = state
        ) do
-    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
+    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index - 1)
     # Stop whatever was started when activating the current fulfillment, if any
     if  fulfillment.model_name != nil do
       BelieversSupervisor.release_believer(fulfillment.model_name, predictor_name)
     end
+    %{ state | fulfillment_index: nil }
+  end
+
+  defp activate_fulfillment(
+         0,
+         state,
+         _first_time_or_repeated
+       ) do
+    Logger.info("Activating no fulfillment in predictor #{state.predictor_name}")
     %{ state | fulfillment_index: nil }
   end
 
@@ -359,6 +381,7 @@ defmodule Andy.Predictor do
          } = state,
          first_time_or_repeated
        ) do
+    Logger.info("Activating fulfillment #{fulfillment_index} in predictor #{predictor_name}")
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index - 1)
     if  fulfillment.model_name != nil do
       BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name)
