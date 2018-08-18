@@ -4,21 +4,22 @@ defmodule Andy.Percept do
   import Andy.Utils
 
   defstruct id: nil,
-            about: nil,
               # What is being perceived - %{class: class, port: port, type: type, sense: sense}
-            value: nil,
+            about: nil,
               # The measurement/value of the perception (a number, atom etc.)
-            since: nil,
+            value: nil,
               # When the perception happened
-            until: nil,
+            since: nil,
               # Time at which the perception is still unchanged
-            source: nil,
+            until: nil,
               # The source of the perception (a detector)
-            ttl: nil,
+            source: nil,
               # How long the percept is to be retained in memory
-            resolution: nil,
+            ttl: nil,
               # The precision of the detector or perceptor. Nil if perfect resolution.
-            transient: false      # If true, the percept will not be memorized
+            resolution: nil,
+              # If true, the percept will not be memorized
+            transient: false
 
   @doc "Create a new percept with sense and value set"
   def new(about: about, value: value) do

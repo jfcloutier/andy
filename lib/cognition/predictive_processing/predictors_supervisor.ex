@@ -29,7 +29,7 @@ defmodule Andy.PredictorsSupervisor do
     { :ok, _name } = DynamicSupervisor.start_child(@name, spec)
   end
 
-  def terminate(predictor_name) do
+  def terminate_predictor(predictor_name) do
     Logger.info("Terminating predictor #{predictor_name}")
     Predictor.about_to_be_terminated(predictor_name)
     DynamicSupervisor.terminate_child(@name, predictor_name)

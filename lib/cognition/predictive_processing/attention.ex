@@ -59,7 +59,24 @@ defmodule Andy.Attention do
          %{ attended_list: attended_list } = state
        ) do
     Logger.info("Paying attention to #{inspect detector_specs} for predictor #{predictor_name}")
-    attended_minus = Enum.reduce(
+    attended_minus = remove_attended(attended_list, detector_specs, predictor_name)
+    new_attended = %{ predictor_name: predictor_name, detector_specs: detector_specs, precision: precision }
+    new_state = %{ state | attended_list: [new_attended | attended_minus] }
+    adjust_polling_precision(detector_specs, new_state)
+    new_state
+  end
+
+  defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
+    Logger.info("Losing attention for predictor #{predictor_name}")
+    detector_specs = predictor_detector_specs(predictor_name)
+    attended_minus = remove_any_attended(attended_list, predictor_name)
+    new_state = %{ state | attended_list: attended_minus }
+    adjust_polling_precision(detector_specs, new_state)
+    new_state
+  end
+
+  defp remove_attended(attended_list, detector_specs, predictor_name) do
+    Enum.reduce(
       attended_list,
       [],
       fn (attended, acc) ->
@@ -73,26 +90,10 @@ defmodule Andy.Attention do
         end
       end
     )
-    new_attended = %{ predictor_name: predictor_name, detector_specs: detector_specs, precision: precision }
-    new_state = %{ state | attended_list: [new_attended | attended_minus] }
-    set_polling_precision(detector_specs, new_state)
-    new_state
   end
 
-  defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
-    Logger.info("Losing attention for predictor #{predictor_name}")
-    detector_specs = Agent.get(
-      @name,
-      fn (%{ attended_list: attended_list }) ->
-        case Enum.find(attended_list, &(&1.predictor_name == predictor_name)) do
-          nil ->
-            nil
-          %{ detector_specs: specs } ->
-            specs
-        end
-      end
-    )
-    attended_minus = Enum.reduce(
+  defp remove_any_attended(attended_list, predictor_name) do
+    Enum.reduce(
       attended_list,
       [],
       fn (attended, acc) ->
@@ -103,16 +104,27 @@ defmodule Andy.Attention do
         end
       end
     )
-    new_state = %{ state | attended_list: attended_minus }
-    set_polling_precision(detector_specs, new_state)
-    new_state
   end
 
-  defp set_polling_precision(nil, state) do
+  defp predictor_detector_specs(predictor_name) do
+    Agent.get(
+      @name,
+      fn (%{ attended_list: attended_list }) ->
+        case Enum.find(attended_list, &(&1.predictor_name == predictor_name)) do
+          nil ->
+            nil
+          %{ detector_specs: specs } ->
+            specs
+        end
+      end
+    )
+  end
+
+  defp adjust_polling_precision(nil, _state) do
     :ok
   end
 
-  defp set_polling_precision(detector_specs, %{ attended_list: attended_list } = state) do
+  defp adjust_polling_precision(detector_specs, %{ attended_list: attended_list } = _state) do
     max_precision = Enum.reduce(
           attended_list,
           :none,

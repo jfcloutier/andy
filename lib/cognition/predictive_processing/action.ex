@@ -40,41 +40,31 @@ defmodule Andy.Action do
     }
   end
 
-  def execute(action_generator, :first_time) do
-    actions = action_generator.()
-    Enum.each(
-      actions,
-      fn (action) ->
-        Logger.info("Executing action #{inspect action} for the first time")
-        PubSub.notify_intended(
-          Intent.new(
-            about: action.intent_name,
-            value: action.intent_value
-          )
-        )
-      end
+  def execute_action(action_generator, :first_time) do
+    action = action_generator.()
+    Logger.info("Executing action #{inspect action} for the first time")
+    PubSub.notify_intended(
+      Intent.new(
+        about: action.intent_name,
+        value: action.intent_value
+      )
     )
   end
 
-  def execute(action_generator, :repeated) do
-    actions = action_generator.()
-    Enum.each(
-      actions,
-      fn (action) ->
-        if not action.once?  do
-          Logger.info("Executing action #{inspect action} again")
-          PubSub.notify_intended(
-            Intent.new(
-              about: action.intent_name,
-              value: action.intent_value
-            )
-          )
-        else
-          Logger.info("Not repeating one-time action #{action.intent_name}")
-          :ok
-        end
-      end
-    )
+  def execute_action(action_generator, :repeated) do
+    action = action_generator.()
+    if not action.once?  do
+      Logger.info("Executing action #{inspect action} again")
+      PubSub.notify_intended(
+        Intent.new(
+          about: action.intent_name,
+          value: action.intent_value
+        )
+      )
+    else
+      Logger.info("Not repeating one-time action #{action.intent_name}")
+      :ok
+    end
   end
 
 end

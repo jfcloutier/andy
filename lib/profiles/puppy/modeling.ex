@@ -124,51 +124,43 @@ defmodule Andy.Puppy.Modeling do
 
   defp forward() do
     fn ->
-      [
-        Action.new(
+      Action.new(
           intent_name: :go_forward,
           intent_value: %{
             speed: :fast,
             time: 1
           }
         )
-      ]
     end
   end
 
   defp backoff() do
-    fn -> [
-            Action.new(
+    fn -> Action.new(
               intent_name: :go_backward,
               intent_value: %{
                 speed: :fast,
                 time: 1
               }
             )
-          ]
     end
   end
 
   defp turn() do
     fn ->
-      [
         Action.new(
           intent_name: choose_one([:turn_right, :turn_left]),
           intent_value: choose_one(1..10) / 10
         )
-      ]
     end
   end
 
   defp say_once(words) do
     fn ->
-      [
         Action.new(
           intent_name: :say,
           intent_value: words,
           once?: true
         )
-      ]
     end
   end
 

@@ -58,8 +58,8 @@ defmodule Andy.PubSub do
   end
 
   @doc "Notify of an intent actuated"
-  def notify_realized(actuator_name, intent) do
-    notify({ :actuated, actuator_name, intent })
+  def notify_actuated(intent) do
+    notify({ :actuated, intent })
   end
 
   @doc "Notify of a belief"
@@ -93,8 +93,8 @@ defmodule Andy.PubSub do
   end
 
   @doc "Notify that a predictor is paying attention to some detection"
-  def notify_attention_on(detector_specs, predictor_pid, precision) do
-    notify({ :attention_on, detector_specs, predictor_pid, precision })
+  def notify_attention_on(detector_specs, predictor_name, precision) do
+    notify({ :attention_on, detector_specs, predictor_name, precision })
   end
 
   @doc "Notify that a predictor is no longer paying attention"

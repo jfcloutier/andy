@@ -90,7 +90,7 @@ defmodule Andy.Memory do
 
   # Intends are memorized only when realized by actuators
   # {:intended, intent} events are ignored
-  def handle_event({ :realized, _actuator_name, intent }, state) do
+  def handle_event({ :actuated, intent }, state) do
     store(intent, state)
   end
 

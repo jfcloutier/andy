@@ -387,7 +387,7 @@ defmodule Andy.Predictor do
       BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name)
     end
     if fulfillment.actions != nil do
-      Enum.each(fulfillment.actions, &(Action.execute(&1, first_time_or_repeated)))
+      Enum.each(fulfillment.actions, &(Action.execute_action(&1, first_time_or_repeated)))
     end
     %{ state | fulfillment_index: fulfillment_index }
   end

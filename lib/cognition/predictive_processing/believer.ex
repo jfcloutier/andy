@@ -119,7 +119,7 @@ defmodule Andy.Believer do
     Agent.get(
       believer_name,
       fn (%{ validations: validations }) ->
-        Enum.all?(validations, fn ({ _, value }) -> value end)
+        Enum.all?(validations, fn ({ _, value }) -> value == true end)
       end
     )
   end
@@ -166,7 +166,7 @@ defmodule Andy.Believer do
       fn (%{ predictors: predictor_names }) ->
         Enum.each(
           predictor_names,
-          &(PredictorsSupervisor.terminate(&1))
+          &(PredictorsSupervisor.terminate_predictor(&1))
         )
       end
     )

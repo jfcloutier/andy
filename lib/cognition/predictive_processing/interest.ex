@@ -25,21 +25,22 @@ defmodule Andy.Interest do
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn ->
-         # %{focus: %{model_name => %{competing_model_names: [competing_model_name,...],
-        #                                    priority: priority}
-        #                                   }
-        #                   }
-        %{ focus: %{ } }
+        %{
+          # %{model_name => %{ competing_model_names: deprioritized_competing_model_names,
+          #                    priority: model_priority }
+          # }
+          focus: %{ }
+        }
       end,
       [name: @name]
     )
     listen_to_events(pid, __MODULE__)
-    {:ok, pid}
+    { :ok, pid }
   end
 
   ### Cognition Agent Behaviour
 
-   def handle_event(
+  def handle_event(
         { :believer_started, model_name },
         %{ focus: focus } = state
       ) do
@@ -57,7 +58,7 @@ defmodule Andy.Interest do
           )
         }
       _model_focus ->
-        # already deprioritized by the activated model
+        # competing models already deprioritized
         state
     end
   end
@@ -68,7 +69,7 @@ defmodule Andy.Interest do
       ) do
     case Map.get(focus, model_name) do
       nil ->
-        # already reprioritized
+        # competing models already reprioritized
         state
       _model_focus ->
         reprioritize_competing_models(model_name, focus)
@@ -89,11 +90,11 @@ defmodule Andy.Interest do
     competing_model_names
     # competing models from their names
     |> Enum.map(&(GenerativeModels.model_named(&1)))
-    # only keep competing models of lower priority
+      # only keep competing models of lower priority
     |> Enum.filter(&(Andy.higher_level?(model.priority, &1.priority)))
-    # reject those already deprioritized enough
+      # reject those already deprioritized enough
     |> Enum.reject(&(already_deprioritized_enough?(&1, model.priority, focus)))
-    # notify the deprioritization of applicable competing models
+      # notify the deprioritization of applicable competing models
     |> Enum.each(&(PubSub.notify_model_deprioritized(&1.name, model.priority)))
   end
 

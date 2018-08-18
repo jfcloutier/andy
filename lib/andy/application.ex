@@ -23,7 +23,7 @@ defmodule Andy.Application do
       supervisor(AndyWeb.Endpoint, []),
       supervisor(CognitionSupervisor, [])
     ]
-    opts = [strategy: :one_for_one, name: :root_supervisor]
+    opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(children, opts)
     go()
     result

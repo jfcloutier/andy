@@ -58,7 +58,6 @@ defmodule Andy.Experience do
     update_fulfillment_stats(predictor_name, state)
   end
 
-
   def handle_event(_event, state) do
     #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
@@ -70,17 +69,17 @@ defmodule Andy.Experience do
          %PredictionError{ predictor_name: predictor_name },
          state
        ) do
-    learn(predictor_name, :failure, state)
+    learn_from_success_or_failure(predictor_name, :failure, state)
   end
 
   defp update_fulfillment_stats(
          %PredictionFulfilled{ predictor_name: predictor_name },
          state
        )  do
-    learn(predictor_name, :success, state)
+    learn_from_success_or_failure(predictor_name, :success, state)
   end
 
-  defp learn(
+  defp learn_from_success_or_failure(
          predictor_name,
          success_or_failure,
          %{ fulfillment_stats: fulfillment_stats } = state

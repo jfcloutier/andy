@@ -36,6 +36,7 @@ defmodule Andy.DetectorsSupervisor do
         Detector.set_polling_priority(detector_pid, priority)
       end
     end
+    :ok
   end
 
   ## Callbacks

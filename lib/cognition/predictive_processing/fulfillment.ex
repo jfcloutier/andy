@@ -14,7 +14,7 @@ defmodule Andy.Fulfillment do
   # Fulfillment name is unique within a prediction
   defstruct model_name: nil,
               # and/or actions to carry out
-            actions: [] # alternate individual actions or sequences of actions, prioritized
+            actions: [] # (generators of individual) actions that might fulfill a model's prediction
 
   def new(
         model_name: model_name
