@@ -40,6 +40,16 @@ defmodule Andy.Action do
     }
   end
 
+  def new(
+        intent_name: intent_name
+      ) do
+    %Action{
+      intent_name: intent_name,
+      intent_value: nil
+    }
+  end
+
+
   def execute_action(action_generator, :first_time) do
     action = action_generator.()
     Logger.info("Executing action #{inspect action} for the first time")

@@ -22,12 +22,16 @@ defmodule Andy.Believer do
     believer_name = generative_model.name
     { :ok, pid } = Agent.start_link(
       fn () ->
-         %{
+        %{
+          believer_name: believer_name,
           model: generative_model,
-          validations: %{ }, # prediction_name => true|false -- the believer is validated if all prediction are true
-          predictors: [], # predictor names
-          for_predictors: MapSet.new()
-          # predictor name
+          # prediction_name => true|false -- the believer is validated if all prediction are true
+          validations: %{ },
+          # the names of the believer's predictors
+          predictors_names: [],
+          # The names of the predictors that grabbed this believer and whether they are validated by the model being believed
+          for_predictors: %{ }
+          # %{predictor_name => :is | :not}
         }
       end,
       [name: believer_name]
@@ -55,12 +59,12 @@ defmodule Andy.Believer do
   end
 
 
-  @doc "A believer was pressed into duty by a predictor"
-  def grabbed_by_predictor(believer_name, predictor_name) do
+  @doc "A believer was pressed into duty by a predictor predicting belief validated or not"
+  def grabbed_by_predictor(believer_name, predictor_name, is_or_not) do
     Agent.update(
       believer_name,
       fn (%{ for_predictors: for_predictors } = state) ->
-        %{ state | for_predictors: MapSet.put(for_predictors, predictor_name) }
+        %{ state | for_predictors: Map.put(for_predictors, predictor_name, is_or_not) }
       end
     )
   end
@@ -70,7 +74,7 @@ defmodule Andy.Believer do
     Agent.update(
       believer_name,
       fn (%{ for_predictors: for_predictors } = state) ->
-        %{ state | for_predictors: MapSet.delete(for_predictors, predictor_name) }
+        %{ state | for_predictors: Map.delete(for_predictors, predictor_name) }
       end
     )
     if obsolete?(believer_name) do
@@ -109,7 +113,7 @@ defmodule Andy.Believer do
             Map.put(acc, prediction.name, true)
           end
         )
-        %{ state | predictors: predictor_names, validations: validations }
+        %{ state | predictor_names: predictor_names, validations: validations }
       end
     )
   end
@@ -119,14 +123,24 @@ defmodule Andy.Believer do
     Agent.get(
       believer_name,
       fn (%{ validations: validations }) ->
-        Enum.all?(validations, fn ({ _, value }) -> value == true end)
+        all_predictions_validated?(validations)
+      end
+    )
+  end
+
+  @doc "Is this believer only grabbed by predictors asserting the believer to be validated?"
+  def predicted_as_validated?(believer_name) do
+    Agent.get(
+      believer_name,
+      fn (%{ for_predictors: for_predictors } = _state) ->
+        Enum.all?(Map.values(for_predictors), &(&1 == :is))
       end
     )
   end
 
   ### Cognition Agent Behaviour
 
-   def handle_event(
+  def handle_event(
         { :prediction_error, %{ model_name: model_name } = prediction_error },
         %{
           model: model
@@ -154,16 +168,20 @@ defmodule Andy.Believer do
 
 
   def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
+    #	Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
 
   # PRIVATE
 
+  defp all_predictions_validated?(validations) do
+    Enum.all?(validations, fn ({ _, value }) -> value == true end)
+  end
+
   defp terminate_predictors(believer_name) do
     Agent.update(
       believer_name,
-      fn (%{ predictors: predictor_names }) ->
+      fn (%{ predictor_names: predictor_names }) ->
         Enum.each(
           predictor_names,
           &(PredictorsSupervisor.terminate_predictor(&1))
@@ -174,15 +192,62 @@ defmodule Andy.Believer do
 
   defp process_prediction_error(prediction_error, %{ validations: validations } = state) do
     PubSub.notify_believed(Belief.new(state.model.name, false))
-    %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
+    updated_state = %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
+    activate_or_terminate_dependent_predictors(updated_state)
   end
 
   defp process_prediction_fulfilled(prediction_fulfilled, %{ validations: validations } = state) do
+    updated_validations = Map.put(validations, prediction_fulfilled.prediction_name, true)
     was_already_believed? = believes?(state)
-    if not was_already_believed? do
+    if not was_already_believed? and all_predictions_validated?(validations) do
       PubSub.notify_believed(Belief.new(state.model.name, true))
     end
-    %{ state | validations: Map.put(validations, prediction_fulfilled.prediction_name, true) }
+    updated_state = %{ state | validations: updated_validations }
+    activate_or_terminate_dependent_predictors(updated_state)
+  end
+
+  defp activate_or_terminate_dependent_predictors(
+         %{
+           believer_name: believer_name,
+           validations: validations,
+           model: model
+         } = state
+       ) do
+    Enum.reduce(
+      model.predictions,
+      state,
+      fn (prediction, acc) ->
+        case prediction.fulfill_when do
+          [] ->
+            # corresponding predictor not dependent on siblings
+            acc
+          fulfill_when ->
+            if predictions_validated?(fulfill_when, validations) do
+              predictor_name = PredictorsSupervisor.start_predictor_if_not_started(
+                prediction,
+                believer_name,
+                model.name
+              )
+              %{
+                acc |
+                predictor_names: (
+                  [predictor_name | acc.predictor_names]
+                  |> Enum.uniq())
+              }
+            else
+              predictor_name = PredictorsSupervisor.terminate_predictor_if_started(
+                prediction,
+                model.name
+              )
+              %{acc | predictor_names: List.delete(acc.predictor_names, predictor_name)}
+            end
+        end
+      end
+    )
+  end
+
+  defp predictions_validated?(prediction_names, validations) do
+    Enum.all?(prediction_names, &(Map.get(validations, &1)))
   end
 
 end

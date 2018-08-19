@@ -9,6 +9,7 @@ defmodule Andy.Puppy.Modeling do
       # Hyper-prior
 
       #THRIVING
+
       GenerativeModel.new(
         name: :thriving,
         description: "The puppy is alive and well",
@@ -20,17 +21,16 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [Fulfillment.new(actions: [say_once("I am scared!")])]
-          )
-          #  ,
+          ),
+          Prediction.new(
+            name: :puppy_is_sated,
+            believed: { :is, :sated },
+            precision: :high,
+            fulfillments: [Fulfillment.new(actions: [say_once("I am hungry!")])]
+          ),
           #          Prediction.new(
-          #          name: :puppy_is_sated,
-          #            believed: { :is, :sated },
-          #            precision: :high,
-          #            fulfillments: [Fulfillment.new(actions: [say_once("I am hungry!")])]
-          #          ),
-          #          Prediction.new(
-          #          name: :puppy_is_free,
-          #           believed: { :is, :free },
+          #            name: :puppy_is_free,
+          #            believed: { :is, :free },
           #            precision: :high,
           #            fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!")])]
           #          )
@@ -41,6 +41,7 @@ defmodule Andy.Puppy.Modeling do
       ),
 
       # SAFE
+
       GenerativeModel.new(
         name: :safe,
         description: "The puppy is safe",
@@ -109,13 +110,60 @@ defmodule Andy.Puppy.Modeling do
             name: :puppy_recently_touched,
             perceived: [{ { :sensor, :any, :touch, :touch }, { :eq, :touched }, { :past_secs, 1 } }],
             precision: :medium,
-            # keep going forward if it works, else turn
+            # We never want to fulfill this prediction
             fulfillments: []
           )
         ],
         priority: :high
+      ),
+
+      # SATED
+
+      GenerativeModel.new(
+        name: :sated,
+        description: "The puppy ate enough recently",
+        predictions: [
+          Prediction.new(
+            name: :puppy_recently_ate,
+            actualized: [{ :eating, { :sum, :quantity, 10 }, { :past_secs, 30 } }],
+            precision: :medium,
+            fulfillments: [Fulfillment.new(model_name: :feeding)]
+          )
+        ],
+        priority: :high
+      ),
+
+      GenerativeModel.new(
+        name: :feeding,
+        description: "The puppy is feeding",
+        predictions: [
+          Prediction.new(
+            name: :puppy_on_food,
+            perceived: [{ { :sensor, :any, :color, :color }, { :eq, :blue }, :now }],
+            precision: :high,
+            fulfillments: [Fulfillment.new(model_name: :getting_closer_to_food)]
+          ),
+          Prediction.new(
+            name: :puppy_eating,
+            precision: :high,
+            fulfill_when: [:puppy_on_food],
+            fulfillments: [Fulfillment.new(actions: [say_once("nom de nom de nom"), eat()])]
+          )
+        ],
+        priority: :high
+      ),
+
+      GenerativeModel.new(
+        name: :getting_closer_to_food,
+        description: "The puppy is getting closer to food",
+        predictions: [
+        # TBD
+         ],
+        priority: :high
       )
 
+
+      # FREE
     ]
     # TODO
   end
@@ -125,42 +173,50 @@ defmodule Andy.Puppy.Modeling do
   defp forward() do
     fn ->
       Action.new(
-          intent_name: :go_forward,
-          intent_value: %{
-            speed: :fast,
-            time: 1
-          }
-        )
+        intent_name: :go_forward,
+        intent_value: %{
+          speed: :fast,
+          time: 1
+        }
+      )
     end
   end
 
   defp backoff() do
     fn -> Action.new(
-              intent_name: :go_backward,
-              intent_value: %{
-                speed: :fast,
-                time: 1
-              }
-            )
+            intent_name: :go_backward,
+            intent_value: %{
+              speed: :fast,
+              time: 1
+            }
+          )
     end
   end
 
   defp turn() do
     fn ->
-        Action.new(
-          intent_name: choose_one([:turn_right, :turn_left]),
-          intent_value: choose_one(1..10) / 10
-        )
+      Action.new(
+        intent_name: choose_one([:turn_right, :turn_left]),
+        intent_value: choose_one(1..10) / 10
+      )
     end
   end
 
   defp say_once(words) do
     fn ->
-        Action.new(
-          intent_name: :say,
-          intent_value: words,
-          once?: true
-        )
+      Action.new(
+        intent_name: :say,
+        intent_value: words,
+        once?: true
+      )
+    end
+  end
+
+  defp eat() do
+    fn ->
+      Action.new(
+        intent_name: :eat
+      )
     end
   end
 

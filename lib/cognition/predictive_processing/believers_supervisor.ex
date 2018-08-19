@@ -27,7 +27,7 @@ defmodule Andy.BelieversSupervisor do
   end
 
   @doc " A predictor grabs a believer"
-  def grab_believer(model_name, predictor_name) do
+  def grab_believer(model_name, predictor_name, is_or_not) do
     Logger.info("Grabbing believer of model #{model_name} for predictor #{predictor_name}")
     believer_name = case find_believer_name(model_name) do
       nil ->
@@ -36,7 +36,7 @@ defmodule Andy.BelieversSupervisor do
       believer_name ->
         believer_name
     end
-    Believer.grabbed_by_predictor(believer_name, predictor_name)
+    Believer.grabbed_by_predictor(believer_name, predictor_name, is_or_not)
     believer_name
   end
 
