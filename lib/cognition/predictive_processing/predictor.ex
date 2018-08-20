@@ -24,16 +24,17 @@ defmodule Andy.Predictor do
       fn ->
         %{
           predictor_name: predictor_name,
+          # the name of the model this predictor helps validate
           predicted_model_name: model_name,
-          # name of believer making (owning) the prediction
+          # name of model believer making (owning) the prediction
           believer_name: believer_name,
-          # the prediction made
+          # the prediction made about the model
           prediction: prediction,
           # the effective precision for the prediction
           effective_precision: prediction.precision,
           # Is is currently fulfilled? For starters, yes
           fulfilled?: true,
-          # index of the fulfillment being tried. Nil if none.
+          # index of the fulfillment currently being tried. Nil if none.
           fulfillment_index: nil
         }
       end,
@@ -407,8 +408,16 @@ defmodule Andy.Predictor do
     percept.value > val
   end
 
+  defp apply_predicate({ :abs_gt, val }, percept, _percepts) do
+    abs(percept.value) > val
+  end
+
   defp apply_predicate({ :lt, val }, percept, _percepts) do
     percept.value < val
+  end
+
+  defp apply_predicate({ :abs_lt, val }, percept, _percepts) do
+    abs(percept.value) < val
   end
 
   defp apply_predicate({ :eq, val }, percept, _percepts) do
@@ -421,6 +430,10 @@ defmodule Andy.Predictor do
 
   defp apply_predicate({ :in, range }, percept, _percepts) do
     percept.value in range
+  end
+
+  defp apply_predicate({ :abs_in, range }, percept, _percepts) do
+    abs(percept.value) in range
   end
 
   defp apply_predicate({ :gt, attribute, val }, percept, _percepts) do

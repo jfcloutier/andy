@@ -8,6 +8,7 @@ defmodule Andy.Memory do
   @name __MODULE__
   @forget_pause 5000 # clear expired precepts every 10 secs
   @intent_ttl 30_000 # all intents are forgotten after 30 secs
+  @max_recall 30_000 # don't bother looking back beyond that
 
   @behaviour Andy.CognitionAgentBehaviour
 
@@ -24,7 +25,7 @@ defmodule Andy.Memory do
   @doc "Start the memory server"
   def start_link() do
     Logger.info("Starting #{@name}")
-    {:ok, pid} = Agent.start_link(
+    { :ok, pid } = Agent.start_link(
       fn () ->
         forgetting_pid = spawn_link(fn () -> forget()  end)
         Process.register(forgetting_pid, :forgetting)
@@ -33,7 +34,7 @@ defmodule Andy.Memory do
       [name: @name]
     )
     listen_to_events(pid, __MODULE__)
-    {:ok, pid}
+    { :ok, pid }
   end
 
   @doc "Remember a percept or intent"
@@ -68,6 +69,15 @@ defmodule Andy.Memory do
     end
   end
 
+  @doc "Recall latest unexpired, matching percept, if any"
+  def recall_value_of_latest_percept(about) do
+    case recall_percepts_since(about, { :past_secs, @max_recall }) do
+      [percept | _] ->
+        percept.value
+      [] ->
+        nil
+    end
+  end
 
   @doc "Recall the history of a named intent, within a time window until now"
   def recall_intents_since(name, { :past_secs, secs }) do
@@ -81,7 +91,7 @@ defmodule Andy.Memory do
 
   ### Cognitive Agent behaviour
 
-   def handle_event({ :perceived, percept }, state) do
+  def handle_event({ :perceived, percept }, state) do
     if not percept.transient do
       store(percept, state)
     end

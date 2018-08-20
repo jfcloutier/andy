@@ -28,7 +28,7 @@ defmodule Andy.Believer do
           # prediction_name => true|false -- the believer is validated if all prediction are true
           validations: %{ },
           # the names of the believer's predictors
-          predictors_names: [],
+          predictor_names: [],
           # The names of the predictors that grabbed this believer and whether they are validated by the model being believed
           for_predictors: %{ }
           # %{predictor_name => :is | :not}
@@ -239,7 +239,7 @@ defmodule Andy.Believer do
                 prediction,
                 model.name
               )
-              %{acc | predictor_names: List.delete(acc.predictor_names, predictor_name)}
+              %{ acc | predictor_names: List.delete(acc.predictor_names, predictor_name) }
             end
         end
       end
@@ -247,7 +247,7 @@ defmodule Andy.Believer do
   end
 
   defp predictions_validated?(prediction_names, validations) do
-    Enum.all?(prediction_names, &(Map.get(validations, &1)))
+    Enum.all?(prediction_names, &(Map.get(validations, &1) == true))
   end
 
 end

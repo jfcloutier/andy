@@ -27,125 +27,20 @@ defmodule Andy.Prediction do
               # how much the precision of lower priority predictions are reduced
             fulfillments: []
 
-  def new(
-        name: name,
-        # {:is | :not, <model name>}
-        believed: believed,
-        # list of {{device_class, device_type, sense}, value desc, timeframe}
-        perceived: perceived,
-        actuated: actuated,
-        precision: default_precision,
-        fulfill_when: fulfill_when,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      believed: believed,
-      perceived: format_perceived(perceived),
-      actuated: actuated,
-      precision: default_precision,
-      fulfill_when: fulfill_when,
-      fulfillments: fulfillments
-    }
-  end
-
-  def new(
-        name: name,
-        # {:is | :not, <model name>}
-        believed: believed,
-        # list of {{device_class, device_type, sense}, value desc, timeframe}
-        perceived: perceived,
-        actuated: actuated,
-        precision: default_precision,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      believed: believed,
-      perceived: format_perceived(perceived),
-      actuated: actuated,
-      precision: default_precision,
-      fulfillments: fulfillments
-    }
-  end
-
-  def new(
-        name: name,
-        # {:is | :not, <model name>}
-        believed: believed,
-        # list of {{device_class, device_type, sense}, value desc, timeframe}
-        perceived: perceived,
-        precision: default_precision,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      believed: believed,
-      perceived: format_perceived(perceived),
-      precision: default_precision,
-      fulfillments: fulfillments
-    }
-  end
-
-  def new(
-        name: name,
-        # {:is | :not, <model name>}
-        actuated: actuated,
-        precision: default_precision,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      actuated: actuated,
-      precision: default_precision,
-      fulfillments: fulfillments
-    }
-  end
-
-  def new(
-        name: name,
-        believed: believed,
-        precision: default_precision,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      believed: believed,
-      perceived: [],
-      precision: default_precision,
-      fulfillments: fulfillments
-    }
-  end
-
-  def new(
-        name: name,
-        # list of {{device_class, device_type, sense}, value desc, timeframe}
-        perceived: perceived,
-        precision: default_precision,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      believed: nil,
-      perceived: format_perceived(perceived),
-      precision: default_precision,
-      fulfillments: fulfillments
-    }
-  end
-
-  def new(
-        name: name,
-        # list of {{device_class, device_type, sense}, value desc, timeframe}
-        precision: default_precision,
-        fulfill_when: fulfill_when,
-        fulfillments: fulfillments
-      ) do
-    %Prediction{
-      name: name,
-      precision: default_precision,
-      fulfill_when: fulfill_when,
-      fulfillments: fulfillments
-    }
+  def new(keywords) do
+    Enum.reduce(
+      Keyword.keys(keywords),
+      %Prediction{ },
+      fn (key, acc) ->
+        value = Keyword.get(keywords, key)
+        case key do
+          :perceived ->
+            Map.put(acc, :perceived, format_perceived(value))
+          _other ->
+            Map.put(acc, key, value)
+        end
+      end
+    )
   end
 
   def summary(prediction) do

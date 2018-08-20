@@ -1,7 +1,7 @@
 defmodule Andy.Puppy.Modeling do
   @moduledoc "The generative models for a puppy profile"
 
-  alias Andy.{ GenerativeModel, Prediction, Fulfillment, Action }
+  alias Andy.{ GenerativeModel, Prediction, Fulfillment, Action, Memory }
   import Andy.Utils, only: [choose_one: 1]
 
   def generative_models() do
@@ -125,7 +125,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           Prediction.new(
             name: :puppy_recently_ate,
-            actualized: [{ :eating, { :sum, :quantity, 10 }, { :past_secs, 30 } }],
+            actuated: [{ :eating, { :sum, :quantity, 10 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfillments: [Fulfillment.new(model_name: :feeding)]
           )
@@ -157,10 +157,30 @@ defmodule Andy.Puppy.Modeling do
         name: :getting_closer_to_food,
         description: "The puppy is getting closer to food",
         predictions: [
-        # TBD
-         ],
+          Prediction.new(
+            name: :puppy_smells_food,
+            perceived: [{ { :sensor, :any, :infrared, { :beacon_distance, 1 } }, { :lt, 30 }, { :past_secs, 5 } }],
+            precision: :high,
+            fulfillments: [Fulfillment.new(actions: [forward(), turn()])]
+          ),
+          Prediction.new(
+            name: :puppy_faces_food,
+            perceived: [{ { :sensor, :any, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
+            precision: :high,
+            fulfill_when: [:puppy_smells_food],
+            fulfillments: [Fulfillment.new(actions: [turn_toward({ :sensor, :any, :infrared, { :beacon_heading, 1 } })])]
+          ),
+          Prediction.new(
+            name: :puppy_approaches_food,
+            perceived: [{ { :sensor, :any, :infrared, { :beacon_distance, 1 } }, :descending, { :past_secs, 2 } }],
+            precision: :high,
+            fulfill_when: [:puppy_faces_food],
+            fulfillments: [Fulfillment.new(actions: [approach({ :sensor, :any, :infrared, { :beacon_distance, 1 } })])]
+          )
+        ],
         priority: :high
       )
+
 
 
       # FREE
@@ -183,13 +203,14 @@ defmodule Andy.Puppy.Modeling do
   end
 
   defp backoff() do
-    fn -> Action.new(
-            intent_name: :go_backward,
-            intent_value: %{
-              speed: :fast,
-              time: 1
-            }
-          )
+    fn ->
+      Action.new(
+        intent_name: :go_backward,
+        intent_value: %{
+          speed: :fast,
+          time: 1
+        }
+      )
     end
   end
 
@@ -198,6 +219,50 @@ defmodule Andy.Puppy.Modeling do
       Action.new(
         intent_name: choose_one([:turn_right, :turn_left]),
         intent_value: choose_one(1..10) / 10
+      )
+    end
+  end
+
+  defp turn_toward(heading_percept_specs) do
+    fn ->
+      heading = Memory.recall_value_of_latest_percept(heading_percept_specs) || 0
+      direction = if heading < 0, do: :turn_right, else: :turn_left
+      how_much = cond do
+        heading == 0 ->
+          0
+        abs(heading) > 20 ->
+          3
+        abs(heading) > 10 ->
+          2
+        true ->
+          1
+      end
+      Action.new(
+        intent_name: direction,
+        intent_value: how_much
+      )
+    end
+  end
+
+  defp approach(distance_percept_specs) do
+    fn ->
+      distance = Memory.recall_value_of_latest_percept(distance_percept_specs) || 0
+      speed = cond do
+        distance == 0 ->
+          0
+        distance > 50 ->
+          :fast
+        distance > 20 ->
+          :medium
+        true ->
+          :slow
+      end
+      Action.new(
+        intent_name: :go_forward,
+        intent_value: %{
+          speed: speed,
+          time: 1
+        }
       )
     end
   end
