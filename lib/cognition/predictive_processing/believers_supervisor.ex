@@ -3,7 +3,7 @@ defmodule Andy.BelieversSupervisor do
 
   @name __MODULE__
   use DynamicSupervisor
-  alias Andy.{Believer, GenerativeModels}
+  alias Andy.{ Believer, GenerativeModels }
   require Logger
 
   @doc "Child spec as supervised supervisor"
@@ -20,35 +20,31 @@ defmodule Andy.BelieversSupervisor do
     DynamicSupervisor.start_link(@name, [], name: @name)
   end
 
-  def start_believer(generative_model) do
-    spec = { Believer, [generative_model] }
-    { :ok, pid } = DynamicSupervisor.start_child(@name, spec)
-    Believer.name(pid)
+  def start_believer(model) do
+    spec = { Believer, [model] }
+    :ok = case DynamicSupervisor.start_child(@name, spec) do
+      { :ok, _pid } -> :ok
+      { :error, { :already_started, _pid } } -> :ok
+      other -> other
+    end
+    model.name
   end
 
   @doc " A predictor grabs a believer"
   def grab_believer(model_name, predictor_name, is_or_not) do
     Logger.info("Grabbing believer of model #{model_name} for predictor #{predictor_name}")
-    believer_name = case find_believer_name(model_name) do
-      nil ->
-        model = GenerativeModels.model_named(model_name)
-        start_believer(model)
-      believer_name ->
-        believer_name
-    end
+    model = GenerativeModels.model_named(model_name)
+    believer_name = start_believer(model)
     Believer.grabbed_by_predictor(believer_name, predictor_name, is_or_not)
-    believer_name
+    # The name of the model is also the name of its believer
+    model_name
   end
 
   @doc " A predictor releases a believer by its model name"
   def release_believer(model_name, predictor_name) do
     Logger.info("Releasing believer of model #{model_name} from predictor #{predictor_name}")
-    case find_believer_name(model_name) do
-      nil ->
-        :ok
-      believer_name ->
-        Believer.released_by_predictor(believer_name, predictor_name)
-    end
+    # A believer's name is that of its model
+    Believer.released_by_predictor(model_name, predictor_name)
   end
 
   @doc " A predictor releases a believer by its name"
@@ -56,25 +52,9 @@ defmodule Andy.BelieversSupervisor do
     Believer.released_by_predictor(believer_name, predictor_name)
   end
 
-  @doc "Find an existing supervised believer in a model"
-  def find_believer_name(model_name) do
-    case DynamicSupervisor.which_children(@name)
-         |> Enum.find(
-              # It is possible that instead of a pid we get :restarted if the believer is
-              # being restarted. I chose to ignore that possibility.
-              fn ({ _, pid, _, _ }) ->
-                Believer.model_name(pid) == model_name
-              end
-            ) do
-      nil ->
-        nil
-      { _, believer_pid, _, _ } ->
-        Believer.name(believer_pid)
-    end
-  end
-
   def terminate(believer_name) do
     DynamicSupervisor.terminate_child(@name, believer_name)
+    :ok
   end
 
   ### Callbacks

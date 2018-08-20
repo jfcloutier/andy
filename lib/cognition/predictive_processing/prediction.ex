@@ -3,6 +3,7 @@ defmodule Andy.Prediction do
   @moduledoc "A prediction by a generative model"
 
   alias Andy.{ Fulfillment, Prediction }
+  import Andy.Utils, only: [as_percept_about: 1]
 
   @type t :: %__MODULE__{
                name: :atom,
@@ -80,18 +81,4 @@ defmodule Andy.Prediction do
     )
   end
 
-  defp as_percept_about(percept_specs) do
-    if is_map(percept_specs) do
-      percept_specs
-    else
-      { class, port, type, sense } = percept_specs
-      %{
-        class: class,
-        port: port,
-        type: type,
-        sense: sense
-      }
-    end
-  end
-
-end
+ end

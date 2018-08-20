@@ -24,47 +24,22 @@ defmodule Andy.PredictorsSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
+  @doc "Starts predictor if not already started."
   def start_predictor(prediction, believer_name, model_name) do
     spec = { Predictor, [prediction, believer_name, model_name] }
-    { :ok, _pid } = DynamicSupervisor.start_child(@name, spec)
+    :ok = case DynamicSupervisor.start_child(@name, spec) do
+      {:ok, _pid} -> :ok
+      { :error, { :already_started, _pid } } -> :ok
+      other -> other
+    end
   end
 
+  @doc "Terminates predictor if not already terminated. Returns predictor's name"
   def terminate_predictor(predictor_name) do
     Logger.info("Terminating predictor #{predictor_name}")
     Predictor.about_to_be_terminated(predictor_name)
     DynamicSupervisor.terminate_child(@name, predictor_name)
-  end
-
-  def start_predictor_if_not_started(
-        prediction,
-        believer_name,
-        model_name
-      ) do
-    predictor_name = Predictor.predictor_name(prediction, model_name)
-    if not predictor_started?(predictor_name) do
-      start_predictor(prediction, believer_name, model_name)
-    end
     predictor_name
-  end
-
-  def terminate_predictor_if_started(
-        prediction,
-        model_name
-      ) do
-    predictor_name = Predictor.predictor_name(prediction, model_name)
-    if predictor_started?(predictor_name) do
-      terminate_predictor(predictor_name)
-    end
-    predictor_name
-  end
-
-  defp predictor_started?(predictor_name) do
-    Enum.any?(
-      DynamicSupervisor.which_children(@name),
-      fn ({ _, pid, _, _ }) ->
-        Predictor.has_name?(pid, predictor_name)
-      end
-    )
   end
 
 end

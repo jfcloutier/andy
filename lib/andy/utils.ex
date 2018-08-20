@@ -136,6 +136,20 @@ defmodule Andy.Utils do
     choice
   end
 
+  def as_percept_about(percept_specs) do
+    if is_map(percept_specs) do
+      percept_specs
+    else
+      { class, port, type, sense } = percept_specs
+      %{
+        class: class,
+        port: port,
+        type: type,
+        sense: sense
+      }
+    end
+  end
+
   ### PRIVATE
 
   defp extract_plain_env_arguments() do

@@ -32,7 +32,7 @@ defmodule Andy.Detector do
       end,
       [name: name]
     )
-    Logger.info("#{__MODULE__} started on #{inspect device.type} device")
+    Logger.info("#{__MODULE__} started named #{name}")
     listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
@@ -81,7 +81,7 @@ defmodule Andy.Detector do
             Logger.info("Now polling #{device.mod} about #{sense} every #{secs} secs")
             %{
               state |
-              polling_task: spawn(fn -> detect(detector_name) end),
+              polling_task: Task.async(fn -> detect(detector_name) end),
               polling_interval_secs: secs
             }
         end

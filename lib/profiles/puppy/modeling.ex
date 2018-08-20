@@ -2,7 +2,7 @@ defmodule Andy.Puppy.Modeling do
   @moduledoc "The generative models for a puppy profile"
 
   alias Andy.{ GenerativeModel, Prediction, Fulfillment, Action, Memory }
-  import Andy.Utils, only: [choose_one: 1]
+  import Andy.Utils, only: [choose_one: 1, as_percept_about: 1]
 
   def generative_models() do
     [
@@ -28,12 +28,12 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             fulfillments: [Fulfillment.new(actions: [say_once("I am hungry!")])]
           ),
-          #          Prediction.new(
-          #            name: :puppy_is_free,
-          #            believed: { :is, :free },
-          #            precision: :high,
-          #            fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!")])]
-          #          )
+          Prediction.new(
+            name: :puppy_is_free,
+            believed: { :is, :free },
+            precision: :high,
+            fulfillments: []
+          )
         ],
         # Let activated sub-models dictate priority
         priority: nil,
@@ -47,15 +47,16 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy is safe",
         predictions: [
           Prediction.new(
-            name: :puppy_not_bumped,
-            believed: { :not, :bumped },
+            name: :puppy_not_bumped_in_the_dark,
+            believed: { :not, :bumped_in_the_dark },
             precision: :high,
-            fulfillments: [Fulfillment.new(actions: [backoff(), turn()])]
+            fulfillments: [Fulfillment.new(actions: [say_once("What was that?"), backoff(), turn(), turn(), backoff()])]
           ),
           Prediction.new(
             name: :puppy_is_in_the_light,
             believed: { :is, :in_the_light },
             precision: :high,
+            fulfill_when: [:puppy_not_bumped_in_the_dark],
             fulfillments: [Fulfillment.new(actions: [say_once("It's too dark")])]
           )
           #  ,
@@ -101,14 +102,17 @@ defmodule Andy.Puppy.Modeling do
         ],
         priority: :high
       ),
-      # Recently got bumped
+      # Recently got bumped while in the dark
       GenerativeModel.new(
-        name: :bumped,
-        description: "The puppy bumped into something",
+        name: :bumped_in_the_dark,
+        description: "The puppy bumped into something in the dark",
         predictions: [
           Prediction.new(
-            name: :puppy_recently_touched,
-            perceived: [{ { :sensor, :any, :touch, :touch }, { :eq, :touched }, { :past_secs, 1 } }],
+            name: :puppy_touched_in_dark,
+            perceived: [
+              { { :sensor, :any, :touch, :touch }, { :eq, :touched }, :now },
+              { { :sensor, :any, :color, :ambient }, { :lt, 10 }, :now }
+            ],
             precision: :medium,
             # We never want to fulfill this prediction
             fulfillments: []
@@ -168,7 +172,9 @@ defmodule Andy.Puppy.Modeling do
             perceived: [{ { :sensor, :any, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
             precision: :high,
             fulfill_when: [:puppy_smells_food],
-            fulfillments: [Fulfillment.new(actions: [turn_toward({ :sensor, :any, :infrared, { :beacon_heading, 1 } })])]
+            fulfillments: [
+              Fulfillment.new(actions: [turn_toward({ :sensor, :any, :infrared, { :beacon_heading, 1 } })])
+            ]
           ),
           Prediction.new(
             name: :puppy_approaches_food,
@@ -179,11 +185,71 @@ defmodule Andy.Puppy.Modeling do
           )
         ],
         priority: :high
-      )
-
-
+      ),
 
       # FREE
+      GenerativeModel.new(
+        name: :free,
+        description: "The puppy is free to move about",
+        predictions: [
+          Prediction.new(
+            name: :puppy_unobstructed,
+            believed: { :not, :bumped },
+            precision: :high,
+            fulfillments: [Fulfillment.new(actions: [say_once("Huh hoh!"), backoff(), turn()])]
+          ),
+          Prediction.new(
+            name: :puppy_has_clear_path,
+            believed: { :not, :approaching_obstacle },
+            precision: :medium,
+            when_fulfilled: [:puppy_unobstructed],
+            fulfillments: [Fulfillment.new(actions: [avoid({ :sensor, :any, :ultrasonic, :distance })])]
+          ),
+          Prediction.new(
+            name: :puppy_is_moving,
+            actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 30 } }],
+            precision: :medium,
+            when_fulfilled: [:puppy_has_clear_path],
+            fulfillments: [Fulfillment.new(actions: [move()])]
+          ),
+        ],
+        priority: :high
+      ),
+      # Recently got bumped
+      GenerativeModel.new(
+        name: :bumped,
+        description: "The puppy bumped into something",
+        predictions: [
+          Prediction.new(
+            name: :puppy_recently_touched,
+            perceived: [{ { :sensor, :any, :touch, :touch }, { :eq, :touched }, :now }],
+            precision: :high,
+            # We never want to fulfill this prediction
+            fulfillments: []
+          )
+        ],
+        priority: :high
+      ),
+
+      # Approaching an obstacle
+      GenerativeModel.new(
+        name: :approaching_obstacle,
+        description: "The puppy is approaching an obstacle",
+        predictions: [
+          Prediction.new(
+            name: :puppy_approaching_obstacle,
+            perceived: [
+              { { :sensor, :any, :ultrasonic, :distance }, { :lt, 50 }, :now },
+              { { :sensor, :any, :ultrasonic, :distance }, :descending, { :past_secs, 10 } }
+            ],
+            precision: :high,
+            # We never want to fulfill this prediction
+            fulfillments: []
+          )
+        ],
+        priority: :high
+      ),
+
     ]
     # TODO
   end
@@ -211,6 +277,35 @@ defmodule Andy.Puppy.Modeling do
           time: 1
         }
       )
+    end
+  end
+
+  defp move() do
+    fn ->
+      random = choose_one(1..4)
+      cond do
+        random in 1..2 ->
+          Action.new(
+            intent_name: :go_forward,
+            intent_value: %{
+              speed: :fast,
+              time: 1
+            }
+          )
+        random == 3 ->
+          Action.new(
+            intent_name: choose_one([:turn_right, :turn_left]),
+            intent_value: choose_one(1..3)
+          )
+        true ->
+          Action.new(
+            intent_name: :go_backward,
+            intent_value: %{
+              speed: :fast,
+              time: 1
+            }
+          )
+      end
     end
   end
 
@@ -246,7 +341,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp approach(distance_percept_specs) do
     fn ->
-      distance = Memory.recall_value_of_latest_percept(distance_percept_specs) || 0
+      distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
       speed = cond do
         distance == 0 ->
           0
@@ -265,6 +360,23 @@ defmodule Andy.Puppy.Modeling do
         }
       )
     end
+  end
+
+  defp avoid(distance_percept_specs) do
+    distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
+    how_much = cond do
+      distance < 5 ->
+        3
+      distance < 15 ->
+        2
+      true ->
+        1
+    end
+    Action.new(
+      intent_name: choose_one([:turn_right, :turn_left]),
+      intent_value: how_much
+    )
+
   end
 
   defp say_once(words) do

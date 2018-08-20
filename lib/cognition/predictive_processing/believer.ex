@@ -20,27 +20,31 @@ defmodule Andy.Believer do
   @doc "Start the cognition agent responsible for believing in a generative model"
   def start_link(generative_model) do
     believer_name = generative_model.name
-    { :ok, pid } = Agent.start_link(
-      fn () ->
-        %{
-          believer_name: believer_name,
-          model: generative_model,
-          # prediction_name => true|false -- the believer is validated if all prediction are true
-          validations: %{ },
-          # the names of the believer's predictors
-          predictor_names: [],
-          # The names of the predictors that grabbed this believer and whether they are validated by the model being believed
-          for_predictors: %{ }
-          # %{predictor_name => :is | :not}
-        }
-      end,
-      [name: believer_name]
-    )
-    spawn(fn -> start_predictors(believer_name) end)
-    PubSub.notify_believer_started(believer_name)
-    Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
-    listen_to_events(pid, __MODULE__)
-    { :ok, pid }
+    case Agent.start_link(
+           fn () ->
+             %{
+               believer_name: believer_name,
+               model: generative_model,
+               # prediction_name => true|false -- the believer is validated if all prediction are true
+               validations: %{ },
+               # the names of the believer's predictors
+               predictor_names: [],
+               # The names of the predictors that grabbed this believer and whether they are validated by the model being believed
+               for_predictors: %{ }
+               # %{predictor_name => :is | :not}
+             }
+           end,
+           [name: believer_name]
+         ) do
+      { :ok, pid } ->
+        spawn(fn -> start_predictors(believer_name) end)
+        PubSub.notify_believer_started(believer_name)
+        Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
+        listen_to_events(pid, __MODULE__)
+        { :ok, pid }
+      other ->
+        other
+    end
   end
 
   @doc "Get the name of a believer given it's process id"
@@ -223,7 +227,7 @@ defmodule Andy.Believer do
             acc
           fulfill_when ->
             if predictions_validated?(fulfill_when, validations) do
-              predictor_name = PredictorsSupervisor.start_predictor_if_not_started(
+              predictor_name = PredictorsSupervisor.start_predictor(
                 prediction,
                 believer_name,
                 model.name
@@ -235,9 +239,9 @@ defmodule Andy.Believer do
                   |> Enum.uniq())
               }
             else
-              predictor_name = PredictorsSupervisor.terminate_predictor_if_started(
-                prediction,
-                model.name
+              predictor_name = Predictor.predictor_name(prediction, model.name)
+              PredictorsSupervisor.terminate_predictor(
+                predictor_name
               )
               %{ acc | predictor_names: List.delete(acc.predictor_names, predictor_name) }
             end

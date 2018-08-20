@@ -20,30 +20,34 @@ defmodule Andy.Predictor do
   @doc "Start the cognition agent responsible for believing in a generative model"
   def start_link(prediction, believer_name, model_name) do
     predictor_name = predictor_name(prediction, model_name)
-    { :ok, pid } = Agent.start_link(
-      fn ->
-        %{
-          predictor_name: predictor_name,
-          # the name of the model this predictor helps validate
-          predicted_model_name: model_name,
-          # name of model believer making (owning) the prediction
-          believer_name: believer_name,
-          # the prediction made about the model
-          prediction: prediction,
-          # the effective precision for the prediction
-          effective_precision: prediction.precision,
-          # Is is currently fulfilled? For starters, yes
-          fulfilled?: true,
-          # index of the fulfillment currently being tried. Nil if none.
-          fulfillment_index: nil
-        }
-      end,
-      [name: predictor_name]
-    )
-    spawn(fn -> predict(predictor_name) end)
-    Logger.info("#{__MODULE__} started on #{Prediction.summary(prediction)}")
-    listen_to_events(pid, __MODULE__)
-    { :ok, pid }
+    case Agent.start_link(
+           fn ->
+             %{
+               predictor_name: predictor_name,
+               # the name of the model this predictor helps validate
+               predicted_model_name: model_name,
+               # name of model believer making (owning) the prediction
+               believer_name: believer_name,
+               # the prediction made about the model
+               prediction: prediction,
+               # the effective precision for the prediction
+               effective_precision: prediction.precision,
+               # Is is currently fulfilled? For starters, yes
+               fulfilled?: true,
+               # index of the fulfillment currently being tried. Nil if none.
+               fulfillment_index: nil
+             }
+           end,
+           [name: predictor_name]
+         ) do
+      { :ok, pid } ->
+        spawn(fn -> predict(predictor_name) end)
+        Logger.info("#{__MODULE__} started on #{Prediction.summary(prediction)}")
+        listen_to_events(pid, __MODULE__)
+        { :ok, pid }
+      other ->
+        other
+    end
   end
 
   def predictor_name(prediction, model_name) do
@@ -304,8 +308,8 @@ defmodule Andy.Predictor do
   defp believed_as_predicted?(
          %{ believed: { is_or_not, model_name } } = _prediction
        ) do
-    believer_name = BelieversSupervisor.find_believer_name(model_name)
-    believes? = Believer.believes?(believer_name)
+    # A believer has the name of the model it believers in.
+    believes? = Believer.believes?(model_name)
     case is_or_not do
       :is -> believes?
       :not -> not believes?
@@ -395,6 +399,12 @@ defmodule Andy.Predictor do
       end
     )
     if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
+  end
+
+  defp probability_of_actuated({ intent_about, { :times, target_number }, time_period } = _actuated) do
+    actual_number = Memory.recall_intents_since(intent_about, time_period)
+                    |> Enum.count()
+    if target_number == 0, do: 1.0, else: max(1.0, actual_number / target_number)
   end
 
   defp probability_of_actuated({ intent_about, predicate, time_period } = _actuated) do
@@ -522,10 +532,10 @@ defmodule Andy.Predictor do
   end
 
   defp activate_fulfillment(
-         0,
+         none,
          state,
          _first_time_or_repeated
-       ) do
+       ) when none in [0, nil] do
     Logger.info("Activating no fulfillment in predictor #{state.predictor_name}")
     %{ state | fulfillment_index: nil }
   end
