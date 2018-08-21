@@ -44,12 +44,14 @@ defmodule Andy.Experience do
     updated_state = update_fulfillment_stats(prediction_error, state)
     # Choose a fulfillment to correct the prediction error
     fulfillment_index = choose_fulfillment_index(prediction_error, updated_state)
-    Logger.info("Experience chose fulfillment #{fulfillment_index} to address #{inspect prediction_error}")
     if fulfillment_index != 0 do
+      Logger.info("Experience chose fulfillment #{fulfillment_index} to address #{inspect prediction_error}")
       # Activate fulfillment
       PubSub.notify_fulfill(
         Fulfill.new(predictor_name: prediction_error.predictor_name, fulfillment_index: fulfillment_index)
       )
+    else
+      Logger.info("Experience chose no fulfillment to address #{inspect prediction_error}")
     end
     updated_state
   end
@@ -85,19 +87,21 @@ defmodule Andy.Experience do
          %{ fulfillment_stats: fulfillment_stats } = state
        ) do
     { fulfillment_index, fulfillment_count } = Predictor.fulfillment_data(predictor_name)
-    Logger.warn("Fulfillment data = #{inspect { fulfillment_index, fulfillment_count } } from predictor #{predictor_name}")
-       # The predictor has an active fulfillment we are learning about
-      new_predictor_stats = case Map.get(fulfillment_stats, predictor_name) do
-        nil ->
-          initial_predictor_stats = List.duplicate({ 0, 0 }, fulfillment_count)
-          Logger.warn("New predictor stats = #{inspect initial_predictor_stats}")
-          capture_success_or_failure(initial_predictor_stats, fulfillment_index, success_or_failure)
-        predictor_stats ->
-          Logger.warn("Prior predictor stats = #{inspect predictor_stats}")
-          capture_success_or_failure(predictor_stats, fulfillment_index, success_or_failure)
-      end
-      updated_fulfillment_stats = Map.put(fulfillment_stats, predictor_name, new_predictor_stats)
-      %{ state | fulfillment_stats: updated_fulfillment_stats }
+    Logger.info(
+      "Fulfillment data = #{inspect { fulfillment_index, fulfillment_count } } from predictor #{predictor_name}"
+    )
+    # The predictor has an active fulfillment we are learning about
+    new_predictor_stats = case Map.get(fulfillment_stats, predictor_name) do
+      nil ->
+        initial_predictor_stats = List.duplicate({ 0, 0 }, fulfillment_count)
+        Logger.info("New predictor stats = #{inspect initial_predictor_stats}")
+        capture_success_or_failure(initial_predictor_stats, fulfillment_index, success_or_failure)
+      predictor_stats ->
+        Logger.info("Prior predictor stats = #{inspect predictor_stats}")
+        capture_success_or_failure(predictor_stats, fulfillment_index, success_or_failure)
+    end
+    updated_fulfillment_stats = Map.put(fulfillment_stats, predictor_name, new_predictor_stats)
+    %{ state | fulfillment_stats: updated_fulfillment_stats }
   end
 
   defp capture_success_or_failure(predictor_stats, nil, _success_or_failure) do
@@ -127,7 +131,7 @@ defmodule Andy.Experience do
       # A fulfillment has a 10% minimum probability of being selected
       if successes == 0, do: 0.1, else: max(successes / (successes + failures), 0.1)
     end
-    Logger.warn("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for predictor #{predictor_name}")
+    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for predictor #{predictor_name}")
     if Enum.count(ratings) == 0 do
       0
     else

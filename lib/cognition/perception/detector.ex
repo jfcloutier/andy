@@ -26,7 +26,7 @@ defmodule Andy.Detector do
           device: device,
           sense: sense,
           previous_values: %{ },
-          polling_interval_secs: :infinity,
+          polling_interval_msecs: :infinity,
           polling_task: nil
         }
       end,
@@ -59,30 +59,30 @@ defmodule Andy.Detector do
             detector_name: detector_name,
             device: device,
             sense: sense,
-            polling_interval_secs: polling_interval_secs,
+            polling_interval_msecs: polling_interval_msecs,
             polling_task: polling_task
           } = state) ->
-        secs = polling_interval_from_priority(device, sense, priority)
-        Logger.info("Setting polling priority of detector #{detector_name} to #{priority} (every #{secs} secs)")
+        msecs = polling_interval_from_priority(device, sense, priority)
+        Logger.info("Setting polling priority of detector #{detector_name} to #{priority} (every #{msecs} msecs)")
         cond do
-          secs == polling_interval_secs ->
+          msecs == polling_interval_msecs ->
             # Change nothing
             state
-          secs == :infinity ->
+          msecs == :infinity ->
             if polling_task != nil, do: Task.shutdown(polling_task)
             Logger.info("Stopped polling #{device.mod} about #{sense}")
             %{
               state |
               polling_task: nil,
-              polling_interval_secs: :infinity
+              polling_interval_msecs: :infinity
             }
           true ->
             if polling_task != nil, do: Task.shutdown(polling_task)
-            Logger.info("Now polling #{device.mod} about #{sense} every #{secs} secs")
+            Logger.info("Now polling #{device.mod} about #{sense} every #{msecs} msecs")
             %{
               state |
               polling_task: Task.async(fn -> detect(detector_name) end),
-              polling_interval_secs: secs
+              polling_interval_msecs: msecs
             }
         end
       end
@@ -153,7 +153,7 @@ defmodule Andy.Detector do
   defp polling_interval(detector_name) do
     Agent.get(
       detector_name,
-      fn (%{ polling_interval_secs: interval } = _state) ->
+      fn (%{ polling_interval_msecs: interval } = _state) ->
         interval
       end
     )

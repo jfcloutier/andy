@@ -5,7 +5,7 @@ defmodule Andy.Interest do
   """
 
   require Logger
-  alias Andy.{ PubSub, GenerativeModels }
+  alias Andy.{ PubSub, GenerativeModels, Belief }
   import Andy.Utils, only: [listen_to_events: 2]
 
 
@@ -41,9 +41,35 @@ defmodule Andy.Interest do
   ### Cognition Agent Behaviour
 
   def handle_event(
-        { :believer_started, model_name },
-        %{ focus: focus } = state
+        { :believed, %Belief{ model_name: model_name, value: false } },
+        state
       ) do
+    focus_on(model_name, state)
+  end
+
+  def handle_event(
+        { :believed, %Belief{ model_name: model_name, value: true } },
+        state
+      ) do
+    lose_focus_on(model_name, state)
+  end
+
+  def handle_event(
+        { :believer_terminated, model_name },
+        state
+      ) do
+    lose_focus_on(model_name, state)
+  end
+
+  def handle_event(_event, state) do
+    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
+    state
+  end
+
+  ### PRIVATE
+
+  defp focus_on(model_name, %{ focus: focus } = state) do
+    Logger.info("Maybe focusing on #{model_name}")
     case Map.get(focus, model_name) do
       nil ->
         model = GenerativeModels.model_named(model_name)
@@ -63,10 +89,8 @@ defmodule Andy.Interest do
     end
   end
 
-  def handle_event(
-        { :believer_terminated, model_name },
-        %{ focus: focus } = state
-      ) do
+  defp lose_focus_on(model_name, %{ focus: focus } = state) do
+    Logger.info("Losing any focus on #{model_name}")
     case Map.get(focus, model_name) do
       nil ->
         # competing models already reprioritized
@@ -76,13 +100,6 @@ defmodule Andy.Interest do
         %{ state | focus: Map.delete(focus, model_name) }
     end
   end
-
-  def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
-    state
-  end
-
-  ### PRIVATE
 
   # Deprioritize competing models of lower priority that have not been deprioritizeded enough
   defp deprioritize_competing_models(competing_model_names, model, focus) do

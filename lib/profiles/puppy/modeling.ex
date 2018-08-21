@@ -53,6 +53,12 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(actions: [say_once("What was that?"), backoff(), turn(), turn(), backoff()])]
           ),
           Prediction.new(
+            name: :puppy_not_about_to_collide,
+            believed: { :not, :about_to_collide },
+            precision: :high,
+            fulfillments: [Fulfillment.new(actions: [say_once("Uh oh!"), turn()])]
+          ),
+          Prediction.new(
             name: :puppy_is_in_the_light,
             believed: { :is, :in_the_light },
             precision: :high,
@@ -120,6 +126,24 @@ defmodule Andy.Puppy.Modeling do
         ],
         priority: :high
       ),
+      # About to collide
+      GenerativeModel.new(
+        name: :about_to_collide,
+        description: "The puppy is about to collide",
+        predictions: [
+          Prediction.new(
+            name: :puppy_close_to_obstacle,
+            perceived: [
+              { { :sensor, :any, :ultrasonic, :distance }, { :lt, 10 }, :now },
+              { { :sensor, :any, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
+            ],
+            precision: :high,
+            # We never want to fulfill this prediction
+            fulfillments: []
+          )
+        ],
+        priority: :high
+      ),
 
       # SATED
 
@@ -134,7 +158,7 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [Fulfillment.new(model_name: :feeding)]
           )
         ],
-        priority: :high
+        priority: :medium
       ),
 
       GenerativeModel.new(
@@ -202,18 +226,18 @@ defmodule Andy.Puppy.Modeling do
             name: :puppy_has_clear_path,
             believed: { :not, :approaching_obstacle },
             precision: :medium,
-            when_fulfilled: [:puppy_unobstructed],
+            fulfill_when: [:puppy_unobstructed],
             fulfillments: [Fulfillment.new(actions: [avoid({ :sensor, :any, :ultrasonic, :distance })])]
           ),
           Prediction.new(
             name: :puppy_is_moving,
             actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 30 } }],
             precision: :medium,
-            when_fulfilled: [:puppy_has_clear_path],
+            fulfill_when: [:puppy_has_clear_path],
             fulfillments: [Fulfillment.new(actions: [move()])]
           ),
         ],
-        priority: :high
+        priority: :low
       ),
       # Recently got bumped
       GenerativeModel.new(

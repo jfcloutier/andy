@@ -169,12 +169,14 @@ defmodule Andy.Predictor do
   def handle_event(
         { :model_deprioritized, model_name, priority },
         %{
+          predictor_name: predictor_name,
           predicted_model_name: predicted_model_name,
           precision: precision
         } = state
       ) do
     if model_name == predicted_model_name do
       updated_effective_precision = reduce_precision_by(precision, priority)
+      Logger.info("Reducing effective precision of predictor #{predictor_name} from #{precision} to #{updated_effective_precision} because model #{model_name} is deprioritized by other #{priority} priority model")
       %{ state | effective_precision: updated_effective_precision }
     else
       state

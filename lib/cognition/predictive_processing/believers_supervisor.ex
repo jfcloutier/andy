@@ -53,7 +53,9 @@ defmodule Andy.BelieversSupervisor do
   end
 
   def terminate(believer_name) do
-    DynamicSupervisor.terminate_child(@name, believer_name)
+    if DynamicSupervisor.terminate_child(@name, believer_name) == :ok do
+      Logger.info("Terminated believer #{believer_name}")
+    end
     :ok
   end
 

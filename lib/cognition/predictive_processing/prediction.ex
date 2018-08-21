@@ -8,10 +8,14 @@ defmodule Andy.Prediction do
   @type t :: %__MODULE__{
                name: :atom,
                perceived: [{ tuple(), any, any }],
+               precision: atom,
                actuated: [{ atom, any, any }],
                believed: { :not | :is, atom } | nil,
+               fulfill_when: [atom],
                fulfillments: [Fulfillment.t]
              }
+
+  @keys [:name, :perceived, :precision, :actuated, :believed, :fulfill_when, :fulfillments]
 
   # prediction name is unique within a generative model
   defstruct name: nil,
@@ -33,6 +37,7 @@ defmodule Andy.Prediction do
       Keyword.keys(keywords),
       %Prediction{ },
       fn (key, acc) ->
+        if not key in @keys, do: raise "Invalid prediction property #{key}"
         value = Keyword.get(keywords, key)
         case key do
           :perceived ->
@@ -55,7 +60,7 @@ defmodule Andy.Prediction do
                                             else: ""
                                             <>
                                                   if prediction.actuated != [],
-                                                     do: " #{inspect prediction.actuated} (actuated),"
+                                                     do: " #{inspect prediction.actuated} (actuated),", else: ""
   end
 
   def detector_specs(prediction) do
@@ -81,4 +86,4 @@ defmodule Andy.Prediction do
     )
   end
 
- end
+end

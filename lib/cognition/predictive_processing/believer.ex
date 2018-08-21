@@ -185,11 +185,12 @@ defmodule Andy.Believer do
   defp terminate_predictors(believer_name) do
     Agent.update(
       believer_name,
-      fn (%{ predictor_names: predictor_names }) ->
+      fn (%{ predictor_names: predictor_names } = state) ->
         Enum.each(
           predictor_names,
           &(PredictorsSupervisor.terminate_predictor(&1))
         )
+        %{state | predictor_names: []}
       end
     )
   end

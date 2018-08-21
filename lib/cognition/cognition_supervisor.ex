@@ -41,8 +41,8 @@ defmodule Andy.CognitionSupervisor do
   def start_cognition() do
     spawn(
       fn ->
-        Process.sleep(2000)
-        Logger.info("Starting embodied cognition")
+        Process.sleep(5000)
+        Logger.info("*** STARTING EMBODIED COGNITION ***")
         start_detectors()
         start_actuators()
         start_prior_believers()
