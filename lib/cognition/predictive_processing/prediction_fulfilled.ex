@@ -6,6 +6,7 @@ defmodule Andy.PredictionFulfilled do
   defstruct predictor_name: nil,
             model_name: nil,
             prediction_name: nil,
+            # nil if none else >= 0
             fulfillment_index: nil
 
   def new(

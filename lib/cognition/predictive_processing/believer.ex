@@ -3,7 +3,7 @@ defmodule Andy.Believer do
   @moduledoc "Given a generative model, updates belief in it upon prediction errors."
 
   require Logger
-  alias Andy.{ PubSub, Belief, BelieversSupervisor, PredictorsSupervisor }
+  alias Andy.{ PubSub, Belief, Predictor, BelieversSupervisor, PredictorsSupervisor }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.CognitionAgentBehaviour
@@ -39,7 +39,7 @@ defmodule Andy.Believer do
       { :ok, pid } ->
         spawn(fn -> start_predictors(believer_name) end)
         PubSub.notify_believer_started(believer_name)
-        Logger.info("#{__MODULE__} started on generative model #{generative_model.name}")
+        Logger.info("Believer #{believer_name} started on generative model #{generative_model.name}")
         listen_to_events(pid, __MODULE__)
         { :ok, pid }
       other ->
@@ -133,7 +133,7 @@ defmodule Andy.Believer do
   end
 
   @doc "Is this believer only grabbed by predictors asserting the believer to be validated?"
-  def predicted_as_validated?(believer_name) do
+  def predicted_to_be_validated?(believer_name) do
     Agent.get(
       believer_name,
       fn (%{ for_predictors: for_predictors } = _state) ->

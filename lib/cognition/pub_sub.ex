@@ -107,21 +107,25 @@ defmodule Andy.PubSub do
     notify({ :fulfill, fulfill })
   end
 
+  @doc "Notify that a model was believed or not as predicted"
+  def notify_believed_as_predicted(model_name, prediction_name, believed?) do
+    notify({ :believed_as_predicted, model_name, prediction_name, believed? })
+  end
+
   @doc "Notify that a believer started on a model"
   def notify_believer_started(model_name) do
-    notify({ :believer_started, model_name })
+     notify({ :believer_started, model_name })
   end
 
   @doc "Notify that a believer terminated on a model"
   def notify_believer_terminated(model_name) do
-    notify({ :believer_terminated, model_name })
+     notify({ :believer_terminated, model_name })
   end
 
   @doc "Notify that a model has been deprioritized"
   def notify_model_deprioritized(model_name, priority) do
     notify({ :model_deprioritized, model_name, priority })
   end
-
 
   @doc "Found the id channel of another member of the community"
   def notify_id_channel(id_channel, community_name) do

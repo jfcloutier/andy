@@ -42,6 +42,8 @@ defmodule Andy.Prediction do
         case key do
           :perceived ->
             Map.put(acc, :perceived, format_perceived(value))
+          :fulfillments ->
+            Map.put(acc, :fulfillments, format_fulfillments(value))
           _other ->
             Map.put(acc, key, value)
         end
@@ -82,6 +84,20 @@ defmodule Andy.Prediction do
       perceived,
       fn ({ percept_specs, predicate, timing }) ->
         { as_percept_about(percept_specs), predicate, timing }
+      end
+    )
+  end
+
+  defp format_fulfillments(fulfillments) do
+    Enum.map(
+      fulfillments,
+      fn (fulfillment_spec) ->
+        case fulfillment_spec do
+          { :actions, actions } ->
+            Fulfillment.new(actions: actions)
+          { :model, model_name } ->
+            Fulfillment.new(model_name: model_name)
+        end
       end
     )
   end

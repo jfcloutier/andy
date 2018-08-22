@@ -44,7 +44,7 @@ defmodule Andy.Experience do
     updated_state = update_fulfillment_stats(prediction_error, state)
     # Choose a fulfillment to correct the prediction error
     fulfillment_index = choose_fulfillment_index(prediction_error, updated_state)
-    if fulfillment_index != 0 do
+    if fulfillment_index != nil do
       Logger.info("Experience chose fulfillment #{fulfillment_index} to address #{inspect prediction_error}")
       # Activate fulfillment
       PubSub.notify_fulfill(
@@ -109,7 +109,7 @@ defmodule Andy.Experience do
   end
 
   defp capture_success_or_failure(predictor_stats, fulfillment_index, success_or_failure) do
-    stats = Enum.at(predictor_stats, fulfillment_index - 1)
+    stats = Enum.at(predictor_stats, fulfillment_index)
     List.replace_at(predictor_stats, fulfillment_index, increment(stats, success_or_failure))
   end
 
@@ -133,7 +133,7 @@ defmodule Andy.Experience do
     end
     Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for predictor #{predictor_name}")
     if Enum.count(ratings) == 0 do
-      0
+      nil
     else
       ratings_sum = Enum.reduce(ratings, 0.0, fn (r, acc) -> r + acc end)
       spreads = Enum.map(ratings, &(&1 / ratings_sum))
@@ -146,7 +146,7 @@ defmodule Andy.Experience do
       )
       ranges = Enum.reverse(ranges_reversed)
       random = Enum.random(1..1000) / 1000
-      Enum.find(1..Enum.count(ranges), &(random < Enum.at(ranges, &1 - 1)))
+      Enum.find(0..Enum.count(ranges) - 1, &(random < Enum.at(ranges, &1)))
     end
   end
 

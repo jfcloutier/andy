@@ -42,7 +42,7 @@ defmodule Andy.Predictor do
          ) do
       { :ok, pid } ->
         spawn(fn -> predict(predictor_name) end)
-        Logger.info("#{__MODULE__} started on #{Prediction.summary(prediction)}")
+        Logger.info("Predictor #{predictor_name} started on #{Prediction.summary(prediction)}")
         listen_to_events(pid, __MODULE__)
         { :ok, pid }
       other ->
@@ -89,7 +89,7 @@ defmodule Andy.Predictor do
             fulfillment_index: fulfillment_index,
             prediction: prediction
           } = _state) ->
-        if Believer.predicted_as_validated?(believer_name) do
+        if Believer.predicted_to_be_validated?(believer_name) do
           { fulfillment_index, Enum.count(prediction.fulfillments) }
         else
           { nil, 0 }
@@ -170,21 +170,25 @@ defmodule Andy.Predictor do
         { :model_deprioritized, model_name, priority },
         %{
           predictor_name: predictor_name,
-          predicted_model_name: predicted_model_name,
-          precision: precision
+          prediction: prediction,
+          predicted_model_name: predicted_model_name
         } = state
       ) do
-    if model_name == predicted_model_name do
-      updated_effective_precision = reduce_precision_by(precision, priority)
-      Logger.info("Reducing effective precision of predictor #{predictor_name} from #{precision} to #{updated_effective_precision} because model #{model_name} is deprioritized by other #{priority} priority model")
+    if model_name == state.predicted_model_name do
+      updated_effective_precision = reduce_precision_by(prediction.precision, priority)
+      Logger.warn(
+        "Changing effective precision of predictor #{predictor_name} from #{prediction.precision} to #{
+          updated_effective_precision
+        }"
+      )
       %{ state | effective_precision: updated_effective_precision }
     else
       state
     end
   end
 
-  def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
+  def handle_event(event, state) do
+    # Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
 
@@ -307,15 +311,24 @@ defmodule Andy.Predictor do
     true
   end
 
+  # Whether the model is believed in or not as predicted
   defp believed_as_predicted?(
-         %{ believed: { is_or_not, model_name } } = _prediction
+         %{ believed: { is_or_not, model_name } } = prediction
        ) do
     # A believer has the name of the model it believers in.
     believes? = Believer.believes?(model_name)
-    case is_or_not do
-      :is -> believes?
-      :not -> not believes?
+    believed_as_predicted? = case is_or_not do
+      :is ->
+        believes?
+      :not ->
+        not believes?
     end
+    PubSub.notify_believed_as_predicted(
+      model_name,
+      prediction.name,
+      believed_as_predicted?
+    )
+    believed_as_predicted?
   end
 
   defp perceived_as_predicted?(%{ perceived: [] } = _prediction, _precision) do
@@ -525,7 +538,7 @@ defmodule Andy.Predictor do
            predictor_name: predictor_name
          } = state
        ) do
-    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index - 1)
+    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
     # Stop whatever was started when activating the current fulfillment, if any
     if  fulfillment.model_name != nil do
       BelieversSupervisor.release_believer(fulfillment.model_name, predictor_name)
@@ -534,10 +547,10 @@ defmodule Andy.Predictor do
   end
 
   defp activate_fulfillment(
-         none,
+         nil,
          state,
          _first_time_or_repeated
-       ) when none in [0, nil] do
+       ) do
     Logger.info("Activating no fulfillment in predictor #{state.predictor_name}")
     %{ state | fulfillment_index: nil }
   end
@@ -551,7 +564,7 @@ defmodule Andy.Predictor do
          first_time_or_repeated
        ) do
     Logger.info("Activating fulfillment #{fulfillment_index} in predictor #{predictor_name}")
-    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index - 1)
+    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
     if  fulfillment.model_name != nil do
       # Believing as a fulfillment is always affirmative
       BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name, :is)

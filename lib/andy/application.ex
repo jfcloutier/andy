@@ -3,13 +3,13 @@ defmodule Andy.Application do
   # for more information on OTP Applications
   @moduledoc false
 
-   @poll_runtime_delay 5000
+  @poll_runtime_delay 60_000
   @max_waits 20
 
 
   use Application
   require Logger
-  alias Andy.{CognitionSupervisor, PubSub, InternalClock}
+  alias Andy.{ CognitionSupervisor, PubSub, InternalClock }
   import Supervisor.Spec
 
   def start(_type, _args) do
@@ -28,7 +28,7 @@ defmodule Andy.Application do
     go()
     result
   end
-  
+
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
@@ -39,10 +39,12 @@ defmodule Andy.Application do
   @doc "Return ERTS runtime stats"
   def runtime_stats() do  # In camelCase for Elm's automatic translation
     stats = mem_stats(Andy.system())
-    %{ramFree: stats.mem_free,
-      ramUsed:  stats.mem_used,
+    %{
+      ramFree: stats.mem_free,
+      ramUsed: stats.mem_used,
       swapFree: stats.swap_free,
-      swapUsed: stats.swap_used}
+      swapUsed: stats.swap_used
+    }
   end
 
   @doc "Loop pushing runtime stats every @poll_runtime_delay seconds"
@@ -62,11 +64,11 @@ defmodule Andy.Application do
   end
 
   def go() do
-    spawn(fn() -> connect_to_nodes() end)
+    spawn(fn () -> connect_to_nodes() end)
     CognitionSupervisor.start_cognition()
-#    spawn(fn -> push_runtime_stats() end) # TODO
-    end
-  
+    spawn(fn -> push_runtime_stats() end)
+  end
+
   ## PRIVATE
 
   defp wait_for_platform_ready(n) do
@@ -76,7 +78,7 @@ defmodule Andy.Application do
       :ok
     else
       if n >= @max_waits do
-        {:error, :platform_not_ready}
+        { :error, :platform_not_ready }
       else
         Logger.info("Platform not ready")
         Process.sleep(1_000)
@@ -96,29 +98,33 @@ defmodule Andy.Application do
   end
 
   defp mem_stats("ev3") do
-    {res, 0} = System.cmd("free", ["-m"])
+    { res, 0 } = System.cmd("free", ["-m"])
     [_labels, mem, _buffers, swap | _] = String.split(res, "\n")
     [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
     [_, _swap_total, swap_used, swap_free] = String.split(swap)
-    %{mem_free: to_int!(mem_free),
+    %{
+      mem_free: to_int!(mem_free),
       mem_used: to_int!(mem_used),
       swap_free: to_int!(swap_free),
-      swap_used: to_int!(swap_used)}
+      swap_used: to_int!(swap_used)
+    }
   end
 
   defp mem_stats("pc") do
-    {res, 0} = System.cmd("free", ["-m"])
+    { res, 0 } = System.cmd("free", ["-m"])
     [_labels, mem, swap, _buffers] = String.split(res, "\n")
     [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
     [_, _swap_total, swap_used, swap_free] = String.split(swap)
-    %{mem_free: to_int!(mem_free),
+    %{
+      mem_free: to_int!(mem_free),
       mem_used: to_int!(mem_used),
       swap_free: to_int!(swap_free),
-      swap_used: to_int!(swap_used)}
+      swap_used: to_int!(swap_used)
+    }
   end
 
   defp to_int!(s) do
-    {i, _} = Integer.parse(s)
+    { i, _ } = Integer.parse(s)
     i
   end
 
