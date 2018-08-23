@@ -58,8 +58,7 @@ defmodule Andy.InternalClock do
     Agent.update(
       @name,
       fn (state) ->
-        Logger.info("Pausing clock")
-        %{ state | responsive: false }
+        pause(state)
       end
     )
   end
@@ -70,20 +69,20 @@ defmodule Andy.InternalClock do
     Agent.update(
       @name,
       fn (state) ->
-        %{ state | responsive: true, tock: now() }
+        resume(state)
       end
     )
   end
 
-  ### Cognition Agent Behaviour
+   ### Cognition Agent Behaviour
 
   def handle_event(:faint, state) do
-    pause()
+    pause(state)
     state
   end
 
   def handle_event(:revive, state) do
-    resume()
+    resume(state)
     state
   end
 
@@ -93,6 +92,15 @@ defmodule Andy.InternalClock do
   end
 
    ### Private
+
+  defp pause(state) do
+    Logger.info("Pausing clock")
+    %{ state | responsive: false }
+  end
+
+  defp resume(state) do
+    %{ state | responsive: true, tock: now() }
+  end
 
   defp tick_tock() do
     Process.sleep(tick_interval())

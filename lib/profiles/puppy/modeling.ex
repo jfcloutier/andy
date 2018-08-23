@@ -27,7 +27,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
-            precision: :high,
+            precision: :medium,
             fulfillments: [
               { :actions, [say_once("I am hungry!")] }
             ]
@@ -35,7 +35,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_is_free,
             believed: { :is, :free },
-            precision: :high,
+            precision: :low,
             fulfillments: [
               { :actions, [say_once("Freedom!")] }
             ]
@@ -128,7 +128,7 @@ defmodule Andy.Puppy.Modeling do
               { { :sensor, :any, :touch, :touch }, { :eq, :touched }, :now },
               { { :sensor, :any, :color, :ambient }, { :lt, 10 }, :now }
             ],
-            precision: :medium,
+            precision: :high,
             # We never want to fulfill this prediction
             fulfillments: []
           )
@@ -413,20 +413,21 @@ defmodule Andy.Puppy.Modeling do
   end
 
   defp avoid(distance_percept_specs) do
-    distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
-    how_much = cond do
-      distance < 5 ->
-        3
-      distance < 15 ->
-        2
-      true ->
-        1
+    fn ->
+      distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
+      how_much = cond do
+        distance < 5 ->
+          3
+        distance < 15 ->
+          2
+        true ->
+          1
+      end
+      Action.new(
+        intent_name: choose_one([:turn_right, :turn_left]),
+        intent_value: how_much
+      )
     end
-    Action.new(
-      intent_name: choose_one([:turn_right, :turn_left]),
-      intent_value: how_much
-    )
-
   end
 
   defp say_once(words) do

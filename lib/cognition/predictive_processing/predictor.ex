@@ -54,6 +54,16 @@ defmodule Andy.Predictor do
     String.to_atom("#{prediction.name} in #{model_name}")
   end
 
+  @doc "Get the predictor's pid"
+  def pid(predictor_name) do
+    Agent.get(
+      predictor_name,
+      fn (_state) ->
+        self()
+      end
+    )
+  end
+
   def has_name?(predictor_pid, name) do
     Agent.get(
       predictor_pid,
@@ -70,8 +80,14 @@ defmodule Andy.Predictor do
 
   def about_to_be_terminated(predictor_name) do
     PubSub.notify_attention_off(predictor_name)
-    release_believer(predictor_name)
-    deactivate_predictor_fulfillment(predictor_name)
+    Agent.update(
+      predictor_name,
+      fn (state) ->
+        state
+        |> release_believer_from_predictor()
+        |> deactivate_fulfillment()
+      end
+    )
   end
 
   @doc """
@@ -82,7 +98,7 @@ defmodule Andy.Predictor do
   a belief uniformly predicted to be false.
   """
   def fulfillment_data(predictor_name) do
-    Agent.get(
+     Agent.get(
       predictor_name,
       fn (%{
             believer_name: believer_name, # the believer making the prediction managed by this predictor
@@ -96,7 +112,7 @@ defmodule Andy.Predictor do
         end
       end
     )
-  end
+   end
 
   ### Cognition Agent Behaviour
 
@@ -174,9 +190,9 @@ defmodule Andy.Predictor do
           predicted_model_name: predicted_model_name
         } = state
       ) do
-    if model_name == state.predicted_model_name do
+    if model_name == predicted_model_name do
       updated_effective_precision = reduce_precision_by(prediction.precision, priority)
-      Logger.warn(
+      Logger.info(
         "Changing effective precision of predictor #{predictor_name} from #{prediction.precision} to #{
           updated_effective_precision
         }"
@@ -187,7 +203,7 @@ defmodule Andy.Predictor do
     end
   end
 
-  def handle_event(event, state) do
+  def handle_event(_event, state) do
     # Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
@@ -209,16 +225,22 @@ defmodule Andy.Predictor do
     )
   end
 
-  defp release_believer(predictor_name) do
-    Agent.update(
-      predictor_name,
-      fn (%{ believer_name: believer_name } = state) ->
-        if believer_name != nil do
-          BelieversSupervisor.release_believer_named(believer_name, predictor_name)
-          %{ state | believer_name: nil }
+  defp release_believer_from_predictor(
+         %{
+           believer_name: believer_name,
+           predictor_name: predictor_name
+         } = state
+       ) do
+    Logger.info("Releasing believer from belief predictor #{predictor_name}")
+    if believer_name != nil do
+      # Spawn, else deadlock
+      spawn(
+        fn ->
+          BelieversSupervisor.release_believer(believer_name, predictor_name)
         end
-      end
-    )
+      )
+      %{ state | believer_name: nil }
+    end
   end
 
   defp direct_attention(predictor_name) do
@@ -285,12 +307,14 @@ defmodule Andy.Predictor do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true
       if not was_fulfilled? do
+        Logger.info("Prediction #{prediction.name} becomes fulfilled")
         PubSub.notify_prediction_fulfilled(
-          prediction_fulfilled(state)
+          prediction_fulfilled(fulfilled_state)
         )
-        deactivate_fulfillment(state)
+        deactivate_fulfillment(fulfilled_state)
+      else
+        fulfilled_state
       end
-      fulfilled_state
     else
       unfulfilled_state = %{ state | fulfilled?: false }
       # Notify of prediction error if prediction (still) not true
@@ -316,7 +340,7 @@ defmodule Andy.Predictor do
          %{ believed: { is_or_not, model_name } } = prediction
        ) do
     # A believer has the name of the model it believers in.
-    believes? = Believer.believes?(model_name)
+    believes? = Memory.recall_believed?(model_name)
     believed_as_predicted? = case is_or_not do
       :is ->
         believes?
@@ -328,6 +352,7 @@ defmodule Andy.Predictor do
       prediction.name,
       believed_as_predicted?
     )
+    Logger.info("Believed as predicted is #{believed_as_predicted?} that #{inspect { is_or_not, model_name }}")
     believed_as_predicted?
   end
 
@@ -343,7 +368,13 @@ defmodule Andy.Predictor do
         probability_of_perceived(perceived) * acc
       end
     )
-    Andy.in_probable_range?(probability, precision)
+    perceived_as_predicted? = Andy.in_probable_range?(probability, precision)
+    Logger.info(
+      "Perceived as predicted is #{perceived_as_predicted?} for #{inspect perceived_list} (probability = #{
+        probability
+      }, precision = #{precision})"
+    )
+    perceived_as_predicted?
   end
 
   defp actuated_as_predicted?(%{ actuated: [] } = _prediction, _precision) do
@@ -358,7 +389,13 @@ defmodule Andy.Predictor do
         probability_of_actuated(actuated) * acc
       end
     )
-    Andy.in_probable_range?(probability, precision)
+    actuated_as_predicted? = Andy.in_probable_range?(probability, precision)
+    Logger.info(
+      "Actuated as predicted is #{actuated_as_predicted?} for #{inspect actuated_list} (probability = #{
+        probability
+      }, precision = #{precision})"
+    )
+    actuated_as_predicted?
   end
 
   defp probability_of_perceived({ percept_about, { :sum, target_sum }, time_period } = _perceived) do
@@ -387,9 +424,12 @@ defmodule Andy.Predictor do
 
   defp probability_of_perceived({ percept_about, predicate, time_period } = _perceived) do
     percepts = Memory.recall_percepts_since(percept_about, time_period)
-    fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1, percepts)))
     percepts_count = Enum.count(percepts)
-    if percepts_count == 0, do: 0, else: Enum.count(fitting_percepts) / percepts_count
+    Logger.info("Recalled #{percepts_count} percepts matching #{inspect percept_about} over #{inspect time_period}")
+    fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1, percepts)))
+    fitting_count = Enum.count(fitting_percepts)
+    Logger.info("Fitting #{fitting_count} percepts with predicate #{inspect predicate}")
+    if percepts_count == 0, do: 0, else: fitting_count / percepts_count
   end
 
   defp probability_of_actuated({ intent_about, { :sum, target_sum }, time_period } = _actuated) do
@@ -501,25 +541,18 @@ defmodule Andy.Predictor do
       predictor_name: state.predictor_name,
       model_name: state.predicted_model_name,
       prediction_name: state.prediction.name,
-      fulfillment_index: state.fulfillment_index
+      fulfillment_index: state.fulfillment_index,
+      fulfillment_count: Enum.count(state.prediction.fulfillments)
     )
   end
 
   defp prediction_fulfilled(state) do
     PredictionFulfilled.new(
       predictor_name: state.predictor_name,
-      model_name: state.model_name,
+      model_name: state.predicted_model_name,
       prediction_name: state.prediction.name,
-      fulfillment_index: state.fulfillment_index
-    )
-  end
-
-  defp deactivate_predictor_fulfillment(predictor_name) do
-    Agent.update(
-      predictor_name,
-      fn (state) ->
-        deactivate_fulfillment(state)
-      end
+      fulfillment_index: state.fulfillment_index,
+      fulfillment_count: Enum.count(state.prediction.fulfillments)
     )
   end
 
@@ -538,10 +571,16 @@ defmodule Andy.Predictor do
            predictor_name: predictor_name
          } = state
        ) do
+    Logger.info("Deactivating fulfillment #{fulfillment_index} of prediction #{prediction.name}")
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
     # Stop whatever was started when activating the current fulfillment, if any
     if  fulfillment.model_name != nil do
-      BelieversSupervisor.release_believer(fulfillment.model_name, predictor_name)
+      # Spawn else DEADLOCK!
+      spawn(
+        fn ->
+          BelieversSupervisor.release_believer(fulfillment.model_name, predictor_name)
+        end
+      )
     end
     %{ state | fulfillment_index: nil }
   end

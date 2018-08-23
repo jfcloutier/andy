@@ -1,16 +1,14 @@
 defmodule Andy.Memory do
-  @moduledoc "The memory of percepts"
+  @moduledoc "The memory of percepts, intents and beliefs"
 
   alias Andy.{ Percept, Intent, Belief, PubSub }
   import Andy.Utils
   require Logger
 
   @name __MODULE__
-  @forget_pause 5000 # clear expired precepts every 10 secs
+  @forget_pause 10_000 # clear expired precepts every 10 secs
   @intent_ttl 30_000 # all intents are forgotten after 30 secs
   @max_recall 30_000 # don't bother looking back beyond that
-
-  @behaviour Andy.CognitionAgentBehaviour
 
   ### API
 
@@ -33,13 +31,12 @@ defmodule Andy.Memory do
       end,
       [name: @name]
     )
-    listen_to_events(pid, __MODULE__)
     { :ok, pid }
   end
 
   @doc "Remember a percept or intent"
   def store(something) do
-    Agent.cast(
+    Agent.update(
       @name,
       fn (state) -> store(something, state) end
     )
@@ -80,37 +77,22 @@ defmodule Andy.Memory do
   end
 
   @doc "Recall the history of a named intent, within a time window until now"
-  def recall_intents_since(name, { :past_secs, secs }) do
+  def recall_intents_since(intent_name, { :past_secs, secs }) do
     Agent.get(
       @name,
       fn (state) ->
-        intents_since(name, secs, state)
+        intents_since(intent_name, secs, state)
       end
     )
   end
 
-  ### Cognitive Agent behaviour
-
-  def handle_event({ :perceived, percept }, state) do
-    if not percept.transient do
-      store(percept, state)
-    end
-    state
-  end
-
-  # Intends are memorized only when realized by actuators
-  # {:intended, intent} events are ignored
-  def handle_event({ :actuated, intent }, state) do
-    store(intent, state)
-  end
-
-  def handle_event({ :believed, belief }, state) do
-    store(belief, state)
-  end
-
-  def handle_event(_event, state) do
-    #		Logger.debug("#{__MODULE__} ignored #{inspect event}")
-    state
+  def recall_believed?(model_name) do
+    Agent.get(
+      @name,
+      fn (state) ->
+        believed?(model_name, state)
+      end
+    )
   end
 
   ### PRIVATE
@@ -118,6 +100,7 @@ defmodule Andy.Memory do
   # forget all expired percepts every second
   defp forget() do
     :timer.sleep(@forget_pause)
+    Logger.info("Forgetting old memories")
     Agent.update(@name, fn (state) -> forget_expired(state) end)
     forget()
   end
@@ -148,6 +131,7 @@ defmodule Andy.Memory do
 
   defp update_percepts(percept, [previous | others]) do
     if not change_felt?(percept, previous) do
+      Logger.info("Extending percept #{inspect percept}")
       extended_percept = %Percept{ previous | until: percept.since }
       [extended_percept | others]
     else
@@ -175,14 +159,23 @@ defmodule Andy.Memory do
     |> Enum.filter(&(Percept.about_match?(&1.about, about)))
   end
 
-  defp intents_since(name, secs, state) do
+  defp intents_since(intent_name, secs, state) do
     msecs = now()
     Enum.take_while(
-      Map.get(state.intents, name, []),
+      Map.get(state.intents, intent_name, []),
       fn (intent) ->
         secs == nil or intent.since > (msecs - (secs * 1000))
       end
     )
+  end
+
+  defp believed?(model_name, state) do
+    case Map.get(state.beliefs, model_name) do
+      nil ->
+        false
+      %Belief{value: believed?} ->
+        believed?
+    end
   end
 
   # Both percepts are assumed to be from the same sense, thus comparable
@@ -215,7 +208,11 @@ defmodule Andy.Memory do
             if percept.ttl == nil or (percept.until + percept.ttl) > msecs do
               true
             else
-              # Logger.debug("Forgot #{inspect percept.about} = #{inspect percept.value} after #{div(msecs - percept.until, 1000)} secs")
+              Logger.info(
+                "Forgot #{inspect percept.about} = #{inspect percept.value} after #{
+                  div(msecs - percept.until, 1000)
+                } secs"
+              )
               false
             end
           end

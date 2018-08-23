@@ -114,12 +114,12 @@ defmodule Andy.PubSub do
 
   @doc "Notify that a believer started on a model"
   def notify_believer_started(model_name) do
-     notify({ :believer_started, model_name })
+    notify({ :believer_started, model_name })
   end
 
   @doc "Notify that a believer terminated on a model"
   def notify_believer_terminated(model_name) do
-     notify({ :believer_terminated, model_name })
+    notify({ :believer_terminated, model_name })
   end
 
   @doc "Notify that a model has been deprioritized"
@@ -171,12 +171,14 @@ defmodule Andy.PubSub do
 
   @doc "Is the robot paused?"
   def paused?() do
-    Registry.meta(@registry_name, :paused)
+    { :ok, paused? } = Registry.meta(@registry_name, :paused)
+    paused? == true
   end
 
   @doc "Is the robot overwhelmed?"
   def overwhelmed?() do
-    Registry.meta(@registry_name, :overwhelmed)
+    { :ok, overwhelmed? } = Registry.meta(@registry_name, :overwhelmed)
+    overwhelmed? == true
   end
 
   @doc "Toggle the robot between paused and active"

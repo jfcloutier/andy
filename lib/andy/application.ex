@@ -9,7 +9,7 @@ defmodule Andy.Application do
 
   use Application
   require Logger
-  alias Andy.{ CognitionSupervisor, PubSub, InternalClock }
+  alias Andy.{ CognitionSupervisor, PubSub, InternalClock, Speaker }
   import Supervisor.Spec
 
   def start(_type, _args) do
@@ -21,7 +21,8 @@ defmodule Andy.Application do
     wait_for_platform_ready(0)
     children = [
       supervisor(AndyWeb.Endpoint, []),
-      supervisor(CognitionSupervisor, [])
+      supervisor(CognitionSupervisor, []),
+      Speaker
     ]
     opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(children, opts)

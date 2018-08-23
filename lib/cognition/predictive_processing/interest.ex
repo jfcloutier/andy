@@ -71,7 +71,7 @@ defmodule Andy.Interest do
 
   # Focus interest on a model on behalf of a prediction
   defp focus_on(model_name, prediction_name, %{ focus: focus } = state) do
-    Logger.warn("Focusing on model #{model_name} for prediction #{prediction_name}")
+    Logger.info("Focusing on model #{model_name} because belief prediction #{prediction_name} was invalidated")
     case Map.get(focus, model_name) do
       nil ->
         model = GenerativeModels.model_named(model_name)
@@ -109,10 +109,10 @@ defmodule Andy.Interest do
 
   # Lose interest in a model on behalf of a prediction
   defp focus_off(model_name, prediction_name, %{ focus: focus } = state) do
-    Logger.warn("Maybe losing focus on model #{model_name} for prediction #{prediction_name}")
+    Logger.info("Maybe losing focus on model #{model_name} because belief prediction #{prediction_name} was validated")
     case Map.get(focus, model_name) do
       nil ->
-      Logger.warn("No reprioritization needed")
+      Logger.info("No reprioritization needed")
         # competing models already reprioritized
         state
       %{ prediction_names: prediction_names } = model_focus ->
@@ -121,7 +121,7 @@ defmodule Andy.Interest do
           reprioritize_competing_models(model_name, focus)
           %{ state | focus: Map.delete(focus, model_name) }
         else
-          Logger.warn("Focus on #{model_name} still on for predictions #{inspect updated_prediction_names}")
+          Logger.info("Focus on #{model_name} still on for predictions #{inspect updated_prediction_names}")
           %{
             state |
             focus: Map.put(
@@ -139,7 +139,7 @@ defmodule Andy.Interest do
 
   # Lose interest in a model unconditionally
   defp focus_off_unconditionally(model_name, %{ focus: focus } = state) do
-    Logger.warn("Losing any focus on #{model_name}")
+    Logger.info("Losing any focus on #{model_name} because its believer was terminated")
     case Map.get(focus, model_name) do
       nil ->
         # competing models already reprioritized
@@ -152,7 +152,7 @@ defmodule Andy.Interest do
 
   # Deprioritize competing models of lower priority that have not been deprioritizeded enough
   defp deprioritize_competing_models(competing_model_names, model, focus) do
-    Logger.warn("Looking at deprioritizing models #{inspect competing_model_names} that compete with #{model.name}")
+    Logger.info("Looking at deprioritizing models #{inspect competing_model_names} that compete with #{model.name}")
     to_deprioritize = competing_model_names
                       # competing models from their names
                       |> Enum.map(&(GenerativeModels.model_named(&1)))
@@ -161,7 +161,7 @@ defmodule Andy.Interest do
       # reject those already deprioritized enough
                       |> Enum.reject(&(already_deprioritized_enough?(&1, model.priority, focus)))
     # notify the deprioritization of applicable competing models
-    Logger.warn("Deprioritizing models #{inspect Enum.map(to_deprioritize, &(&1.name))} by #{model.priority}")
+    Logger.info("Deprioritizing models #{inspect Enum.map(to_deprioritize, &(&1.name))} by #{model.priority}")
     Enum.each(
       to_deprioritize,
       &(PubSub.notify_model_deprioritized(&1.name, model.priority))
@@ -173,7 +173,7 @@ defmodule Andy.Interest do
          focus
        ) do
     %{ competing_model_names: competing_model_names } = Map.get(focus, deactivated_model_name)
-    Logger.warn("Reprioritizing #{inspect competing_model_names} that were competing with #{deactivated_model_name}")
+    Logger.info("Reprioritizing #{inspect competing_model_names} that were competing with #{deactivated_model_name}")
     competing_model_names
     |> Enum.each(
          fn (competing_model_name) ->

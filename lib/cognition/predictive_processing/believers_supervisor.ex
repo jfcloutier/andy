@@ -40,21 +40,21 @@ defmodule Andy.BelieversSupervisor do
     model_name
   end
 
-  @doc " A predictor releases a believer by its model name"
+  @doc " A predictor releases a believer by its model name, which is its name"
   def release_believer(model_name, predictor_name) do
     Logger.info("Releasing believer of model #{model_name} from predictor #{predictor_name}")
     # A believer's name is that of its model
     Believer.released_by_predictor(model_name, predictor_name)
   end
 
-  @doc " A predictor releases a believer by its name"
-  def release_believer_named(believer_name, predictor_name) do
-    Believer.released_by_predictor(believer_name, predictor_name)
-  end
-
   def terminate(believer_name) do
-    if DynamicSupervisor.terminate_child(@name, believer_name) == :ok do
-      Logger.info("Terminated believer #{believer_name}")
+    pid = Process.whereis(believer_name)
+    if pid == nil do
+      Logger.warn("Believer #{believer_name} already terminated")
+    else
+      if DynamicSupervisor.terminate_child(@name, pid) == :ok do
+        Logger.info("Terminated believer #{believer_name}")
+      end
     end
     :ok
   end

@@ -29,7 +29,7 @@ defmodule Andy.Attention do
       [name: @name]
     )
     listen_to_events(pid, __MODULE__)
-    {:ok, pid}
+    { :ok, pid }
   end
 
 
@@ -68,7 +68,7 @@ defmodule Andy.Attention do
 
   defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
     Logger.info("Losing attention for predictor #{predictor_name}")
-    detector_specs = predictor_detector_specs(predictor_name)
+    detector_specs = predictor_detector_specs(predictor_name, state)
     attended_minus = remove_any_attended(attended_list, predictor_name)
     new_state = %{ state | attended_list: attended_minus }
     adjust_polling_precision(detector_specs, new_state)
@@ -106,18 +106,16 @@ defmodule Andy.Attention do
     )
   end
 
-  defp predictor_detector_specs(predictor_name) do
-    Agent.get(
-      @name,
-      fn (%{ attended_list: attended_list }) ->
-        case Enum.find(attended_list, &(&1.predictor_name == predictor_name)) do
-          nil ->
-            nil
-          %{ detector_specs: specs } ->
-            specs
-        end
-      end
-    )
+  defp predictor_detector_specs(
+         predictor_name,
+         %{ attended_list: attended_list } = _state
+       ) do
+    case Enum.find(attended_list, &(&1.predictor_name == predictor_name)) do
+      nil ->
+        nil
+      %{ detector_specs: specs } ->
+        specs
+    end
   end
 
   defp adjust_polling_precision(nil, _state) do
@@ -126,16 +124,16 @@ defmodule Andy.Attention do
 
   defp adjust_polling_precision(detector_specs, %{ attended_list: attended_list } = _state) do
     max_precision = Enum.reduce(
-          attended_list,
-          :none,
-          fn (%{ detector_specs: specs, precision: precision }, acc) ->
-            if Percept.about_match?(detector_specs, specs) do
-              Andy.highest_level(acc, precision)
-            else
-              acc
-            end
-          end
-        )
+      attended_list,
+      :none,
+      fn (%{ detector_specs: specs, precision: precision }, acc) ->
+        if Percept.about_match?(detector_specs, specs) do
+          Andy.highest_level(acc, precision)
+        else
+          acc
+        end
+      end
+    )
     DetectorsSupervisor.set_polling_priority(detector_specs, max_precision)
   end
 

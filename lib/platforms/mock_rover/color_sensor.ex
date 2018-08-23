@@ -4,6 +4,9 @@ defmodule Andy.MockRover.ColorSensor do
 	@behaviour Andy.Sensing
 
 	alias Andy.Device
+
+	@max_light 100
+  @nudge_light 10
 	
 	def new() do
 		%Device{mod: __MODULE__,
@@ -64,28 +67,38 @@ defmodule Andy.MockRover.ColorSensor do
   end
 
 	def ambient_light(sensor) do
-		value = :rand.uniform(10) - 5
-		{value, sensor}
+    light(sensor)
 	end
 
   def nudge_ambient_light(value, previous_value) do
-    case previous_value do
-      nil -> 30 + :rand.uniform(10)
-      _ -> (previous_value + value) |> max(0) |> min(100)
-    end
+    nudge_light(value, previous_value)
   end
   
 	def reflected_light(sensor) do
-		value = :rand.uniform(5)
-		{value, sensor}
+    light(sensor)
 	end
 
-  def nudge_reflected_light(_value, nil) do
-    :rand.uniform(101) - 1
+  def nudge_reflected_light(value, previous_value) do
+    nudge_light(value, previous_value)
   end
 
-  def nudge_reflected_light(value, previous_value) do
-    previous_value + value |> max(0) |> min(100)
+  defp light(sensor) do
+    value = Enum.random(0..@max_light)
+    {value, sensor}
+  end
+
+  defp nudge_light(value, previous_value) do
+    case previous_value do
+      nil ->
+        Enum.random(0..@max_light)
+      _ ->
+        direction = if value - previous_value >= 0, do: 1, else: -1
+        nudge = Enum.random(0..@nudge_light)
+        previous_value + direction * nudge
+        |> max(0)
+        |> min(@max_light)
+    end
+
   end
 
 end

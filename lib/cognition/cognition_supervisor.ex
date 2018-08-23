@@ -2,7 +2,7 @@ defmodule Andy.CognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.{ PubSub, Memory,
+  alias Andy.{ PubSub, Memory, Memorizer,
                DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, PredictorsSupervisor,
                InternalClock, PG2Communicator, Device,
                RESTCommunicator, GenerativeModels, Attention, Experience, Interest }
@@ -21,6 +21,7 @@ defmodule Andy.CognitionSupervisor do
     children = [
       PubSub,
       Memory,
+      Memorizer,
       GenerativeModels,
       PG2Communicator,
       RESTCommunicator,
@@ -32,7 +33,7 @@ defmodule Andy.CognitionSupervisor do
       Experience,
       Interest,
       Attention
-              ]
+    ]
     opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
   end
@@ -46,7 +47,7 @@ defmodule Andy.CognitionSupervisor do
         start_detectors()
         start_actuators()
         start_prior_believers()
-        #   InternalClock.resume() # TODO
+        InternalClock.resume()
       end
     )
   end

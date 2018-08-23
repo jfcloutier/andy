@@ -1,8 +1,7 @@
 defmodule Andy.SoundPlayer do
   @moduledoc "A Linux sound player"
 
-  alias Andy.Device
-  import Andy.Utils, only: [platform_dispatch: 1]
+  alias Andy.{Device, Speaker}
   require Logger
 
   def new() do
@@ -17,7 +16,7 @@ defmodule Andy.SoundPlayer do
 
   @doc "Execute a sound command"
   def execute_command(sound_player, command, params) do
-    spawn(fn -> apply(__MODULE__, command, [sound_player | params]) end)
+    apply(__MODULE__, command, [sound_player | params])
     sound_player
   end
 
@@ -30,9 +29,7 @@ defmodule Andy.SoundPlayer do
 
   @doc "Speak out words with a given volume, speed and voice"
   def speak(words, volume, speed, v \\ nil) do
-    voice = v || platform_dispatch(:voice)
-    args =  ["-a", "#{volume}", "-s", "#{speed}", "-v", "#{voice}", words]
-    spawn(fn() -> System.cmd("espeak", args) end)
+    Speaker.linux_speak(words, volume, speed, v)
   end
 
   @doc "Speak words loud and clear"

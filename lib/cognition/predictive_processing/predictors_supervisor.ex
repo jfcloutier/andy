@@ -36,9 +36,14 @@ defmodule Andy.PredictorsSupervisor do
 
   @doc "Terminates predictor if not already terminated."
   def terminate_predictor(predictor_name) do
-    Predictor.about_to_be_terminated(predictor_name)
-    if DynamicSupervisor.terminate_child(@name, predictor_name) == :ok do
-      Logger.info("Terminated predictor #{predictor_name}")
+    pid = Process.whereis(predictor_name)
+    if pid == nil do
+      Logger.warn("Predictor #{predictor_name} already terminated")
+    else
+      Predictor.about_to_be_terminated(predictor_name)
+      if DynamicSupervisor.terminate_child(@name, pid) == :ok do
+        Logger.info("Terminated predictor #{predictor_name}")
+      end
     end
     :ok
   end

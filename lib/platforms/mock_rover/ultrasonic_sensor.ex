@@ -3,14 +3,19 @@ defmodule Andy.MockRover.UltrasonicSensor do
 
   @behaviour Andy.Sensing
 
-	alias Andy.Device
+  alias Andy.Device
+
+  @max_distance 30 # actual max is 2550 cms
+  @nudge_distance 10
 
   def new() do
-    %Device{mod: __MODULE__,
-						class: :sensor,
-            path: "/mock/ultrasonic_sensor",
-            type: :ultrasonic,
-            mock: true}
+    %Device{
+      mod: __MODULE__,
+      class: :sensor,
+      path: "/mock/ultrasonic_sensor",
+      type: :ultrasonic,
+      mock: true
+    }
   end
 
   ### Sensing
@@ -26,7 +31,7 @@ defmodule Andy.MockRover.UltrasonicSensor do
   def nudge(_sensor, :distance, value, previous_value) do
     nudge_distance_cm(value, previous_value)
   end
-	
+
   def sensitivity(_sensor, _sense) do
     nil
   end
@@ -34,14 +39,19 @@ defmodule Andy.MockRover.UltrasonicSensor do
   ### Private
 
   defp distance_cm(sensor) do
-    value = 10 - :rand.uniform(30)
-    {value, sensor}
+    value = Enum.random(0..@max_distance)
+    { value, sensor }
   end
 
   defp nudge_distance_cm(value, previous_value) do
-    case previous_value do
-      nil -> :rand.uniform(2550)
-      _ -> (value + previous_value) |> max(0) |> min(2550)
+    if previous_value == nil do
+      value
+    else
+      direction = if value - previous_value >= 0, do: 1, else: -1
+      nudge = Enum.random(0..@nudge_distance)
+      previous_value + direction * nudge
+      |> max(0)
+      |> min(@max_distance)
     end
   end
 

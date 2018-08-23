@@ -4,7 +4,7 @@ defmodule Andy.Ev3.LegoSound do
   @behaviour Andy.Speaking
 
   require Logger
-  alias Andy.Device
+  alias Andy.{Device, Speaker}
   alias Andy
   import Andy.Utils, only: [get_andy_env: 2]
 
@@ -29,7 +29,7 @@ defmodule Andy.Ev3.LegoSound do
 
   @doc "Execute a sound command"
   def execute_command(sound_player, command, params) do
-    spawn(fn -> apply(__MODULE__, command, [sound_player | params]) end)
+    apply(__MODULE__, command, [sound_player | params])
     sound_player
   end
 
@@ -44,11 +44,7 @@ defmodule Andy.Ev3.LegoSound do
 
   @doc "Speak out words with a given volume, speed and voice"
   def speak(words, volume, speed, voice \\ "en") do
-    spawn(
-      fn () ->
-        :os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}"')
-      end
-    )
+    Speaker.ev3_speak(words, volume, speed, voice)
     Andy.display(words)
   end
 

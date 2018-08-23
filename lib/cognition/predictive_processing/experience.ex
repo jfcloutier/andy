@@ -5,7 +5,7 @@ defmodule Andy.Experience do
   """
 
   require Logger
-  alias Andy.{ PubSub, Predictor, PredictionError, PredictionFulfilled, Fulfill }
+  alias Andy.{ PubSub, PredictionError, PredictionFulfilled, Fulfill }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @name __MODULE__
@@ -56,8 +56,8 @@ defmodule Andy.Experience do
     updated_state
   end
 
-  def handle_event({ :prediction_fulfilled, predictor_name }, state) do
-    update_fulfillment_stats(predictor_name, state)
+  def handle_event({ :prediction_fulfilled, prediction_fulfilled }, state) do
+    update_fulfillment_stats(prediction_fulfilled, state)
   end
 
   def handle_event(_event, state) do
@@ -68,25 +68,46 @@ defmodule Andy.Experience do
   ### PRIVATE
 
   defp update_fulfillment_stats(
-         %PredictionError{ predictor_name: predictor_name },
+         %PredictionError{
+           predictor_name: predictor_name,
+           fulfillment_index: fulfillment_index,
+           fulfillment_count: fulfillment_count
+         },
          state
        ) do
-    learn_from_success_or_failure(predictor_name, :failure, state)
+    learn_from_success_or_failure(
+      predictor_name,
+      fulfillment_index,
+      fulfillment_count,
+      :failure,
+      state
+    )
   end
 
   defp update_fulfillment_stats(
-         %PredictionFulfilled{ predictor_name: predictor_name },
+         %PredictionFulfilled{
+           predictor_name: predictor_name,
+           fulfillment_index: fulfillment_index,
+           fulfillment_count: fulfillment_count
+         },
          state
        )  do
-    learn_from_success_or_failure(predictor_name, :success, state)
+    learn_from_success_or_failure(
+      predictor_name,
+      fulfillment_index,
+      fulfillment_count,
+      :success,
+      state
+    )
   end
 
   defp learn_from_success_or_failure(
          predictor_name,
+         fulfillment_index,
+         fulfillment_count,
          success_or_failure,
          %{ fulfillment_stats: fulfillment_stats } = state
        ) do
-    { fulfillment_index, fulfillment_count } = Predictor.fulfillment_data(predictor_name)
     Logger.info(
       "Fulfillment data = #{inspect { fulfillment_index, fulfillment_count } } from predictor #{predictor_name}"
     )
