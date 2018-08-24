@@ -1,6 +1,6 @@
 defmodule Andy.GenerativeModel do
 
-  @moduledoc "Generative model"
+  @moduledoc "A generative model, with priority and predictions. Could be a hyper-prior (always active)."
 
   alias __MODULE__
 

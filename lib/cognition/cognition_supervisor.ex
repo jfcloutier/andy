@@ -1,4 +1,8 @@
 defmodule Andy.CognitionSupervisor do
+  @moduledoc """
+  The supervisor in charge of singular cognition agents
+  and of the supervisors of dynamically started cognition agents
+  """
 
   use Supervisor
   require Logger
@@ -54,6 +58,7 @@ defmodule Andy.CognitionSupervisor do
 
   ### Private
 
+  # Start a (not-yet-polling) detector for each sense of each sensor
   defp start_detectors() do
     Logger.info("Starting detectors")
     for sensor <- Andy.sensors() do
@@ -63,12 +68,14 @@ defmodule Andy.CognitionSupervisor do
     end
   end
 
+  # Start an actuator for each mind of actuation (locomotion, sound, lights etc.)
   defp start_actuators() do
     Logger.info("Starting actuators")
     Andy.actuation_logic() # returns actuator configs
     |> Enum.each(&(ActuatorsSupervisor.start_actuator(&1)))
   end
 
+  # Start and activate a believer for each hyper-prior model
   defp start_prior_believers() do
     Logger.info("Starting believers")
     GenerativeModels.hyper_prior_models()

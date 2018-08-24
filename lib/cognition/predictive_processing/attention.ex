@@ -1,6 +1,8 @@
 defmodule Andy.Attention do
-  @moduledoc "Responsible for polling detectors as needed by predictors"
-
+  @moduledoc """
+  Responsible for activating and deactivating detectors as needed by predictors,
+  and setting their polling frequency"
+  """
   require Logger
   alias Andy.{ DetectorsSupervisor, Percept }
   import Andy.Utils, only: [listen_to_events: 2]
@@ -18,6 +20,7 @@ defmodule Andy.Attention do
     }
   end
 
+  @doc "Start the attention agent"
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn ->
@@ -52,6 +55,8 @@ defmodule Andy.Attention do
 
   ### PRIVATE
 
+  # Add, on behalf of a predictor, to the detections that are active
+  # and adjust the polling frequency of activated detectors.
   defp pay_attention(
          detector_specs,
          predictor_name,
@@ -66,6 +71,8 @@ defmodule Andy.Attention do
     new_state
   end
 
+  # Remove, on behalf of a predictor, from the detections that are active
+  # and adjust the polling frequency of activated detectors.
   defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
     Logger.info("Losing attention for predictor #{predictor_name}")
     detector_specs = predictor_detector_specs(predictor_name, state)
@@ -75,6 +82,7 @@ defmodule Andy.Attention do
     new_state
   end
 
+  # Remove the given detector specs from what's attended to on behalf of a predictor
   defp remove_attended(attended_list, detector_specs, predictor_name) do
     Enum.reduce(
       attended_list,
@@ -92,6 +100,7 @@ defmodule Andy.Attention do
     )
   end
 
+  # Remove all detector specs from what's attended to on behalf of a predictor
   defp remove_any_attended(attended_list, predictor_name) do
     Enum.reduce(
       attended_list,
@@ -106,6 +115,7 @@ defmodule Andy.Attention do
     )
   end
 
+  # Get all detected specs being attended to for a predictor
   defp predictor_detector_specs(
          predictor_name,
          %{ attended_list: attended_list } = _state
@@ -122,6 +132,7 @@ defmodule Andy.Attention do
     :ok
   end
 
+  # Adjust the polling precision of attended to detectors
   defp adjust_polling_precision(detector_specs, %{ attended_list: attended_list } = _state) do
     max_precision = Enum.reduce(
       attended_list,

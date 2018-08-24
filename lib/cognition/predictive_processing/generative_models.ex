@@ -1,5 +1,5 @@
 defmodule Andy.GenerativeModels do
-  @moduledoc "Dispenser of all known generative models"
+  @moduledoc "Dispenser and analyzer of all known generative models"
 
   require Logger
 
@@ -13,6 +13,7 @@ defmodule Andy.GenerativeModels do
     }
   end
 
+  @doc "Start the agent"
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn ->
@@ -30,6 +31,7 @@ defmodule Andy.GenerativeModels do
     { :ok, pid }
   end
 
+  @doc "Get all hyper-prior models"
   def hyper_prior_models() do
     Agent.get(
       @name,
@@ -39,7 +41,8 @@ defmodule Andy.GenerativeModels do
     )
   end
 
-  def model_named(name) do
+  @doc "Fetch a model by name"
+  def fetch!(name) do
     model = Agent.get(
       @name,
       fn (%{ models: models } = _state) ->
@@ -53,7 +56,11 @@ defmodule Andy.GenerativeModels do
     end
   end
 
-  @doc "Find all models that are either non-predecessor siblings of a model or their children, but not the model or its own descendants"
+  @doc """
+  Find all models that compete with a model.
+  Competing models of a model are either non-predecessor siblings or their children,
+  but not the model itself or its own descendants.
+  """
   def competing_model_names(model) do
     competing_model_names = Agent.get(
       @name,
@@ -62,10 +69,10 @@ defmodule Andy.GenerativeModels do
         predecessors = Map.get(state.predecessors, model.name, [])
         competing_siblings = Enum.reject(siblings, &(&1 in predecessors))
         competing_descendants = Enum.map(competing_siblings, &(descendant_names(&1, state.family_tree)))
-#        Logger.info("Model #{model.name} has siblings #{inspect siblings}")
-#        Logger.info("Model #{model.name} has predecessors #{inspect predecessors}")
-#        Logger.info("Model #{model.name} has competing siblings #{inspect competing_siblings}")
-#        Logger.info("Model #{model.name} has competing descendants #{inspect competing_descendants}")
+        #        Logger.info("Model #{model.name} has siblings #{inspect siblings}")
+        #        Logger.info("Model #{model.name} has predecessors #{inspect predecessors}")
+        #        Logger.info("Model #{model.name} has competing siblings #{inspect competing_siblings}")
+        #        Logger.info("Model #{model.name} has competing descendants #{inspect competing_descendants}")
         (competing_descendants ++ competing_siblings)
         |> List.flatten()
         |> Enum.uniq()
@@ -78,6 +85,7 @@ defmodule Andy.GenerativeModels do
 
   ### PRIVATE
 
+  # Get the names of the siblings of a model
   defp sibling_names(model_name, family_tree) do
     model_info = Map.fetch!(family_tree, model_name)
     case model_info.parent_name do
@@ -90,6 +98,7 @@ defmodule Andy.GenerativeModels do
     end
   end
 
+  # Get the names of the descendants of a model
   defp descendant_names(model_name, family_tree) do
     model_info = Map.fetch!(family_tree, model_name)
     case model_info.children_names do
@@ -106,6 +115,7 @@ defmodule Andy.GenerativeModels do
     end
   end
 
+  # Collect the family tree for models
   defp collect_family_tree(models) do
     roots = Enum.filter(models, &(&1.hyper_prior?))
     { family_tree, _ } = Enum.reduce(
@@ -117,6 +127,7 @@ defmodule Andy.GenerativeModels do
     family_tree
   end
 
+  # Determine the parent and children of a model. Descend recursively.
   defp analyse_parentage(model, { family_tree, parent_name }, models) do
     Logger.info("Analyzing parentage of #{model.name} given parent #{parent_name}")
     # No strange loops allowed
@@ -139,13 +150,14 @@ defmodule Andy.GenerativeModels do
         children,
         { updated_family_tree, model.name },
         fn (child, acc) ->
-           {updated_tree, _} = analyse_parentage(child, acc, models)
-           {updated_tree, model.name}
+          { updated_tree, _ } = analyse_parentage(child, acc, models)
+          { updated_tree, model.name }
         end
       )
     end
   end
 
+  # Find the children of a model as the models references in the predictions and fulfillment options of the model
   defp children(model, models) do
     Enum.reduce(
       model.predictions,
@@ -183,7 +195,9 @@ defmodule Andy.GenerativeModels do
     |> Enum.reject(&(&1 == nil))
   end
 
-  # The names of all models that must be fulfilled before this one can
+  # Find the predecessors of all models.
+  # The predecessors of a model are other models referenced in the model's predictions
+  # that must be believed in (or not) before the model can
   defp collect_predecessors(models) do
     Enum.reduce(
       models,
@@ -195,17 +209,17 @@ defmodule Andy.GenerativeModels do
           fn (prediction, acc1) ->
             case prediction.believed do
               nil ->
-              acc1
-              {_, believed_model_name} ->
-              prediction_predecessors = predecessor_models_of_prediction(prediction, model)
-              acc_predecessors = (Map.get(acc1, believed_model_name, []) ++ prediction_predecessors)
-                                 |> Enum.uniq()
-              Logger.info("Adding predecessors #{inspect prediction_predecessors} to #{believed_model_name}")
-              Map.put(
-                acc1,
-                believed_model_name,
-                acc_predecessors
-              )
+                acc1
+              { _, believed_model_name } ->
+                prediction_predecessors = predecessor_models_of_prediction(prediction, model)
+                acc_predecessors = (Map.get(acc1, believed_model_name, []) ++ prediction_predecessors)
+                                   |> Enum.uniq()
+                Logger.info("Adding predecessors #{inspect prediction_predecessors} to #{believed_model_name}")
+                Map.put(
+                  acc1,
+                  believed_model_name,
+                  acc_predecessors
+                )
             end
           end
         )
@@ -213,6 +227,7 @@ defmodule Andy.GenerativeModels do
     )
   end
 
+  # Find the names of the predecessors of a model referenced in one of the model's predictions
   defp predecessor_models_of_prediction(prediction, model) do
     Enum.reduce(
       prediction.fulfill_when,

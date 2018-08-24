@@ -86,6 +86,7 @@ defmodule Andy.Memory do
     )
   end
 
+  @doc "Recall whether a model is currently believed in"
   def recall_believed?(model_name) do
     Agent.get(
       @name,
@@ -97,7 +98,7 @@ defmodule Andy.Memory do
 
   ### PRIVATE
 
-  # forget all expired percepts every second
+  # Forget all expired percepts every second
   defp forget() do
     :timer.sleep(@forget_pause)
     Logger.info("Forgetting old memories")
@@ -105,6 +106,7 @@ defmodule Andy.Memory do
     forget()
   end
 
+  # Store a percept or extend a current one
   defp store(%Percept{ about: about } = percept, state) do
     key = about.sense
     percepts = Map.get(state.percepts, key, [])
@@ -113,6 +115,7 @@ defmodule Andy.Memory do
     %{ state | percepts: Map.put(state.percepts, key, new_percepts) }
   end
 
+  # Store an actuated intent
   defp store(%Intent{ } = intent, state) do
     intents = Map.get(state.intents, intent.about, [])
     new_intents = update_intents(intent, intents)
@@ -120,15 +123,18 @@ defmodule Andy.Memory do
     %{ state | intents: Map.put(state.intents, intent.about, new_intents) }
   end
 
+  # Update the current belief in a model
   defp store(%Belief{ } = belief, %{ beliefs: beliefs } = state) do
     PubSub.notify_belief_memorized(belief)
     %{ state | beliefs: Map.put(beliefs, belief.model_name, belief) }
   end
 
+  # Update stored percepts with a new one
   defp update_percepts(percept, []) do
     [percept]
   end
 
+  # Update stored percepts with a new one
   defp update_percepts(percept, [previous | others]) do
     if not change_felt?(percept, previous) do
       Logger.info("Extending percept #{inspect percept}")
@@ -139,15 +145,18 @@ defmodule Andy.Memory do
     end
   end
 
+  # Update stored actuated intents with a new one
   defp update_intents(intent, []) do
     [intent]
   end
 
+  # Update stored actuated intents with a new one
   defp update_intents(intent, intents) do
     [intent | intents]
   end
 
 
+  # Find all matching percepts generated since a given number of seconds
   defp percepts_since(about, secs, state) do
     msecs = now()
     Enum.take_while(
@@ -159,6 +168,7 @@ defmodule Andy.Memory do
     |> Enum.filter(&(Percept.about_match?(&1.about, about)))
   end
 
+  # Find all matching intents actuated since a given number of seconds
   defp intents_since(intent_name, secs, state) do
     msecs = now()
     Enum.take_while(
@@ -169,6 +179,7 @@ defmodule Andy.Memory do
     )
   end
 
+  # Find whether a nodel is currently believed in
   defp believed?(model_name, state) do
     case Map.get(state.beliefs, model_name) do
       nil ->
@@ -178,6 +189,7 @@ defmodule Andy.Memory do
     end
   end
 
+  # Is a percept the same as another value-wise?
   # Both percepts are assumed to be from the same sense, thus comparable
   defp change_felt?(percept, previous) do
     cond do
@@ -191,11 +203,13 @@ defmodule Andy.Memory do
     end
   end
 
+  # Forget all expired memories
   defp forget_expired(state) do
     forget_expired_percepts(state)
     |> forget_expired_intents()
   end
 
+  # Forget all expired percepts
   defp forget_expired_percepts(state) do
     msecs = now()
     remembered = Enum.reduce(
@@ -223,6 +237,7 @@ defmodule Andy.Memory do
     %{ state | percepts: remembered }
   end
 
+  # Forget all expired actuated intents
   defp forget_expired_intents(state) do
     msecs = now()
     remembered = Enum.reduce(

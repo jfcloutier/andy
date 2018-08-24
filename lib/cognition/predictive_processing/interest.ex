@@ -1,7 +1,7 @@
 defmodule Andy.Interest do
   @moduledoc """
-  Responsible for modulating the effective precisions of predictors
-  based on the relative priorities of the models currently being realized.
+  Responsible for modulating the effective precisions of model predictors
+  based on the relative priorities of the models with beliefs in need of being changed.
   """
 
   require Logger
@@ -22,6 +22,7 @@ defmodule Andy.Interest do
     }
   end
 
+  @doc "Start the agent"
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn ->
@@ -69,12 +70,13 @@ defmodule Andy.Interest do
 
   ### PRIVATE
 
-  # Focus interest on a model on behalf of a prediction
+  # Focus interest on a model, by reducing the effective precisions the predictors of competing models
+  # (i.e. altering precision weighing), on behalf of a prediction that needs to be fulfilled about that model
   defp focus_on(model_name, prediction_name, %{ focus: focus } = state) do
     Logger.info("Focusing on model #{model_name} because belief prediction #{prediction_name} was invalidated")
     case Map.get(focus, model_name) do
       nil ->
-        model = GenerativeModels.model_named(model_name)
+        model = GenerativeModels.fetch!(model_name)
         competing_model_names = GenerativeModels.competing_model_names(model)
         deprioritize_competing_models(competing_model_names, model, focus)
         %{
@@ -107,7 +109,7 @@ defmodule Andy.Interest do
     end
   end
 
-  # Lose interest in a model on behalf of a prediction
+  # Lose interest in a model on behalf of a prediction about that model
   defp focus_off(model_name, prediction_name, %{ focus: focus } = state) do
     Logger.info("Maybe losing focus on model #{model_name} because belief prediction #{prediction_name} was validated")
     case Map.get(focus, model_name) do
@@ -155,7 +157,7 @@ defmodule Andy.Interest do
     Logger.info("Looking at deprioritizing models #{inspect competing_model_names} that compete with #{model.name}")
     to_deprioritize = competing_model_names
                       # competing models from their names
-                      |> Enum.map(&(GenerativeModels.model_named(&1)))
+                      |> Enum.map(&(GenerativeModels.fetch!(&1)))
       # only keep competing models of lower priority
                       |> Enum.filter(&(Andy.higher_level?(model.priority, &1.priority)))
       # reject those already deprioritized enough
@@ -168,6 +170,7 @@ defmodule Andy.Interest do
     )
   end
 
+  # Update the prioritization of competing models after a model that might have deprioritized them is deactivated
   defp reprioritize_competing_models(
          deactivated_model_name,
          focus
@@ -215,7 +218,7 @@ defmodule Andy.Interest do
         }
       }, acc) ->
         if model_name != deactivated_model_name and competing_model_name in other_competing_model_names do
-          model = GenerativeModels.model_named(model_name)
+          model = GenerativeModels.fetch!(model_name)
           Andy.highest_level(acc, model.priority)
         else
           acc

@@ -1,5 +1,5 @@
 defmodule Andy.BelieversSupervisor do
-  @moduledoc " Supervisor of dynamically started believer."
+  @moduledoc " Supervisor of dynamically started believers"
 
   @name __MODULE__
   use DynamicSupervisor
@@ -15,11 +15,13 @@ defmodule Andy.BelieversSupervisor do
     }
   end
 
+  @doc "Start the believers supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
     DynamicSupervisor.start_link(@name, [], name: @name)
   end
 
+  @doc "Start a believer on a generative model"
   def start_believer(model) do
     spec = { Believer, [model] }
     :ok = case DynamicSupervisor.start_child(@name, spec) do
@@ -33,7 +35,7 @@ defmodule Andy.BelieversSupervisor do
   @doc " A predictor grabs a believer"
   def grab_believer(model_name, predictor_name, is_or_not) do
     Logger.info("Grabbing believer of model #{model_name} for predictor #{predictor_name}")
-    model = GenerativeModels.model_named(model_name)
+    model = GenerativeModels.fetch!(model_name)
     believer_name = start_believer(model)
     Believer.grabbed_by_predictor(believer_name, predictor_name, is_or_not)
     # The name of the model is also the name of its believer
@@ -47,6 +49,7 @@ defmodule Andy.BelieversSupervisor do
     Believer.released_by_predictor(model_name, predictor_name)
   end
 
+  @doc "Terminate a believer"
   def terminate(believer_name) do
     pid = Process.whereis(believer_name)
     if pid == nil do

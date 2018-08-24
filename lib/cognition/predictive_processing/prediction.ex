@@ -1,6 +1,6 @@
 defmodule Andy.Prediction do
 
-  @moduledoc "A prediction by a generative model"
+  @moduledoc "A prediction that sets belief in a generative model"
 
   alias Andy.{ Fulfillment, Prediction }
   import Andy.Utils, only: [as_percept_about: 1]
@@ -54,6 +54,7 @@ defmodule Andy.Prediction do
     )
   end
 
+  @doc "Produce a string summarizing a prediction"
   def summary(prediction) do
     "#{prediction.precision} accuracy prediction that "
     <>
@@ -68,6 +69,7 @@ defmodule Andy.Prediction do
                                                      do: " #{inspect prediction.actuated} (actuated),", else: ""
   end
 
+  @doc "Generate the detector specs implicit in a prediction about perceptions"
   def detector_specs(prediction) do
     Enum.map(
       prediction.perceived,

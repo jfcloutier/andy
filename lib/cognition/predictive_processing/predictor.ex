@@ -1,9 +1,10 @@
 defmodule Andy.Predictor do
-  @moduledoc "Given a prediction, verify it and generate prediction errors if not verified"
-
+  @moduledoc """
+    Given a prediction about a model, validate it when needed, and react to it being validated or invalidated."
+  """
   require Logger
   alias Andy.{ PubSub, Prediction, Percept, Belief, Fulfill, Action, Intent,
-               Believer, BelieversSupervisor, Memory, PredictionFulfilled, PredictionError }
+               BelieversSupervisor, Memory, PredictionFulfilled, PredictionError }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.CognitionAgentBehaviour
@@ -17,7 +18,7 @@ defmodule Andy.Predictor do
     }
   end
 
-  @doc "Start the cognition agent responsible for believing in a generative model"
+  @doc "Start the cognition agent responsible for a prediction in a generative model"
   def start_link(prediction, believer_name, model_name) do
     predictor_name = predictor_name(prediction, model_name)
     case Agent.start_link(
@@ -50,34 +51,18 @@ defmodule Andy.Predictor do
     end
   end
 
+  @doc "Generate the predictor's name from the prediction it is responsible for and the model predicted"
   def predictor_name(prediction, model_name) do
     String.to_atom("#{prediction.name} in #{model_name}")
   end
 
-  @doc "Get the predictor's pid"
-  def pid(predictor_name) do
-    Agent.get(
-      predictor_name,
-      fn (_state) ->
-        self()
-      end
-    )
-  end
-
-  def has_name?(predictor_pid, name) do
-    Agent.get(
-      predictor_pid,
-      fn (%{ predictor_name: predictor_name } = _state) ->
-        predictor_name == name
-      end
-    )
-  end
-
+  @doc "Grab a believer and direct attention, if appropriate"
   def predict(predictor_name) do
     grab_believer(predictor_name)
     direct_attention(predictor_name)
   end
 
+  @doc "Release any grabbed believer and deactivate any current fulfillment, before being terminated"
   def about_to_be_terminated(predictor_name) do
     PubSub.notify_attention_off(predictor_name)
     Agent.update(
@@ -85,31 +70,7 @@ defmodule Andy.Predictor do
       fn (state) ->
         state
         |> release_believer_from_predictor()
-        |> deactivate_fulfillment()
-      end
-    )
-  end
-
-  @doc """
-  Return the current fulfillment index and the number of available fulfillments.
-  There are effectively none if the believer owning this predictor was grabbed
-  only by predictors asserting that the believer's model is not validated ({:not, model_name}).
-  In other words, we don't want to do something that fulfills a prediction that validates
-  a belief uniformly predicted to be false.
-  """
-  def fulfillment_data(predictor_name) do
-    Agent.get(
-      predictor_name,
-      fn (%{
-            believer_name: believer_name, # the believer making the prediction managed by this predictor
-            fulfillment_index: fulfillment_index,
-            prediction: prediction
-          } = _state) ->
-        if Believer.predicted_to_be_validated?(believer_name) do
-          { fulfillment_index, Enum.count(prediction.fulfillments) }
-        else
-          { nil, 0 }
-        end
+        |> deactivate_current_fulfillment()
       end
     )
   end
@@ -139,7 +100,6 @@ defmodule Andy.Predictor do
       state
     end
   end
-
 
   def handle_event(
         { :belief_memorized, %Belief{ } = belief },
@@ -172,7 +132,7 @@ defmodule Andy.Predictor do
     # It might instantiate a temporary model believer for a fulfillment action
     if predictor_name == fulfill_predictor_name do
       if new_fulfillment_index != current_fulfillment_index do
-        updated_state = deactivate_fulfillment(state)
+        updated_state = deactivate_current_fulfillment(state)
         activate_fulfillment(new_fulfillment_index, updated_state, :first_time)
       else
         activate_fulfillment(new_fulfillment_index, state, :repeated)
@@ -210,6 +170,7 @@ defmodule Andy.Predictor do
 
   #### Private
 
+  # Grab a believer if belief (or non-belief) in a model is what is being predicted
   defp grab_believer(predictor_name) do
     Agent.update(
       predictor_name,
@@ -225,6 +186,7 @@ defmodule Andy.Predictor do
     )
   end
 
+  # Release any believer grabbed by the predictor
   defp release_believer_from_predictor(
          %{
            believer_name: believer_name,
@@ -243,12 +205,14 @@ defmodule Andy.Predictor do
     end
   end
 
+  # Direct attention by detectors to the predicted perceptions, if any
   defp direct_attention(predictor_name) do
     { detector_specs_list, precision } = required_detection(predictor_name)
     detector_specs_list
     |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, precision)))
   end
 
+  # Get the specs of detectors which attention is required to make the predictor's prediction
   defp required_detection(predictor_name) do
     Agent.get(
       predictor_name,
@@ -258,6 +222,7 @@ defmodule Andy.Predictor do
     )
   end
 
+  # Is a percept relevant to the predictor's prediction?
   defp percept_relevant?(
          %Percept{ about: percept_about },
          %Prediction{ perceived: perceived_specs } = _prediction
@@ -270,6 +235,7 @@ defmodule Andy.Predictor do
     )
   end
 
+  # Is an actuated intent relevant to the predictor's prediction?
   defp intent_relevant?(
          %Intent{ about: about },
          %Prediction{ actuated: actuated_specs } = _prediction
@@ -282,13 +248,14 @@ defmodule Andy.Predictor do
     )
   end
 
-  defp belief_relevant?(
+   defp belief_relevant?(
          _belief,
          %Prediction{ believed: nil } = _prediction
        ) do
     false
   end
 
+  # Is a belief in a model relevant to the predictor's prediction?
   defp belief_relevant?(
          %Belief{ model_name: model_name },
          %Prediction{ believed: { _is_or_not, believed_model_name } = _prediction }
@@ -296,6 +263,10 @@ defmodule Andy.Predictor do
     model_name == believed_model_name
   end
 
+  # Review the predictor's prediction (is it now valid, invalid?) and react accordingly
+  # by raising a predicton error or a prediction fulfilled.
+  # If the prediction is fulfilled, deactivate the current fulfillment, if any,
+  # and execute any post-fulfillment actions
   defp review_prediction(
          %{
            prediction: prediction,
@@ -312,7 +283,7 @@ defmodule Andy.Predictor do
           prediction_fulfilled(fulfilled_state)
         )
         execute_when_fulfilled(prediction.when_fulfilled)
-        deactivate_fulfillment(fulfilled_state)
+        deactivate_current_fulfillment(fulfilled_state)
       else
         fulfilled_state
       end
@@ -324,6 +295,7 @@ defmodule Andy.Predictor do
     end
   end
 
+  # Is the prediction fulfilled?
   defp prediction_fulfilled?(prediction, precision) do
     believed_as_predicted?(prediction)
     and perceived_as_predicted?(prediction, precision)
@@ -361,6 +333,7 @@ defmodule Andy.Predictor do
     true
   end
 
+  # Whether or not the predicted perceptions are verified with a given precision.
   defp perceived_as_predicted?(%{ perceived: perceived_list } = _prediction, precision) do
     probability = Enum.reduce(
       perceived_list,
@@ -382,6 +355,7 @@ defmodule Andy.Predictor do
     true
   end
 
+  # Whether or not the predicted actuations are verified with a given precision.
   defp actuated_as_predicted?(%{ actuated: actuated_list } = _prediction, precision) do
     probability = Enum.reduce(
       actuated_list,
@@ -399,6 +373,7 @@ defmodule Andy.Predictor do
     actuated_as_predicted?
   end
 
+  # Calculate the probability that the values of a kind of percepts within a given time period add up to a target value
   defp probability_of_perceived({ percept_about, { :sum, target_sum }, time_period } = _perceived) do
     percepts = Memory.recall_percepts_since(percept_about, time_period)
     actual_sum = Enum.reduce(
@@ -411,6 +386,7 @@ defmodule Andy.Predictor do
     if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
   end
 
+  # Calculate the probability that the values of a kind of percepts within a given time period add up to a target value
   defp probability_of_perceived({ percept_about, { :sum, attribute, target_sum }, time_period } = _perceived) do
     percepts = Memory.recall_percepts_since(percept_about, time_period)
     actual_sum = Enum.reduce(
@@ -423,6 +399,7 @@ defmodule Andy.Predictor do
     if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
   end
 
+  # Calculate the probability that percepts a kind of percepts within a given time period validate a predicate
   defp probability_of_perceived({ percept_about, predicate, time_period } = _perceived) do
     percepts = Memory.recall_percepts_since(percept_about, time_period)
     percepts_count = Enum.count(percepts)
@@ -433,6 +410,7 @@ defmodule Andy.Predictor do
     if percepts_count == 0, do: 0, else: fitting_count / percepts_count
   end
 
+  # Calculate the probability that the values of a kind of actuated intents within a given time period add up to a target value
   defp probability_of_actuated({ intent_about, { :sum, target_sum }, time_period } = _actuated) do
     intents = Memory.recall_intents_since(intent_about, time_period)
     actual_sum = Enum.reduce(
@@ -445,6 +423,7 @@ defmodule Andy.Predictor do
     if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
   end
 
+  # Calculate the probability that the values of a kind of actuated intents within a given time period add up to a target value
   defp probability_of_actuated({ intent_about, { :sum, attribute, target_sum }, time_period } = _actuated) do
     intents = Memory.recall_intents_since(intent_about, time_period)
     actual_sum = Enum.reduce(
@@ -457,12 +436,14 @@ defmodule Andy.Predictor do
     if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
   end
 
+  # Calculate the probability that actuated intents of a certain kind within a given time number up to target amount
   defp probability_of_actuated({ intent_about, { :times, target_number }, time_period } = _actuated) do
     actual_number = Memory.recall_intents_since(intent_about, time_period)
                     |> Enum.count()
     if target_number == 0, do: 1.0, else: max(1.0, actual_number / target_number)
   end
 
+  # Calculate the probability that percepts a kind of actuated intents within a given time period validate a predicate
   defp probability_of_actuated({ intent_about, predicate, time_period } = _actuated) do
     intents = Memory.recall_intents_since(intent_about, time_period)
     fitting_intents = Enum.filter(intents, &(apply_predicate(predicate, &1, intents)))
@@ -537,6 +518,7 @@ defmodule Andy.Predictor do
     percept.value <= average
   end
 
+  # Make a prediction error from the state of the predictor
   defp prediction_error(state) do
     PredictionError.new(
       predictor_name: state.predictor_name,
@@ -547,6 +529,7 @@ defmodule Andy.Predictor do
     )
   end
 
+  # Make a prediction fulfilled from the state of the predictor
   defp prediction_fulfilled(state) do
     PredictionFulfilled.new(
       predictor_name: state.predictor_name,
@@ -557,7 +540,7 @@ defmodule Andy.Predictor do
     )
   end
 
-  defp deactivate_fulfillment(
+  defp deactivate_current_fulfillment(
          %{
            fulfillment_index: nil
          } = state
@@ -565,7 +548,8 @@ defmodule Andy.Predictor do
     state
   end
 
-  defp deactivate_fulfillment(
+  # Deactivate the current fulfillment
+  defp deactivate_current_fulfillment(
          %{
            fulfillment_index: fulfillment_index,
            prediction: prediction,
@@ -595,6 +579,7 @@ defmodule Andy.Predictor do
     %{ state | fulfillment_index: nil }
   end
 
+  # Activate the fulfillment option at the given index from a list of fulfillment options
   defp activate_fulfillment(
          fulfillment_index,
          %{
@@ -619,11 +604,13 @@ defmodule Andy.Predictor do
     :ok
   end
 
+  # Execute the actions for when the prediction is validated
   defp execute_when_fulfilled(actions) do
     Logger.info("Executing when-fulfilled actions")
     Enum.each(actions, &(Action.execute(&1.())))
   end
 
+  # Calculate a new (effective) precision when reduce by a given model priority
   defp reduce_precision_by(precision, priority) do
     case priority do
       :none ->

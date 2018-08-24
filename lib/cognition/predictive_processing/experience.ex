@@ -1,7 +1,7 @@
 defmodule Andy.Experience do
   @moduledoc """
-  Responsible for learning which prediction fulfillments work best
-  and trying the better ones more often.
+  Responsible for learning which prediction fulfillments work best for each predictor
+  and having predictors try the better ones more often than not.
   """
 
   require Logger
@@ -21,6 +21,7 @@ defmodule Andy.Experience do
     }
   end
 
+  @doc "Start the experience agent"
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn ->
@@ -67,6 +68,8 @@ defmodule Andy.Experience do
 
   ### PRIVATE
 
+  # Update the fulfillment stats of a predictor given a prediction error generated,
+  # possibly when a fulfillment option is active
   defp update_fulfillment_stats(
          %PredictionError{
            predictor_name: predictor_name,
@@ -84,6 +87,8 @@ defmodule Andy.Experience do
     )
   end
 
+  # Update the fulfillment stats of a predictor given a prediction fulfillment generated,
+  # possibly when a fulfillment option is active
   defp update_fulfillment_stats(
          %PredictionFulfilled{
            predictor_name: predictor_name,
@@ -101,6 +106,7 @@ defmodule Andy.Experience do
     )
   end
 
+  # Learn from the fulfillment success or failure of a predictor by updating success/failure stats
   defp learn_from_success_or_failure(
          predictor_name,
          fulfillment_index,
@@ -129,6 +135,7 @@ defmodule Andy.Experience do
     predictor_stats
   end
 
+  # Update success/failure stats
   defp capture_success_or_failure(predictor_stats, fulfillment_index, success_or_failure) do
     stats = Enum.at(predictor_stats, fulfillment_index)
     List.replace_at(predictor_stats, fulfillment_index, increment(stats, success_or_failure))
@@ -142,8 +149,8 @@ defmodule Andy.Experience do
     { successes, failures + 1 }
   end
 
-  # Returns a number between 1 and the number of alternative fulfillments a prediction has (inclusive),
-  # or returns 0 if no choice available
+  # Returns the index of a fulfillment option for a prediction, favoring the more successful ones,
+  # or returns nil if no option is available
   defp choose_fulfillment_index(
          %{ predictor_name: predictor_name } = _prediction_error,
          %{ fulfillment_stats: fulfillment_stats } = _state

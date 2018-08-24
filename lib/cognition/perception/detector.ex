@@ -37,6 +37,7 @@ defmodule Andy.Detector do
     { :ok, pid }
   end
 
+  @doc "Does the detector read the specified sensor?"
   def detects?(
         detector_pid,
         %{ class: class, port: port, type: type, sense: sense }
@@ -52,6 +53,7 @@ defmodule Andy.Detector do
     )
   end
 
+  @doc "Change the polling frequency (can be never) of the detector to match the priority (can be none)"
   def set_polling_priority(detector_pid, priority) do
     Agent.update(
       detector_pid,
@@ -104,7 +106,7 @@ defmodule Andy.Detector do
 
   ### Private
 
-  # TODO - Make device and sense-specific?
+  # Get the polling interval from the priority
   defp polling_interval_from_priority(_device, _sense, priority) do
     base_ttl = default_ttl(:percept) # one fifth of persistence in memory
     case priority do
@@ -115,6 +117,7 @@ defmodule Andy.Detector do
     end
   end
 
+  # Poll the sensor
   defp poll(detector_name) do
     Logger.info("Polling detector #{detector_name}")
     Agent.update(
@@ -150,6 +153,7 @@ defmodule Andy.Detector do
     :ok
   end
 
+  # Get the polling interval of a detector
   defp polling_interval(detector_name) do
     Agent.get(
       detector_name,
@@ -159,6 +163,7 @@ defmodule Andy.Detector do
     )
   end
 
+  # Read a sense from a sensor device
   defp read(device, sense) do
     case device.class do
       :sensor -> platform_dispatch(:sensor_read_sense, [device, sense])
@@ -166,6 +171,7 @@ defmodule Andy.Detector do
     end
   end
 
+  # get the sensitivity of a sensor's sense (determines whether two percept values are effectively the same)
   defp sensitivity(device, sense) do
     case device.class do
       :sensor -> platform_dispatch(:sensor_sensitivity, [device, sense])

@@ -15,6 +15,7 @@ defmodule Andy.PredictorsSupervisor do
     }
   end
 
+  @doc "Start the predictors supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
     DynamicSupervisor.start_link(@name, [], name: @name)

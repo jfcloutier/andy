@@ -1,6 +1,6 @@
 defmodule Andy.PredictionError do
 
-  @moduledoc "A prediction error"
+  @moduledoc "A prediction error reported by a predictor possibly attempting a fulfimmnet option"
 
   alias __MODULE__
 

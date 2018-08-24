@@ -50,12 +50,14 @@ defmodule Andy.Action do
   end
 
 
+  @doc "Execute for the first time an action produced by executing an action-generating function"
   def execute_action(action_generator, :first_time) do
     action = action_generator.()
     Logger.info("Executing action #{inspect action} for the first time")
     execute(action)
   end
 
+  @doc "Execute again an action produced by executing an action-generating function, if the action is repeatable"
   def execute_action(action_generator, :repeated) do
     action = action_generator.()
     if not action.once?  do
@@ -67,6 +69,7 @@ defmodule Andy.Action do
     end
   end
 
+  @doc "Execute an action by publishing the intent it defines"
   def execute(action) do
     PubSub.notify_intended(
       Intent.new(

@@ -1,5 +1,5 @@
 defmodule Andy.PredictionFulfilled do
-  @moduledoc "Prediction fulfilled event payload"
+  @moduledoc "Prediction fulfilled reported by a predictor possibly attempting a fulfimmnet option"
 
   alias __MODULE__
 

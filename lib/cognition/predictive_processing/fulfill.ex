@@ -1,6 +1,6 @@
 defmodule Andy.Fulfill do
 
-  @moduledoc "Fullfilment to attempt"
+  @moduledoc "A fullfilment option to attempt by a predictor"
 
   import Andy.Utils, only: [time_secs: 0]
 

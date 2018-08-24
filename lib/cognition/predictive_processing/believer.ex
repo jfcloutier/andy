@@ -1,6 +1,6 @@
 defmodule Andy.Believer do
 
-  @moduledoc "Given a generative model, updates belief in it upon prediction errors."
+  @moduledoc "Track belief in a generative model from prediction errors and fulfillments."
 
   require Logger
   alias Andy.{ PubSub, Belief, Predictor, BelieversSupervisor, PredictorsSupervisor }
@@ -47,32 +47,7 @@ defmodule Andy.Believer do
     end
   end
 
-  @doc "Get the name of a believer given it's process id"
-  def name(believer_pid) do
-    model_name(believer_pid)
-  end
-
-  @doc "Get the name of a believer's model given it's process id"
-  def model_name(believer_name) do
-    Agent.get(
-      believer_name,
-      fn (%{ model: generative_model }) ->
-        generative_model.name
-      end
-    )
-  end
-
-  @doc "Get the believer's pid"
-  def pid(believer_name) do
-    Agent.get(
-      believer_name,
-      fn (_state) ->
-        self()
-      end
-    )
-  end
-
-  @doc "A believer was pressed into duty by a predictor predicting belief validated or not"
+  @doc "A believer was pressed into duty by a predictor predicting that a belief is validated or not"
   def grabbed_by_predictor(believer_name, predictor_name, is_or_not) do
     Agent.update(
       believer_name,
@@ -112,7 +87,7 @@ defmodule Andy.Believer do
     )
   end
 
-  @doc "Start a predictor for each prediction in the model"
+  @doc "Start a predictor for each prediction about the model"
   def start_predictors(believer_name) do
     Agent.update(
       believer_name,
@@ -135,7 +110,7 @@ defmodule Andy.Believer do
     )
   end
 
-  @doc "Is this believer only grabbed by predictors asserting the believer to be validated?"
+  @doc "Is this believer only grabbed by predictors positively asserting the belief?"
   def predicted_to_be_validated?(believer_name) do
     Agent.get(
       believer_name,
@@ -181,10 +156,12 @@ defmodule Andy.Believer do
 
   # PRIVATE
 
+  # Are all predictions from the model been validated?
   defp all_predictions_validated?(validations) do
     Enum.all?(validations, fn ({ _, value }) -> value == true end)
   end
 
+  # Terminate all the predictors of a believer
   defp terminate_predictors(believer_name) do
     Agent.update(
       believer_name,
@@ -198,12 +175,14 @@ defmodule Andy.Believer do
     )
   end
 
+  # Process a prediction error about the believer's model
   defp process_prediction_error(prediction_error, %{ validations: validations } = state) do
     PubSub.notify_believed(Belief.new(state.model.name, false))
     updated_state = %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
     activate_or_terminate_dependent_predictors(updated_state)
   end
 
+  # Process the fulfimmnet of a prediction about the believer's model. Perhaps activate/terminate dependent predictors.
   defp process_prediction_fulfilled(
          prediction_fulfilled,
          %{
@@ -219,7 +198,7 @@ defmodule Andy.Believer do
     activate_or_terminate_dependent_predictors(updated_state)
   end
 
-  # Activate or terminate predictors that needed a prediction to first be true
+  # Activate or terminate predictors that need a prediction to first be true before they are activated
   defp activate_or_terminate_dependent_predictors(
          %{
            believer_name: believer_name,
@@ -272,6 +251,7 @@ defmodule Andy.Believer do
     )
   end
 
+  # Are all given predictions validated?
   defp predictions_validated?(prediction_names, validations) do
     Enum.all?(prediction_names, &(Map.get(validations, &1) == true))
   end
