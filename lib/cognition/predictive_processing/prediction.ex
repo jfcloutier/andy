@@ -12,10 +12,11 @@ defmodule Andy.Prediction do
                actuated: [{ atom, any, any }],
                believed: { :not | :is, atom } | nil,
                fulfill_when: [atom],
-               fulfillments: [Fulfillment.t]
+               fulfillments: [Fulfillment.t],
+               when_fulfilled: [any]
              }
 
-  @keys [:name, :perceived, :precision, :actuated, :believed, :fulfill_when, :fulfillments]
+  @keys [:name, :perceived, :precision, :actuated, :believed, :fulfill_when, :fulfillments, :when_fulfilled]
 
   # prediction name is unique within a generative model
   defstruct name: nil,
@@ -30,7 +31,9 @@ defmodule Andy.Prediction do
               # list of sibling predictions that must already be fulfilled for this one to attempt fulfillment
             fulfill_when: [],
               # how much the precision of lower priority predictions are reduced
-            fulfillments: []
+            fulfillments: [],
+              # actions to execute when becoming fulfilled
+            when_fulfilled: []
 
   def new(keywords) do
     Enum.reduce(

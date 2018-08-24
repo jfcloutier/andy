@@ -21,24 +21,27 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [
-              { :actions, [say_once("I am scared!")] }
-            ]
+              { :actions, [say_once("I am scared!"), turn_led(:red, :on)] }
+            ],
+            when_fulfilled: [say_once("I am ok now"), turn_led(:red, :off)]
           ),
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :medium,
             fulfillments: [
-              { :actions, [say_once("I am hungry!")] }
-            ]
+              { :actions, [say_once("I am hungry!"), turn_led(:orange, :on)] }
+            ],
+            when_fulfilled: [turn_led(:orange, :off)]
           ),
           prediction(
             name: :puppy_is_free,
             believed: { :is, :free },
             precision: :low,
             fulfillments: [
-              { :actions, [say_once("Freedom!")] }
-            ]
+              { :actions, [say_once("Freedom!"), turn_led(:all, :off)] }
+            ],
+            when_fulfilled: [turn_led(:green, :on)]
           )
         ],
         # Let activated sub-models dictate priority
@@ -444,6 +447,21 @@ defmodule Andy.Puppy.Modeling do
     fn ->
       Action.new(
         intent_name: :eat
+      )
+    end
+  end
+
+  defp turn_led(color, on_or_off) do
+    intent_name = case color do
+      :green -> :green_lights
+      :orange -> :orange_lights
+      :red -> :red_lights
+      :all -> :all_lights
+    end
+    fn ->
+      Action.new(
+        intent_name: intent_name,
+        intent_value: on_or_off
       )
     end
   end

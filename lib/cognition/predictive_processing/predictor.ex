@@ -98,7 +98,7 @@ defmodule Andy.Predictor do
   a belief uniformly predicted to be false.
   """
   def fulfillment_data(predictor_name) do
-     Agent.get(
+    Agent.get(
       predictor_name,
       fn (%{
             believer_name: believer_name, # the believer making the prediction managed by this predictor
@@ -112,7 +112,7 @@ defmodule Andy.Predictor do
         end
       end
     )
-   end
+  end
 
   ### Cognition Agent Behaviour
 
@@ -311,6 +311,7 @@ defmodule Andy.Predictor do
         PubSub.notify_prediction_fulfilled(
           prediction_fulfilled(fulfilled_state)
         )
+        execute_when_fulfilled(prediction.when_fulfilled)
         deactivate_fulfillment(fulfilled_state)
       else
         fulfilled_state
@@ -612,6 +613,15 @@ defmodule Andy.Predictor do
       Enum.each(fulfillment.actions, &(Action.execute_action(&1, first_time_or_repeated)))
     end
     %{ state | fulfillment_index: fulfillment_index }
+  end
+
+  defp execute_when_fulfilled([]) do
+    :ok
+  end
+
+  defp execute_when_fulfilled(actions) do
+    Logger.info("Executing when-fulfilled actions")
+    Enum.each(actions, &(Action.execute(&1.())))
   end
 
   defp reduce_precision_by(precision, priority) do
