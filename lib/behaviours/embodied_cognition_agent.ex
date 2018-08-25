@@ -1,4 +1,4 @@
-defmodule Andy.CognitionAgentBehaviour do
+defmodule Andy.EmbodiedCognitionAgent do
 
   @type state :: any()
   @type event :: any()

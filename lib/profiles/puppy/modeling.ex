@@ -12,7 +12,7 @@ defmodule Andy.Puppy.Modeling do
 
       generative_model(
         name: :thriving,
-        description: "The puppy is alive and well",
+        description: "The puppy is safe, has eaten recently, and can move about",
         predictions: [
           # safe, sated and free are sinling models
           prediction(
@@ -45,7 +45,7 @@ defmodule Andy.Puppy.Modeling do
           )
         ],
         # Let activated sub-models dictate priority
-        priority: nil,
+        priority: :high,
         hyper_prior?: true
       ),
 
@@ -82,7 +82,7 @@ defmodule Andy.Puppy.Modeling do
             ]
           )
         ],
-        # Whereas the priorities for :free and :stated would be :medium
+        # Whereas the priorities for :free and :sated would be :medium
         priority: :high
       ),
 
@@ -126,7 +126,7 @@ defmodule Andy.Puppy.Modeling do
         description: "The puppy bumped into something in the dark",
         predictions: [
           prediction(
-            name: :puppy_touched_in_dark,
+            name: :puppy_touched_in_low_light,
             perceived: [
               { { :sensor, :any, :touch, :touch }, { :eq, :touched }, :now },
               { { :sensor, :any, :color, :ambient }, { :lt, 10 }, :now }

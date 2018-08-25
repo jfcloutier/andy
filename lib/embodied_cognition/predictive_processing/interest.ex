@@ -11,7 +11,7 @@ defmodule Andy.Interest do
 
   @name __MODULE__
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec(_) do

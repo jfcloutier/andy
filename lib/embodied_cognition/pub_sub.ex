@@ -1,6 +1,6 @@
 defmodule Andy.PubSub do
   @moduledoc """
-  Enables embodied cognition agents to communicate via broadcasted events,
+  Enables embodied agents to communicate via broadcasted events,
   without knowing of one another
   """
 
@@ -198,7 +198,7 @@ defmodule Andy.PubSub do
 
   ### Private
 
-  # Dispatch the handling of an event to all subscribing cognitive agents
+  # Dispatch the handling of an event to all subscribing embodied cognition agents
   defp notify(event) do
     Logger.info("Notify #{inspect event}")
     spawn(

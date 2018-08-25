@@ -6,7 +6,7 @@ defmodule Andy.InternalClock do
   import Andy.Utils, only: [tick_interval: 0, now: 0, listen_to_events: 2]
   use Agent
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   @name __MODULE__
 

@@ -7,7 +7,7 @@ defmodule Andy.Memorizer do
 
   @name __MODULE__
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   ### API
 

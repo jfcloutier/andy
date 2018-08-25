@@ -6,7 +6,7 @@ defmodule Andy.Believer do
   alias Andy.{ PubSub, Belief, Predictor, BelieversSupervisor, PredictorsSupervisor }
   import Andy.Utils, only: [listen_to_events: 2]
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([generative_model]) do
@@ -17,7 +17,7 @@ defmodule Andy.Believer do
     }
   end
 
-  @doc "Start the cognition agent responsible for believing in a generative model"
+  @doc "Start the embodied cognition agent responsible for believing in a generative model"
   def start_link(generative_model) do
     believer_name = generative_model.name
     case Agent.start_link(
@@ -29,7 +29,7 @@ defmodule Andy.Believer do
                validations: %{ },
                # the names of the believer's predictors
                predictor_names: [],
-               # The names of the predictors that grabbed this believer and whether they are validated by the model being believed
+               # The names of the predictors that enlisted this believer and whether they are validated by the model being believed
                for_predictors: %{ }
                # %{predictor_name => :is | :not}
              }
@@ -47,8 +47,8 @@ defmodule Andy.Believer do
     end
   end
 
-  @doc "A believer was pressed into duty by a predictor predicting that a belief is validated or not"
-  def grabbed_by_predictor(believer_name, predictor_name, is_or_not) do
+  @doc "A believer is enlisted by a predictor predicting that a belief is validated or not"
+  def enlisted_by_predictor(believer_name, predictor_name, is_or_not) do
     Agent.update(
       believer_name,
       fn (%{ for_predictors: for_predictors } = state) ->
@@ -110,7 +110,7 @@ defmodule Andy.Believer do
     )
   end
 
-  @doc "Is this believer only grabbed by predictors positively asserting the belief?"
+  @doc "Is this believer only enlisted by predictors positively asserting the belief?"
   def predicted_to_be_validated?(believer_name) do
     Agent.get(
       believer_name,

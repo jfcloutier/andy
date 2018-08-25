@@ -5,7 +5,7 @@ defmodule Andy.Detector do
   alias Andy.{ Percept, PubSub, Device }
   import Andy.Utils, only: [platform_dispatch: 2, timeout: 0, default_ttl: 1, listen_to_events: 2]
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([device, sense]) do

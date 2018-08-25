@@ -32,12 +32,12 @@ defmodule Andy.BelieversSupervisor do
     model.name
   end
 
-  @doc " A predictor grabs a believer"
-  def grab_believer(model_name, predictor_name, is_or_not) do
-    Logger.info("Grabbing believer of model #{model_name} for predictor #{predictor_name}")
+  @doc " A predictor enlists a believer"
+  def enlist_believer(model_name, predictor_name, is_or_not) do
+    Logger.info("Enlisting believer of model #{model_name} for predictor #{predictor_name}")
     model = GenerativeModels.fetch!(model_name)
     believer_name = start_believer(model)
-    Believer.grabbed_by_predictor(believer_name, predictor_name, is_or_not)
+    Believer.enlisted_by_predictor(believer_name, predictor_name, is_or_not)
     # The name of the model is also the name of its believer
     model_name
   end

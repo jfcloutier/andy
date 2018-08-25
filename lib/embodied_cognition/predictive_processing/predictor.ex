@@ -7,7 +7,7 @@ defmodule Andy.Predictor do
                BelieversSupervisor, Memory, PredictionFulfilled, PredictionError }
   import Andy.Utils, only: [listen_to_events: 2]
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([prediction, believer_name, model_name]) do
@@ -18,7 +18,7 @@ defmodule Andy.Predictor do
     }
   end
 
-  @doc "Start the cognition agent responsible for a prediction in a generative model"
+  @doc "Start the embodied cognition agent responsible for a prediction in a generative model"
   def start_link(prediction, believer_name, model_name) do
     predictor_name = predictor_name(prediction, model_name)
     case Agent.start_link(
@@ -56,13 +56,13 @@ defmodule Andy.Predictor do
     String.to_atom("#{prediction.name} in #{model_name}")
   end
 
-  @doc "Grab a believer and direct attention, if appropriate"
+  @doc "Enlist a believer and direct attention, if appropriate"
   def predict(predictor_name) do
-    grab_believer(predictor_name)
+    enlist_believer(predictor_name)
     direct_attention(predictor_name)
   end
 
-  @doc "Release any grabbed believer and deactivate any current fulfillment, before being terminated"
+  @doc "Release any enlisted believer and deactivate any current fulfillment, before being terminated"
   def about_to_be_terminated(predictor_name) do
     PubSub.notify_attention_off(predictor_name)
     Agent.update(
@@ -170,8 +170,8 @@ defmodule Andy.Predictor do
 
   #### Private
 
-  # Grab a believer if belief (or non-belief) in a model is what is being predicted
-  defp grab_believer(predictor_name) do
+  # Enlist a believer if belief (or non-belief) in a model is what is being predicted
+  defp enlist_believer(predictor_name) do
     Agent.update(
       predictor_name,
       fn (%{ prediction: %{ believed: believed } = _prediction } = state) ->
@@ -179,14 +179,14 @@ defmodule Andy.Predictor do
           nil ->
             state
           { is_or_not, model_name } ->
-            believer_name = BelieversSupervisor.grab_believer(model_name, predictor_name, is_or_not)
+            believer_name = BelieversSupervisor.enlist_believer(model_name, predictor_name, is_or_not)
             %{ state | believer_name: believer_name }
         end
       end
     )
   end
 
-  # Release any believer grabbed by the predictor
+  # Release any believer enlisted by the predictor
   defp release_believer_from_predictor(
          %{
            believer_name: believer_name,
@@ -592,7 +592,7 @@ defmodule Andy.Predictor do
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
     if  fulfillment.model_name != nil do
       # Believing as a fulfillment is always affirmative
-      BelieversSupervisor.grab_believer(fulfillment.model_name, predictor_name, :is)
+      BelieversSupervisor.enlist_believer(fulfillment.model_name, predictor_name, :is)
     end
     if fulfillment.actions != nil do
       Enum.each(fulfillment.actions, &(Action.execute_action(&1, first_time_or_repeated)))

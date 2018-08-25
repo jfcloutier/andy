@@ -6,7 +6,7 @@ defmodule Andy.Actuator do
                Intent }
   import Andy.Utils
 
-  @behaviour Andy.CognitionAgentBehaviour
+  @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([actuator_config]) do
