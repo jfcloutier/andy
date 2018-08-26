@@ -6,23 +6,22 @@ defmodule Andy.GenerativeModel do
 
   @type t :: %__MODULE__{
                name: atom,
-               description: String.t,
+               hypothesis: String.t,
                predictions: [Prediction.t],
                priority: atom,
                hyper_prior?: boolean
              }
 
-  @keys [:name, :description, :predictions, :priority, :hyper_prior?]
+  @keys [:name, :hypothesis, :predictions, :priority, :hyper_prior?]
 
   defstruct name: nil,
-            description: nil,
-              # prioritized list of lists
-              # so that if higher priority prediction in error, other predictions are "less care"
-              # (i.e. lower precision is ok)
+              # statement of the hypothesis held by the model
+            hypothesis: nil,
+              # Predictions that, if all true enough, validate the model's hypothesis
             predictions: [],
-              # One of :total, :higher, :same
-              # How much prediction precisions are lowered for sibling models
-              # and their children models
+              # One of :high, :medium or :low
+              # How much the prediction precisions will be lowered for competing models
+              # when this model's hypothesis is challenged
             priority: :high,
               # Is it a "hyper prior" (a foundational/permanent model) or is it fulfillment-activated
             hyper_prior?: false

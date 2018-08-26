@@ -8,9 +8,9 @@ defmodule Andy.Utils do
 
   def listen_to_events(pid, module) do
     spawn(
-       fn ->
-         Process.sleep(1000)
-         Agent.cast(
+      fn ->
+        Process.sleep(1000)
+        Agent.cast(
           pid,
           fn (state) ->
             PubSub.register(module)
@@ -128,7 +128,8 @@ defmodule Andy.Utils do
   end
 
   def time_secs() do
-    System.os_time() |> div(1_000_000_000)
+    System.os_time()
+    |> div(1_000_000_000)
   end
 
   def choose_one(choices) do
@@ -136,18 +137,26 @@ defmodule Andy.Utils do
     choice
   end
 
-  def as_percept_about(percept_specs) do
-    if is_map(percept_specs) do
-      percept_specs
-    else
-      { class, port, type, sense } = percept_specs
-      %{
+  def as_percept_about(percept_specs) when is_map(percept_specs) do
+    percept_specs
+  end
+
+  def as_percept_about({ class, type, sense } = _percept_specs) do
+    %{
+      class: class,
+      port: :any,
+      type: type,
+      sense: sense
+    }
+  end
+
+  def as_percept_about({ class, port, type, sense } = _percept_specs) do
+       %{
         class: class,
         port: port,
         type: type,
         sense: sense
       }
-    end
   end
 
   ### PRIVATE

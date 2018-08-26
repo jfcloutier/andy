@@ -2,20 +2,19 @@
 
 Prediction Processing for Lego EV3 robots
 
-cp rel/vm.args.andy rel/vm.args; mix firmware # or cp rel/vm.args.marv rel/vm.args; mix firmware
-mix firmware.burn 
-or ./upload.sh 192.168.1.181 # SLOW
+    cp rel/vm.args.andy rel/vm.args 
+    MIX_TARGET=ev3 mix firmware         # or cp rel/vm.args.marv rel/vm.args; mix firmware
+    MIX_TARGET=ev3 mix firmware.burn    # or ./upload.sh 192.168.1.181 # SLOW
 
 Top open a console:
 
-Get on WiFi
-ssh 192.168.1.181
-Type ~. to close it
+    # Make sure PC connects via WiFi
+     ssh 192.168.1.181
+    # Type ~. to close it
 
 ISSUES:
 
-UART sensors detectors but not "mounted" under /sys/class/lego-sensor
-tacho-motors not detected when plugged into port A
+* tacho-motors not detected when plugged into port A
 
 To test on PC: 
 

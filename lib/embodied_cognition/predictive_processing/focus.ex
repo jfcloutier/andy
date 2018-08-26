@@ -1,4 +1,4 @@
-defmodule Andy.Interest do
+defmodule Andy.Focus do
   @moduledoc """
   Responsible for modulating the effective precisions of model predictors
   based on the relative priorities of the models with beliefs in need of being changed.
@@ -27,11 +27,14 @@ defmodule Andy.Interest do
     { :ok, pid } = Agent.start_link(
       fn ->
         %{
+          # Records for each focused-on model, the competing models, all by name, the model's priority
+          # (the strength of the decrease in prediction weighing in competing models)
+          # and the names of failed predictions that cause the focusing.
           # %{model_name => %{ competing_model_names: deprioritized_competing_model_names,
           #                    prediction_names: [...]
           #                    priority: model_priority }
           # }
-          focus: %{ }
+          precision_weighing: %{ }
         }
       end,
       [name: @name]
@@ -70,19 +73,19 @@ defmodule Andy.Interest do
 
   ### PRIVATE
 
-  # Focus interest on a model, by reducing the effective precisions the predictors of competing models
+  # Focus on a model, by reducing the effective precisions the predictors of competing models
   # (i.e. altering precision weighing), on behalf of a prediction that needs to be fulfilled about that model
-  defp focus_on(model_name, prediction_name, %{ focus: focus } = state) do
+  defp focus_on(model_name, prediction_name, %{ precision_weighing: precision_weighing } = state) do
     Logger.info("Focusing on model #{model_name} because belief prediction #{prediction_name} was invalidated")
-    case Map.get(focus, model_name) do
+    case Map.get(precision_weighing, model_name) do
       nil ->
         model = GenerativeModels.fetch!(model_name)
         competing_model_names = GenerativeModels.competing_model_names(model)
-        deprioritize_competing_models(competing_model_names, model, focus)
+        deprioritize_competing_models(competing_model_names, model, precision_weighing)
         %{
           state |
-          focus: Map.put(
-            focus,
+          precision_weighing: Map.put(
+            precision_weighing,
             model_name,
             %{
               competing_model_names: competing_model_names,
@@ -95,8 +98,8 @@ defmodule Andy.Interest do
         # competing models already deprioritized
         %{
           state |
-          focus: Map.put(
-            focus,
+          precision_weighing: Map.put(
+            precision_weighing,
             model_name,
             %{
               model_focus |
@@ -109,10 +112,10 @@ defmodule Andy.Interest do
     end
   end
 
-  # Lose interest in a model on behalf of a prediction about that model
-  defp focus_off(model_name, prediction_name, %{ focus: focus } = state) do
+  # Lose focus on a model on behalf of a prediction about that model
+  defp focus_off(model_name, prediction_name, %{ precision_weighing: precision_weighing } = state) do
     Logger.info("Maybe losing focus on model #{model_name} because belief prediction #{prediction_name} was validated")
-    case Map.get(focus, model_name) do
+    case Map.get(precision_weighing, model_name) do
       nil ->
       Logger.info("No reprioritization needed")
         # competing models already reprioritized
@@ -120,14 +123,14 @@ defmodule Andy.Interest do
       %{ prediction_names: prediction_names } = model_focus ->
         updated_prediction_names = List.delete(prediction_names, prediction_name)
         if Enum.count(updated_prediction_names) == 0 do
-          reprioritize_competing_models(model_name, focus)
-          %{ state | focus: Map.delete(focus, model_name) }
+          reprioritize_competing_models(model_name, precision_weighing)
+          %{ state | precision_weighing: Map.delete(precision_weighing, model_name) }
         else
           Logger.info("Focus on #{model_name} still on for predictions #{inspect updated_prediction_names}")
           %{
             state |
-            focus: Map.put(
-              focus,
+            precision_weighing: Map.put(
+              precision_weighing,
               model_name,
               %{
                 model_focus |
@@ -139,21 +142,21 @@ defmodule Andy.Interest do
     end
   end
 
-  # Lose interest in a model unconditionally
-  defp focus_off_unconditionally(model_name, %{ focus: focus } = state) do
+  # Lose focus on a model unconditionally
+  defp focus_off_unconditionally(model_name, %{ precision_weighing: precision_weighing } = state) do
     Logger.info("Losing any focus on #{model_name} because its believer was terminated")
-    case Map.get(focus, model_name) do
+    case Map.get(precision_weighing, model_name) do
       nil ->
         # competing models already reprioritized
         state
       _model_focus ->
-        reprioritize_competing_models(model_name, focus)
-        %{ state | focus: Map.delete(focus, model_name) }
+        reprioritize_competing_models(model_name, precision_weighing)
+        %{ state | precision_weighing: Map.delete(precision_weighing, model_name) }
     end
   end
 
   # Deprioritize competing models of lower priority that have not been deprioritizeded enough
-  defp deprioritize_competing_models(competing_model_names, model, focus) do
+  defp deprioritize_competing_models(competing_model_names, model, precision_weighing) do
     Logger.info("Looking at deprioritizing models #{inspect competing_model_names} that compete with #{model.name}")
     to_deprioritize = competing_model_names
                       # competing models from their names
@@ -161,7 +164,7 @@ defmodule Andy.Interest do
       # only keep competing models of lower priority
                       |> Enum.filter(&(Andy.higher_level?(model.priority, &1.priority)))
       # reject those already deprioritized enough
-                      |> Enum.reject(&(already_deprioritized_enough?(&1, model.priority, focus)))
+                      |> Enum.reject(&(already_deprioritized_enough?(&1, model.priority, precision_weighing)))
     # notify the deprioritization of applicable competing models
     Logger.info("Deprioritizing models #{inspect Enum.map(to_deprioritize, &(&1.name))} by #{model.priority}")
     Enum.each(
@@ -173,24 +176,24 @@ defmodule Andy.Interest do
   # Update the prioritization of competing models after a model that might have deprioritized them is deactivated
   defp reprioritize_competing_models(
          deactivated_model_name,
-         focus
+         precision_weighing
        ) do
-    %{ competing_model_names: competing_model_names } = Map.get(focus, deactivated_model_name)
+    %{ competing_model_names: competing_model_names } = Map.get(precision_weighing, deactivated_model_name)
     Logger.info("Reprioritizing #{inspect competing_model_names} that were competing with #{deactivated_model_name}")
     competing_model_names
     |> Enum.each(
          fn (competing_model_name) ->
            # can be :none
-           max_priority = find_highest_remaining_deprioritization(focus, competing_model_name, deactivated_model_name)
+           max_priority = find_highest_remaining_deprioritization(precision_weighing, competing_model_name, deactivated_model_name)
            PubSub.notify_model_deprioritized(competing_model_name, max_priority)
          end
        )
   end
 
   # Has the competing model already been deprioritized as much or more by another model?
-  defp already_deprioritized_enough?(competing_model_name, model_priority, focus) do
+  defp already_deprioritized_enough?(competing_model_name, model_priority, precision_weighing) do
     Enum.any?(
-      focus,
+      precision_weighing,
       fn ({
         _model_name,
         %{
@@ -207,9 +210,9 @@ defmodule Andy.Interest do
 
   # Find the highest deprioritization already carried out on the competing model by some model
   # other than the one being deactivated. Return :none if none
-  defp find_highest_remaining_deprioritization(focus, competing_model_name, deactivated_model_name) do
+  defp find_highest_remaining_deprioritization(precision_weighing, competing_model_name, deactivated_model_name) do
     Enum.reduce(
-      focus,
+      precision_weighing,
       :none,
       fn ({
         model_name,

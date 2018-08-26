@@ -13,8 +13,8 @@ defmodule Andy.Rover.Actuation do
         name: :locomotion,
         type: :motor,
         specs: [# to find and name motors from specs
-          %MotorSpec{ name: :left_wheel, port: "outA" },
-          %MotorSpec{ name: :right_wheel, port: "outB" }
+          %MotorSpec{ name: :left_wheel, port: "outB" },
+          %MotorSpec{ name: :right_wheel, port: "outC" }
         ],
         activations: [# scripted actions to be taken upon receiving intents
           %Activation{
@@ -43,7 +43,7 @@ defmodule Andy.Rover.Actuation do
         name: :manipulation,
         type: :motor,
         specs: [
-          %MotorSpec{ name: :mouth, port: "outC" }
+          %MotorSpec{ name: :mouth, port: "outD" }
         ],
         activations: [
           %Activation{

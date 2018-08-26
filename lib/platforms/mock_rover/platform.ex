@@ -74,9 +74,9 @@ defmodule Andy.MockRover.Platform do
 	end
 
 	def motors() do
-		[Tachomotor.new(:large, "outA"),
-		 Tachomotor.new(:large, "outB"),
-		 Tachomotor.new(:medium, "outC")]
+		[Tachomotor.new(:large, "outB"),
+		 Tachomotor.new(:large, "outC"),
+		 Tachomotor.new(:medium, "outD")]
 	end
 
 	def sound_players() do

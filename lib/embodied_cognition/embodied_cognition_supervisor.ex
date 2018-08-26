@@ -9,7 +9,7 @@ defmodule Andy.EmbodiedCognitionSupervisor do
   alias Andy.{ PubSub, Memory, Memorizer,
                DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, PredictorsSupervisor,
                InternalClock, PG2Communicator, Device,
-               RESTCommunicator, GenerativeModels, Attention, Experience, Interest }
+               RESTCommunicator, GenerativeModels, Attention, Experience, Focus }
 
   @name __MODULE__
 
@@ -35,7 +35,7 @@ defmodule Andy.EmbodiedCognitionSupervisor do
       PredictorsSupervisor,
       BelieversSupervisor,
       Experience,
-      Interest,
+      Focus,
       Attention
     ]
     opts = [strategy: :one_for_one]

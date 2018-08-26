@@ -83,6 +83,7 @@ defmodule Andy.Ev3.Brick do
     case System.cmd("mount", ["-t", "ext4", @mountable, "/mnt"]) do
       { _, 0 } ->
         File.write("/mnt/.initialized", "Done!")
+        File.rm("/mnt/system.log")
         :ok
       _ ->
         :error
