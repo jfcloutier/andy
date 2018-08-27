@@ -1,14 +1,14 @@
-defmodule Andy.Ev3.LegoSensor do
+defmodule Andy.BrickPi.LegoSensor do
 	@moduledoc "Lego sensor access."
 
 	require Logger
-	import Andy.Ev3.Sysfs
+	import Andy.BrickPi.Sysfs
 	alias Andy.Device
-	alias Andy.Ev3.{ColorSensor, TouchSensor, InfraredSensor, UltrasonicSensor, GyroSensor}
+	alias Andy.BrickPi.{ColorSensor, TouchSensor, InfraredSensor, UltrasonicSensor, GyroSensor}
 
 	@sys_path "/sys/class/lego-sensor"
   @prefix "sensor"
-	@driver_regex ~r/lego-ev3-(\w+)/i
+	@driver_regex ~r/lego-brickpi-(\w+)/i
 	@mode_switch_delay 100
 
 	@doc "Get the currently connected lego sensors"

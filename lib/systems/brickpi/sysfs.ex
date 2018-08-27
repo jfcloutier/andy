@@ -1,4 +1,4 @@
-defmodule Andy.Ev3.Sysfs do
+defmodule Andy.BrickPi.Sysfs do
   @moduledoc "Interface to sysfs device files"
 
   require Logger

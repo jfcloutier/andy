@@ -1,9 +1,9 @@
-defmodule Andy.Ev3.ColorSensor do
+defmodule Andy.BrickPi.ColorSensor do
 	@moduledoc "Color sensor"
 	@behaviour Andy.Sensing
 
-  import Andy.Ev3.Sysfs
-	alias Andy.Ev3.LegoSensor
+  import Andy.BrickPi.Sysfs
+	alias Andy.BrickPi.LegoSensor
 	require Logger
 
   @reflect "COL-REFLECT"

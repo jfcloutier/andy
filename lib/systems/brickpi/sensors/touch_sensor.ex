@@ -1,8 +1,8 @@
-defmodule Andy.Ev3.TouchSensor do
+defmodule Andy.BrickPi.TouchSensor do
 	@moduledoc "Touch sensor"
 	@behaviour Andy.Sensing
 
-  import Andy.Ev3.Sysfs
+  import Andy.BrickPi.Sysfs
 
 	### Sensing behaviour
 	

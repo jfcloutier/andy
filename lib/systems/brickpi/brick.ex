@@ -1,8 +1,8 @@
-defmodule Andy.Ev3.BrickPi do
+defmodule Andy.BrickPi.Brick do
 
   require Logger
   alias Andy.Device
-  alias Andy.Ev3.{ LegoSensor, LegoMotor }
+  alias Andy.BrickPi.{ LegoSensor, LegoMotor }
 
   @ports_path "/sys/class/lego-port"
 
@@ -40,7 +40,7 @@ defmodule Andy.Ev3.BrickPi do
     )
   end
 
-  @doc "Associate a BrickPi port with an Ev3 motor or sensor"
+  @doc "Associate a BrickPi port with an BrickPi motor or sensor"
   def set_brickpi_port(port, device_type) do
     if (port in [:in1, :in2, :in3, :in4] and LegoSensor.sensor?(device_type))
        or (port in [:outA, :outB, :outC, :outD] and LegoMotor.motor?(device_type)) do

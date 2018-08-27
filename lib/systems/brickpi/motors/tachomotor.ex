@@ -1,12 +1,12 @@
-defmodule Andy.Ev3.Tachomotor do
+defmodule Andy.BrickPi.Tachomotor do
 	@moduledoc "A tacho motor"
 
 	@behaviour Andy.Sensing
 	@behaviour Andy.Moving
 
 	alias Andy.Device
-	alias Andy.Ev3.LegoMotor
-  import Andy.Ev3.Sysfs
+	alias Andy.BrickPi.LegoMotor
+  import Andy.BrickPi.Sysfs
 
 	### Sensing
 

@@ -98,7 +98,7 @@ defmodule Andy.Application do
     end
   end
 
-  defp mem_stats("ev3") do
+  defp mem_stats("brickpi") do
     { res, 0 } = System.cmd("free", ["-m"])
     [_labels, mem, _buffers, swap | _] = String.split(res, "\n")
     [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)

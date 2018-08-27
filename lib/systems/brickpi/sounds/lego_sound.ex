@@ -1,4 +1,4 @@
-defmodule Andy.Ev3.LegoSound do
+defmodule Andy.BrickPi.LegoSound do
   @moduledoc "Lego sound playing"
 
   @behaviour Andy.Speaking
@@ -57,7 +57,7 @@ defmodule Andy.Ev3.LegoSound do
 
   defp init_sound_player(type, path) do
     %Device{
-      mod: Andy.Ev3,
+      mod: Andy.BrickPi,
       class: :sound,
       path: path,
       port: nil,

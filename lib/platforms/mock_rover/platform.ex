@@ -12,7 +12,7 @@ defmodule Andy.MockRover.Platform do
                          Tachomotor,
                          LED
     }
-  alias Andy.{ Device, SoundPlayer, Ev3, Rover }
+  alias Andy.{ Device, SoundPlayer, BrickPi, Rover }
   import Andy.Utils, only: [get_andy_env: 1]
   require Logger
 
@@ -20,14 +20,14 @@ defmodule Andy.MockRover.Platform do
 
   def start() do
     Logger.info("Platform mock_rover started")
-    if get_andy_env("ANDY_SYSTEM") == "ev3" do
-      Ev3.BrickPi.start()
+    if get_andy_env("ANDY_SYSTEM") == "brickpi" do
+      BrickPi.Brick.start()
     end
   end
 
   def ready?() do
-    if get_andy_env("ANDY_SYSTEM") == "ev3" do
-      Ev3.BrickPi.ready?()
+    if get_andy_env("ANDY_SYSTEM") == "brickpi" do
+      BrickPi.Brick.ready?()
     else
       true
     end

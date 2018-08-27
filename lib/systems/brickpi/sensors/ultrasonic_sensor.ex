@@ -1,9 +1,9 @@
-defmodule Andy.Ev3.UltrasonicSensor do
+defmodule Andy.BrickPi.UltrasonicSensor do
   @moduledoc "Ultrasonic sensor"
   @behaviour Andy.Sensing
 
-  import Andy.Ev3.Sysfs
-  alias Andy.Ev3.LegoSensor
+  import Andy.BrickPi.Sysfs
+  alias Andy.BrickPi.LegoSensor
 
   @distance_cm "US-DIST-CM"
 

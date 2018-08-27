@@ -1,10 +1,10 @@
-defmodule Andy.Ev3.InfraredSensor do
+defmodule Andy.BrickPi.InfraredSensor do
 	@moduledoc "Infrared sensor"
 	@behaviour Andy.Sensing
 
 	import Andy.Utils
-	import Andy.Ev3.Sysfs
-	alias Andy.Ev3.LegoSensor
+	import Andy.BrickPi.Sysfs
+	alias Andy.BrickPi.LegoSensor
 	require Logger
 
 	@proximity "IR-PROX"

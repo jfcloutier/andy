@@ -1,13 +1,13 @@
-defmodule Andy.Ev3.LegoMotor do
+defmodule Andy.BrickPi.LegoMotor do
 	@moduledoc "Lego motors access"
 
   alias Andy.Device
-	import Andy.Ev3.Sysfs
+	import Andy.BrickPi.Sysfs
 	require Logger
 
 	@sys_path "/sys/class/tacho-motor"
   @prefix "motor" 
-  @driver_regex ~r/lego-ev3-(\w)-motor/i
+  @driver_regex ~r/lego-brickpi-(\w)-motor/i
 
   @doc "Is this type of device a motor?"
   def motor?(device_type) do
@@ -88,7 +88,7 @@ defmodule Andy.Ev3.LegoMotor do
 	end
 
 	defp module_for_type(_type) do
-		Andy.Ev3.Tachomotor
+		Andy.BrickPi.Tachomotor
 	end
 	
   defp init_motor(path) do

@@ -1,10 +1,10 @@
-defmodule Andy.Ev3.LegoLED do
+defmodule Andy.BrickPi.LegoLED do
 	@moduledoc "BrickPi3 LED access"
 
 	@behaviour Andy.Lighting
 	
 	require Logger
-	import Andy.Ev3.Sysfs
+	import Andy.BrickPi.Sysfs
 	alias Andy.Device
 	require Logger
 	
@@ -69,7 +69,7 @@ defmodule Andy.Ev3.LegoLED do
 	end
 
 	defp module_for_type(_type) do
-		Andy.Ev3.LegoLED
+		Andy.BrickPi.LegoLED
 	end
 
   defp init_brickpi_led(path) do

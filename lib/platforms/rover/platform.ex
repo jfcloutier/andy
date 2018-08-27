@@ -4,18 +4,18 @@ defmodule Andy.Rover.Platform do
 
 	@moduledoc "Module implementing smart thing platform_dispatch calls"
 
-	alias Andy.Ev3.{BrickPi, LegoSound, LegoSensor, LegoMotor, LegoLED, InfraredSensor}
+	alias Andy.BrickPi.{Brick, LegoSound, LegoSensor, LegoMotor, LegoLED, InfraredSensor}
 	require Logger
 	
 	### PlatformBehaviour
 
 	def start() do
 		Logger.info("Starting Rover platform")
-		BrickPi.start()
+		Brick.start()
 	end
 
 	def ready?() do
-		BrickPi.ready?()
+		Brick.ready?()
 	end
 
 	def ports_config() do
@@ -39,11 +39,11 @@ defmodule Andy.Rover.Platform do
   @doc "The device mode for the platform"
   def device_mode(device_type) do
     case device_type do
-      :infrared -> "ev3-uart"
-      :touch -> "ev3-analog"
-      :gyro -> "ev3-uart"
-      :color -> "ev3-uart"
-      :ultrasonic -> "ev3-uart"
+      :infrared -> "brickpi-uart"
+      :touch -> "brickpi-analog"
+      :gyro -> "brickpi-uart"
+      :color -> "brickpi-uart"
+      :ultrasonic -> "brickpi-uart"
       :large -> "tacho-motor"
       :medium -> "tacho-motor"
 			:led -> "led"
@@ -53,13 +53,13 @@ defmodule Andy.Rover.Platform do
   @doc "The device code for the platform"
   def device_code(device_type) do
     case device_type do
-      :infrared -> "lego-ev3-ir"
-      :touch -> "lego-ev3-touch"
-      :gyro -> "lego-ev3-gyro"
-      :color -> "lego-ev3-color"
-      :ultrasonic -> "lego-ev3-us"
-      :large -> "lego-ev3-l-motor"
-      :medium -> "lego-ev3-m-motor"
+      :infrared -> "lego-brickpi-ir"
+      :touch -> "lego-brickpi-touch"
+      :gyro -> "lego-brickpi-gyro"
+      :color -> "lego-brickpi-color"
+      :ultrasonic -> "lego-brickpi-us"
+      :large -> "lego-brickpi-l-motor"
+      :medium -> "lego-brickpi-m-motor"
     end
   end
 
