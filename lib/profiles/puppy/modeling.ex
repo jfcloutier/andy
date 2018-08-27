@@ -21,18 +21,18 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [
-              { :actions, [say_once("I am scared"), turn_led_once(:on)] }
+              { :actions, [say_once("I am scared"), turn_led_once(:off)] }
             ],
-            when_fulfilled: [say("I am ok now"), turn_led(:off)]
+            when_fulfilled: [say("I am ok now"), turn_led(:on)]
           ),
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :medium,
             fulfillments: [
-              { :actions, [say_once("I am hungry"), turn_led_once(:on)] }
+              { :actions, [say_once("I am hungry"), turn_led_once(:off)] }
             ],
-            when_fulfilled: [say("I am full"), turn_led(:off)]
+            when_fulfilled: [say("I am full"), turn_led(:on)]
           ),
           prediction(
             name: :puppy_is_free,

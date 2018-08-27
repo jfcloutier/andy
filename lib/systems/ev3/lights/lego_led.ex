@@ -16,7 +16,7 @@ defmodule Andy.Ev3.LegoLED do
 	def leds() do
     File.ls!(@sys_path)
     |> Enum.filter(&(Regex.match?(@brickpi_prefix, &1)))
-    |> Enum.map(&(init_brickpi_led("#{&1}", "#{@sys_path}/#{&1}")))
+    |> Enum.map(&(init_brickpi_led("#{@sys_path}/#{&1}")))
   end
 
   @doc "Find a led device by position and color, or nil"
@@ -72,7 +72,7 @@ defmodule Andy.Ev3.LegoLED do
 		Andy.Ev3.LegoLED
 	end
 
-  defp init_brickpi_led(dir_name, path) do
+  defp init_brickpi_led(path) do
     led = %Device{class: :led,
       path: path,
       port: nil,
