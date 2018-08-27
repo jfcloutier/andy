@@ -72,6 +72,10 @@ defmodule Andy do
     |> String.to_atom()
   end
 
+  def ports_config() do
+    platform_dispatch(:ports_config)
+  end
+
   def sensors() do
     platform_dispatch(:sensors)
   end
@@ -115,11 +119,11 @@ defmodule Andy do
   def in_probable_range?(probability, precision) do
     case precision  do
       :high ->
-        probability > 0.9
+        probability >= 0.9
       :medium ->
-        probability > 0.7
+        probability >= 0.7
       :low ->
-        probability > 0.5
+        probability >= 0.5
       :none ->
         true
     end

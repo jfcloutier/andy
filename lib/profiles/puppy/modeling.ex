@@ -21,27 +21,27 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [
-              { :actions, [say_once("I am scared"), turn_led(:red, :on)] }
+              { :actions, [say_once("I am scared"), turn_led_once(:on)] }
             ],
-            when_fulfilled: [say("I am ok now"), turn_led(:red, :off)]
+            when_fulfilled: [say("I am ok now"), turn_led(:off)]
           ),
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :medium,
             fulfillments: [
-              { :actions, [say_once("I am hungry"), turn_led(:orange, :on)] }
+              { :actions, [say_once("I am hungry"), turn_led_once(:on)] }
             ],
-            when_fulfilled: [say("I am full"), turn_led(:orange, :off)]
+            when_fulfilled: [say("I am full"), turn_led(:off)]
           ),
           prediction(
             name: :puppy_is_free,
             believed: { :is, :free },
             precision: :low,
             fulfillments: [
-              { :actions, [say_once("I'm stuck"), turn_led(:all, :off)] }
+              { :actions, [say_once("I'm stuck"), turn_led_once(:off)] }
             ],
-            when_fulfilled: [say("I'm free"), turn_led(:green, :on)]
+            when_fulfilled: [say("I'm free"), turn_led(:on)]
           )
         ],
         # Let activated sub-models dictate priority
@@ -133,7 +133,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_touched_in_low_light,
             perceived: [
-              { { :sensor, :touch, :touch }, { :eq, :touched }, :now },
+              { { :sensor, :touch, :touch }, { :eq, :pressed }, :now },
               { { :sensor, :color, :ambient }, { :lt, 10 }, :now }
             ],
             precision: :high,
@@ -277,7 +277,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_recently_touched,
-            perceived: [{ { :sensor, :touch, :touch }, { :eq, :touched }, :now }],
+            perceived: [{ { :sensor, :touch, :touch }, { :eq, :pressed }, :now }],
             precision: :high,
             # We never want to fulfill this prediction
             fulfillments: [],
@@ -467,16 +467,21 @@ defmodule Andy.Puppy.Modeling do
     end
   end
 
-  defp turn_led(color, on_or_off) do
-    intent_name = case color do
-      :green -> :green_lights
-      :orange -> :orange_lights
-      :red -> :red_lights
-      :all -> :all_lights
+  defp turn_led_once(on_or_off) do
+     fn ->
+      Action.new(
+        intent_name: :blue_lights,
+        intent_value: on_or_off,
+        once?: true
+      )
     end
+  end
+
+
+  defp turn_led(on_or_off) do
     fn ->
       Action.new(
-        intent_name: intent_name,
+        intent_name: :blue_lights,
         intent_value: on_or_off
       )
     end

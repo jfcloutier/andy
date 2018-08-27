@@ -45,6 +45,7 @@ defmodule Andy.Actuator do
   end
 
   def realize_intent(intent, %{ name: name, actuator_config: actuator_config } = state) do
+    Logger.info("Realizing intent #{inspect intent}")
     if check_freshness(name, intent) do
       actuator_config.activations
       |> Enum.filter(

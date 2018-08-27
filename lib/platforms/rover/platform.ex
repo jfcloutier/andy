@@ -4,22 +4,32 @@ defmodule Andy.Rover.Platform do
 
 	@moduledoc "Module implementing smart thing platform_dispatch calls"
 
-	alias Andy.Ev3.{Brick, Display, LegoSound, LegoSensor, LegoMotor, LegoLED, InfraredSensor}
+	alias Andy.Ev3.{BrickPi, LegoSound, LegoSensor, LegoMotor, LegoLED, InfraredSensor}
 	require Logger
 	
 	### PlatformBehaviour
 
 	def start() do
 		Logger.info("Starting Rover platform")
-		Brick.start()
+		BrickPi.start()
 	end
 
 	def ready?() do
-		Brick.ready?()
+		BrickPi.ready?()
 	end
 
+	def ports_config() do
+    [%{port: :in1, device: :touch},
+      %{port: :in2, device: :color},
+      %{port: :in3, device: :infrared},
+      %{port: :in4, device: :ultrasonic},
+      %{port: :outB, device: :large}, # left
+      %{port: :outC, device: :large}, #right
+      %{port: :outD, device: :medium}]
+  end
+
 	def display(words) do
-		Display.show_banner(words)
+		Logger.info("DISPLAY #{inspect words}")
 	end
 
 	def actuation_logic() do

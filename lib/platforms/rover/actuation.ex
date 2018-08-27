@@ -56,27 +56,13 @@ defmodule Andy.Rover.Actuation do
         name: :leds,
         type: :led,
         specs: [
-          %LEDSpec{ name: :lr, position: :left, color: :red },
-          %LEDSpec{ name: :lg, position: :left, color: :green },
-          %LEDSpec{ name: :rr, position: :right, color: :red },
-          %LEDSpec{ name: :rg, position: :right, color: :green },
+          %LEDSpec{ name: :lb, position: :left, color: :blue },
+          %LEDSpec{ name: :rb, position: :right, color: :blue }
         ],
         activations: [
           %Activation{
-            intent: :green_lights,
-            script: green_lights()
-          },
-          %Activation{
-            intent: :red_lights,
-            script: red_lights()
-          },
-          %Activation{
-            intent: :orange_lights,
-            script: orange_lights()
-          },
-          %Activation{
-            intent: :all_lights, # orange is all lights
-            script: orange_lights()
+            intent: :blue_lights,
+            script: blue_lights()
           }
         ]
       ),
@@ -197,42 +183,15 @@ defmodule Andy.Rover.Actuation do
 
   # light
 
-  defp green_lights() do
+  defp blue_lights() do
     fn (intent, leds) ->
       value = case intent.value do
         :on -> 255
         :off -> 0
       end
-      Script.new(:green_lights, leds)
-      |> Script.add_step(:lr, :set_brightness, [0])
-      |> Script.add_step(:rr, :set_brightness, [0])
-      |> Script.add_step(:lg, :set_brightness, [value])
-      |> Script.add_step(:rg, :set_brightness, [value])
-    end
-  end
-
-  defp red_lights() do
-    fn (intent, leds) ->
-      value = case intent.value do
-        :on -> 255
-        :off -> 0
-      end
-      Script.new(:red_lights, leds)
-      |> Script.add_step(:lg, :set_brightness, [0])
-      |> Script.add_step(:rg, :set_brightness, [0])
-      |> Script.add_step(:lr, :set_brightness, [value])
-      |> Script.add_step(:rr, :set_brightness, [value])
-    end
-  end
-
-  defp orange_lights() do
-    fn (intent, leds) ->
-      value = case intent.value do
-        :on -> 255
-        :off -> 0
-      end
-      Script.new(:orange_lights, leds)
-      |> Script.add_step(:all, :set_brightness, [value])
+      Script.new(:blue_lights, leds)
+      |> Script.add_step(:lb, :set_brightness, [value])
+      |> Script.add_step(:rb, :set_brightness, [value])
     end
   end
 

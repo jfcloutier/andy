@@ -6,6 +6,9 @@ defmodule Andy.PlatformBehaviour do
 	@doc "Is the platform fully started?"
 	@callback ready?() :: boolean
 
+	@doc "The ports configuration"
+	@callback ports_config() :: []
+
 	@doc "Somehow display some words"
 	@callback display(words :: binary) :: any
 

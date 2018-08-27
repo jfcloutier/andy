@@ -30,4 +30,8 @@ defmodule Andy.Device do
     String.to_atom(path)
   end
 
+  def self_loading_on_brickpi?(device_type) do
+    device_type == :touch
+  end
+
 end

@@ -9,15 +9,15 @@ defmodule Andy.Ev3.LegoLED do
 	require Logger
 	
 	@sys_path "/sys/class/leds"
-	@ev3_prefix "ev3:"
-	@ev3_name_regex ~r/ev3:(.*):ev3dev/i
-  
+  @brickpi_prefix "brickpi:"
+  @brickpi_name_regex ~r/brickpi:(.*):ev3dev/i
 
-	@doc "Get the available LEDs"
+
+  @doc "Get the available LEDs"
 	def leds() do
-	 	File.ls!(@sys_path)
-		|> Enum.filter(&(String.starts_with?(&1, @ev3_prefix)))
-		|> Enum.map(&(init_ev3_led("#{&1}", "#{@sys_path}/#{&1}")))
+    File.ls!(@sys_path)
+    |> Enum.filter(&(String.starts_with?(&1, @brickpi_prefix)))
+    |> Enum.map(&(init_brickpi_led("#{&1}", "#{@sys_path}/#{&1}")))
   end
 
   @doc "Find a led device by position and color, or nil"
@@ -73,16 +73,19 @@ defmodule Andy.Ev3.LegoLED do
 		Andy.Ev3.LegoLED
 	end
 
-	defp init_ev3_led(dir_name, path) do
-		[_, type] = Regex.run(@ev3_name_regex, dir_name)
-		led = %Device{mod: module_for_type(type),
-									class: :led,
-									path: path,
-									port: nil,
-									type: type}
-		[_, color] = Regex.run(~r/\w+:(\w+)/, type)
-		[_, position] = Regex.run(~r/(\w+):\w+/, type)
-		%Device{led | props: %{position: String.to_atom(position), color: String.to_atom(color)}}
-	end
+  defp init_brickpi_led(dir_name, path) do
+    [_, type] = Regex.run(@brickpi_name_regex, dir_name)
+    led = %Device{class: :led,
+      path: path,
+      port: nil,
+      type: type}
+    [_, color] = Regex.run(~r/\w+:(\w+)/, type)
+    [_, pos] = Regex.run(~r/(\w+):\w+/, type)
+    position = case pos do
+      "led1" -> "left"
+      "led2" -> "right"
+    end
+    %Device{led | props: %{position: String.to_atom(position), color: String.to_atom(color)}}
+  end
 
 end

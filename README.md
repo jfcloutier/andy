@@ -10,6 +10,7 @@ Top open a console:
 
     # Make sure PC connects via WiFi
      ssh 192.168.1.181
+     iex > Andy.Application.shutdown # to shutdown
     # Type ~. to close it
 
 ISSUES:

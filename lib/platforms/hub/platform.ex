@@ -16,6 +16,10 @@ defmodule Andy.Hub.Platform do
 		true
 	end
 
+	def ports_config() do
+		[]
+  end
+
 	def display(words) do
 		Logger.info("DISPLAYING: #{words}")
 	end

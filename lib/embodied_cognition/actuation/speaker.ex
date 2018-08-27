@@ -21,7 +21,7 @@ defmodule Andy.Speaker do
 
   @doc "Speak out words with a given volume, speed and voice"
   def linux_speak(words, volume, speed, v) do
-    Agent.update(
+    Agent.cast(
       @name,
       fn (state) ->
         voice = v || platform_dispatch(:voice)
@@ -34,7 +34,7 @@ defmodule Andy.Speaker do
 
   @doc "Say words with a given volume, speed and voice"
   def ev3_speak(words, volume, speed, voice) do
-    Agent.update(
+    Agent.cast(
       @name,
       fn (state) ->
         :os.cmd('espeak -a #{volume} -s #{speed} -v #{voice} "#{words}"')
