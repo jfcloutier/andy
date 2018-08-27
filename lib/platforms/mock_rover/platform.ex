@@ -45,7 +45,7 @@ defmodule Andy.MockRover.Platform do
     Rover.Actuation.actuator_configs() # Use Rover's actuation
   end
 
-  def mode(_device_type) do
+  def device_mode(_device_type) do
     "mock"
   end
 
@@ -77,9 +77,9 @@ defmodule Andy.MockRover.Platform do
 
   def motors() do
     [
+      Tachomotor.new(:large, "outA"),
       Tachomotor.new(:large, "outB"),
-      Tachomotor.new(:large, "outC"),
-      Tachomotor.new(:medium, "outD")
+      Tachomotor.new(:medium, "outC")
     ]
   end
 
@@ -89,12 +89,7 @@ defmodule Andy.MockRover.Platform do
 
   def lights() do
     [
-      LED.new(:green, :left),
-      LED.new(:green, :right),
-      LED.new(:red, :left),
-      LED.new(:red, :right),
-      LED.new(:blue, :left),
-      LED.new(:blue, :right)
+      LED.new(:blue, :left)
     ]
   end
 

@@ -13,7 +13,7 @@ defmodule Andy.PlatformBehaviour do
 	@callback display(words :: binary) :: any
 
 	@doc "Translates a generic device type to the platform's device type"
-	@callback mode(device_type :: atom) :: binary
+	@callback device_mode(device_type :: atom) :: binary
 
 	@doc "Translates a generic device code to the platform's device code"
   @callback device_code(device_type :: atom) :: binary

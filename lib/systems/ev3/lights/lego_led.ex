@@ -1,5 +1,5 @@
 defmodule Andy.Ev3.LegoLED do
-	@moduledoc "Lego LED access"
+	@moduledoc "BrickPi3 LED access"
 
 	@behaviour Andy.Lighting
 	
@@ -9,14 +9,13 @@ defmodule Andy.Ev3.LegoLED do
 	require Logger
 	
 	@sys_path "/sys/class/leds"
-  @brickpi_prefix "brickpi:"
-  @brickpi_name_regex ~r/brickpi:(.*):ev3dev/i
+  @brickpi_prefix ~r/^led\d/
 
 
   @doc "Get the available LEDs"
 	def leds() do
     File.ls!(@sys_path)
-    |> Enum.filter(&(String.starts_with?(&1, @brickpi_prefix)))
+    |> Enum.filter(&(Regex.match?(@brickpi_prefix, &1)))
     |> Enum.map(&(init_brickpi_led("#{&1}", "#{@sys_path}/#{&1}")))
   end
 
@@ -74,18 +73,12 @@ defmodule Andy.Ev3.LegoLED do
 	end
 
   defp init_brickpi_led(dir_name, path) do
-    [_, type] = Regex.run(@brickpi_name_regex, dir_name)
     led = %Device{class: :led,
       path: path,
       port: nil,
-      type: type}
-    [_, color] = Regex.run(~r/\w+:(\w+)/, type)
-    [_, pos] = Regex.run(~r/(\w+):\w+/, type)
-    position = case pos do
-      "led1" -> "left"
-      "led2" -> "right"
-    end
-    %Device{led | props: %{position: String.to_atom(position), color: String.to_atom(color)}}
+      type: :led # TODO - ok?
+		}
+     %Device{led | props: %{position: :left, color: :blue}}
   end
 
 end

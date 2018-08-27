@@ -23,9 +23,9 @@ defmodule Andy.Rover.Platform do
       %{port: :in2, device: :color},
       %{port: :in3, device: :infrared},
       %{port: :in4, device: :ultrasonic},
-      %{port: :outB, device: :large}, # left
-      %{port: :outC, device: :large}, #right
-      %{port: :outD, device: :medium}]
+      %{port: :outA, device: :large}, # left
+      %{port: :outB, device: :large}, #right
+      %{port: :outC, device: :medium}] # mouth
   end
 
 	def display(words) do
@@ -36,7 +36,8 @@ defmodule Andy.Rover.Platform do
 		Andy.Rover.Actuation.actuator_configs()
 	end
 
-  def mode(device_type) do
+  @doc "The device mode for the platform"
+  def device_mode(device_type) do
     case device_type do
       :infrared -> "ev3-uart"
       :touch -> "ev3-analog"
@@ -45,9 +46,11 @@ defmodule Andy.Rover.Platform do
       :ultrasonic -> "ev3-uart"
       :large -> "tacho-motor"
       :medium -> "tacho-motor"
+			:led -> "led"
     end
   end
-  
+
+  @doc "The device code for the platform"
   def device_code(device_type) do
     case device_type do
       :infrared -> "lego-ev3-ir"

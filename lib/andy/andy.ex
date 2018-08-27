@@ -116,6 +116,14 @@ defmodule Andy do
     platform_dispatch(:senses_for_id_channel, [id_channel])
   end
 
+  def device_mode(device_type) do
+    platform_dispatch(:device_mode, [device_type])
+  end
+
+  def device_code(device_type) do
+    platform_dispatch(:device_code, [device_type])
+  end
+
   def in_probable_range?(probability, precision) do
     case precision  do
       :high ->

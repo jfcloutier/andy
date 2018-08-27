@@ -38,7 +38,7 @@ defmodule Andy.Hub.Platform do
 
 	# Everything else is N/A
 	
-	def mode(_device_type) do
+	def device_mode(_device_type) do
 		"hub"
   end
   

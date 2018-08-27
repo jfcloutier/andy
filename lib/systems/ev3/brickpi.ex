@@ -23,7 +23,7 @@ defmodule Andy.Ev3.BrickPi do
   defp redirect_logging() do
     Logger.add_backend { LoggerFileBackend, :error }
     Logger.configure_backend { LoggerFileBackend, :error },
-                             path: "andy.log",
+                             path: "brickpi.log",
                              level: :info
     #    Logger.remove_backend :console
 
@@ -45,13 +45,15 @@ defmodule Andy.Ev3.BrickPi do
     if (port in [:in1, :in2, :in3, :in4] and LegoSensor.sensor?(device_type))
        or (port in [:outA, :outB, :outC, :outD] and LegoMotor.motor?(device_type)) do
       port_path = "#{@ports_path}/port#{brickpi_port_number(port)}"
-      Logger.info("#{port_path}/mode <- #{Device.mode(device_type)}")
-      File.write!("#{port_path}/mode", Device.mode(device_type))
+      device_mode = Andy.device_mode(device_type)
+      device_code = Andy.device_code(device_type)
+      Logger.info("#{port_path}/mode <- #{device_mode}")
+      File.write!("#{port_path}/mode", device_mode)
       :timer.sleep(500)
       if not Device.self_loading_on_brickpi?(device_type) do
-        Logger.info("#{port_path}/set_device <- #{Device.device_code(device_type)}")
+        Logger.info("#{port_path}/set_device <- #{device_code}")
         :timer.sleep(500)
-        File.write!("#{port_path}/set_device", Device.device_code(device_type))
+        File.write!("#{port_path}/set_device", device_code)
       end
       :ok
     else

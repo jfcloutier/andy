@@ -13,8 +13,8 @@ defmodule Andy.Rover.Actuation do
         name: :locomotion,
         type: :motor,
         specs: [# to find and name motors from specs
-          %MotorSpec{ name: :left_wheel, port: "outB" },
-          %MotorSpec{ name: :right_wheel, port: "outC" }
+          %MotorSpec{ name: :left_wheel, port: "outA" },
+          %MotorSpec{ name: :right_wheel, port: "outB" }
         ],
         activations: [# scripted actions to be taken upon receiving intents
           %Activation{
@@ -43,7 +43,7 @@ defmodule Andy.Rover.Actuation do
         name: :manipulation,
         type: :motor,
         specs: [
-          %MotorSpec{ name: :mouth, port: "outD" }
+          %MotorSpec{ name: :mouth, port: "outC" }
         ],
         activations: [
           %Activation{
@@ -56,8 +56,7 @@ defmodule Andy.Rover.Actuation do
         name: :leds,
         type: :led,
         specs: [
-          %LEDSpec{ name: :lb, position: :left, color: :blue },
-          %LEDSpec{ name: :rb, position: :right, color: :blue }
+          %LEDSpec{ name: :lb, position: :left, color: :blue }
         ],
         activations: [
           %Activation{
@@ -191,7 +190,6 @@ defmodule Andy.Rover.Actuation do
       end
       Script.new(:blue_lights, leds)
       |> Script.add_step(:lb, :set_brightness, [value])
-      |> Script.add_step(:rb, :set_brightness, [value])
     end
   end
 
