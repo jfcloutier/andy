@@ -13,10 +13,21 @@ defmodule Andy.Prediction do
                believed: { :not | :is, atom } | nil,
                fulfill_when: [atom],
                fulfillments: [Fulfillment.t],
-               when_fulfilled: [any]
+               when_fulfilled: [any],
+               true_by_default?: boolean()
              }
 
-  @keys [:name, :perceived, :precision, :actuated, :believed, :fulfill_when, :fulfillments, :when_fulfilled]
+  @keys [
+    :name,
+    :perceived,
+    :precision,
+    :actuated,
+    :believed,
+    :fulfill_when,
+    :fulfillments,
+    :when_fulfilled,
+    :true_by_default?
+  ]
 
   # prediction name is unique within a generative model
   defstruct name: nil,
@@ -33,7 +44,9 @@ defmodule Andy.Prediction do
               # how much the precision of lower priority predictions are reduced
             fulfillments: [],
               # actions to execute when becoming fulfilled
-            when_fulfilled: []
+            when_fulfilled: [],
+              # whether a prediction is true until proven false
+            true_by_default?: true
 
   def new(keywords) do
     Enum.reduce(
@@ -76,6 +89,10 @@ defmodule Andy.Prediction do
       fn ({ detector_spec, _, _ }) -> detector_spec end
     )
     |> Enum.uniq()
+  end
+
+  def true_by_default?(%Prediction{ true_by_default?: true_by_default? } = _prediction) do
+    true_by_default?
   end
 
   ### PRIVATE

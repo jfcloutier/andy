@@ -3,7 +3,7 @@ defmodule Andy.Believer do
   @moduledoc "Track belief in a generative model from prediction errors and fulfillments."
 
   require Logger
-  alias Andy.{ PubSub, Belief, Predictor, BelieversSupervisor, PredictorsSupervisor }
+  alias Andy.{ PubSub, Belief, Prediction, Predictor, BelieversSupervisor, PredictorsSupervisor }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.EmbodiedCognitionAgent
@@ -102,7 +102,11 @@ defmodule Andy.Believer do
           model.predictions,
           %{ },
           fn (prediction, acc) ->
-            Map.put(acc, prediction.name, true)
+            Map.put(
+              acc,
+              prediction.name,
+              Prediction.true_by_default?(prediction)
+            )
           end
         )
         %{ state | predictor_names: predictor_names, validations: validations }

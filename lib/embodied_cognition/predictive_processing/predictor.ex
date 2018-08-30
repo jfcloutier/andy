@@ -62,7 +62,10 @@ defmodule Andy.Predictor do
     direct_attention(predictor_name)
   end
 
-  @doc "Release any enlisted believer and deactivate any current fulfillment, before being terminated"
+  @doc """
+   Release any enlisted believer and deactivate
+   any current fulfillment, before being terminated"
+  """
   def about_to_be_terminated(predictor_name) do
     PubSub.notify_attention_off(predictor_name)
     Agent.update(
@@ -248,7 +251,7 @@ defmodule Andy.Predictor do
     )
   end
 
-   defp belief_relevant?(
+  defp belief_relevant?(
          _belief,
          %Prediction{ believed: nil } = _prediction
        ) do
@@ -373,7 +376,7 @@ defmodule Andy.Predictor do
     actuated_as_predicted?
   end
 
-   # Make a prediction error from the state of the predictor
+  # Make a prediction error from the state of the predictor
   defp prediction_error(state) do
     PredictionError.new(
       predictor_name: state.predictor_name,

@@ -86,18 +86,17 @@ defmodule Andy.Puppy.Modeling do
             ]
           )
         ],
-        # Whereas the priorities for :free and :sated would be :medium
         priority: :high
       ),
 
-      # Action models
       # In a well-light area
+
       generative_model(
         name: :in_the_light,
         hypothesis: "The puppy is in a well-light area",
         predictions: [
           prediction(
-            name: :puppy_in_well_lit_area,
+            name: :puppy_in_high_ambient_light,
             perceived: [{ { :sensor, :color, :ambient }, { :gt, 50 }, { :past_secs, 3 } }],
             precision: :medium,
             fulfillments: [
@@ -107,13 +106,15 @@ defmodule Andy.Puppy.Modeling do
         ],
         priority: :medium
       ),
+
       # It's getting lighter
+
       generative_model(
         name: :getting_lighter,
         hypothesis: "The puppy is in a better-lit area",
         predictions: [
           prediction(
-            name: :puppy_in_better_lit_area,
+            name: :puppy_in_increasingly_lit_area,
             perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 2 } }],
             precision: :medium,
             fulfillments: [
@@ -125,6 +126,7 @@ defmodule Andy.Puppy.Modeling do
         ],
         priority: :medium
       ),
+
       # Recently got bumped while in the dark
       generative_model(
         name: :bumped_in_the_dark,
@@ -174,7 +176,8 @@ defmodule Andy.Puppy.Modeling do
             precision: :medium,
             fulfillments: [
               { :model, :feeding }
-            ]
+            ],
+            true_by_default?: false
           )
         ],
         priority: :medium
@@ -468,7 +471,7 @@ defmodule Andy.Puppy.Modeling do
   end
 
   defp turn_led_once(on_or_off) do
-     fn ->
+    fn ->
       Action.new(
         intent_name: :blue_lights,
         intent_value: on_or_off,
