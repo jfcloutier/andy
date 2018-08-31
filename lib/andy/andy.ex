@@ -5,6 +5,7 @@ defmodule Andy do
   import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
   @default_ttl 10_000
+  @brickpi_port_pattern ~r/spi0.1:(.+)/
 
   def platform() do
     platform_name = get_andy_env("ANDY_PLATFORM", "mock_rover")
@@ -77,19 +78,23 @@ defmodule Andy do
   end
 
   def translate_port(port_name) do
-    Logger.info("Translating #{port_name} in system #{system()}")
+    Logger.info("Translating #{port_name} in system #{inspect system()}")
     case system() do
       "brickpi" ->
-        [_, name] = Regex.run(~r/spi0.1:(.+)/, port_name)
-        case name do
-          "MA" -> "outA"
-          "MB" -> "outB"
-          "MC" -> "outC"
-          "MD" -> "outD"
-          "S1" -> "in1"
-          "S2" -> "in2"
-          "S3" -> "in3"
-          "S4" -> "in4"
+        case Regex.run(@brickpi_port_pattern, port_name) do
+          nil ->
+            port_name
+          [_, name] ->
+            case name do
+              "MA" -> "outA"
+              "MB" -> "outB"
+              "MC" -> "outC"
+              "MD" -> "outD"
+              "S1" -> "in1"
+              "S2" -> "in2"
+              "S3" -> "in3"
+              "S4" -> "in4"
+            end
         end
       true ->
         port_name
