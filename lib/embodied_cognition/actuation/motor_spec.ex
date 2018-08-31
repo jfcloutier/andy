@@ -6,7 +6,7 @@ defmodule Andy.MotorSpec do
 
 	@doc "Does a motor match a motor spec?"
 	def matches?(motor_spec, device) do
-		device.class == :motor and device.port == Andy.translate_port(motor_spec.port)
+		device.class == :motor and motor_spec.port == Andy.translate_port(device.port)
 	end
 	
 end

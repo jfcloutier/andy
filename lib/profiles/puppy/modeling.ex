@@ -21,27 +21,27 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [
-              { :actions, [say_once("I am scared"), turn_led_once(:off)] }
+              { :actions, [say_once("I am scared")] }
             ],
-            when_fulfilled: [say("I am ok now"), turn_led(:on)]
+            when_fulfilled: [say("I am ok now")]
           ),
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :medium,
             fulfillments: [
-              { :actions, [say_once("I am hungry"), turn_led_once(:off)] }
+              { :actions, [say_once("I am hungry")] }
             ],
-            when_fulfilled: [say("I am full"), turn_led(:on)]
+            when_fulfilled: [say("I am full")]
           ),
           prediction(
             name: :puppy_is_free,
             believed: { :is, :free },
             precision: :low,
             fulfillments: [
-              { :actions, [say_once("I'm stuck"), turn_led_once(:off)] }
+              { :actions, [say_once("I'm stuck")] }
             ],
-            when_fulfilled: [say("I'm free"), turn_led(:on)]
+            when_fulfilled: [say("I'm free")]
           )
         ],
         # Let activated sub-models dictate priority
