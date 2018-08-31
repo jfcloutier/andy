@@ -8,7 +8,7 @@ defmodule Andy.BrickPi.LegoSensor do
 
 	@sys_path "/sys/class/lego-sensor"
   @prefix "sensor"
-	@driver_regex ~r/lego-brickpi-(\w+)/i
+	@driver_regex ~r/lego-ev3-(\w+)/i
 	@mode_switch_delay 100
 
 	@doc "Get the currently connected lego sensors"

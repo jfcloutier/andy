@@ -100,7 +100,7 @@ defmodule Andy.Application do
 
   defp mem_stats("brickpi") do
     { res, 0 } = System.cmd("free", ["-m"])
-    [_labels, mem, _buffers, swap | _] = String.split(res, "\n")
+    [_labels, mem, swap | _] = String.split(res, "\n")
     [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
     [_, _swap_total, swap_used, swap_free] = String.split(swap)
     %{
