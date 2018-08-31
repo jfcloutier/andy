@@ -77,6 +77,7 @@ defmodule Andy do
   end
 
   def translate_port(port_name) do
+    Logger.info("Translating #{port_name} in system #{system()}")
     case system() do
       "brickpi" ->
         [_, name] = Regex.run(~r/spi0.1:(.+)/, port_name)
