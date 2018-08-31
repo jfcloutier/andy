@@ -76,6 +76,25 @@ defmodule Andy do
     platform_dispatch(:ports_config)
   end
 
+  def translate_port(port_name) do
+    case system() do
+      "brickpi" ->
+        [_, name] = Regex.run(~r/spi0.1:(.+)/, port_name)
+        case name do
+          "MA" -> "outA"
+          "MB" -> "outB"
+          "MC" -> "outC"
+          "MD" -> "outD"
+          "S1" -> "in1"
+          "S2" -> "in2"
+          "S3" -> "in3"
+          "S4" -> "in4"
+        end
+      true ->
+        port_name
+    end
+  end
+
   def sensors() do
     platform_dispatch(:sensors)
   end

@@ -95,6 +95,10 @@ defmodule Andy.Utils do
     end
   end
 
+  def system_dispatch(fn_name, args) do
+    apply(Andy.system(), fn_name, args)
+  end
+
   def platform_dispatch(fn_name) do
     platform_dispatch(fn_name, [])
   end
