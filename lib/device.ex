@@ -31,7 +31,7 @@ defmodule Andy.Device do
   end
 
   def self_loading_on_brickpi?(device_type) do
-    device_type == :touch
+    device_type in [:touch, :large, :medium]
   end
 
 end

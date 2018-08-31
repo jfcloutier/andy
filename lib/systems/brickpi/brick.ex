@@ -66,10 +66,10 @@ defmodule Andy.BrickPi.Brick do
     case port do
       :in1 -> 0
       :in2 -> 1
-      :outA -> 2
-      :outB -> 3
-      :in3 -> 4
-      :in4 -> 5
+      :in3 -> 2
+      :in4 -> 3
+      :outA -> 4
+      :outB -> 5
       :outC -> 6
       :outD -> 7
     end

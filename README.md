@@ -17,6 +17,9 @@ Setup:
     
     use vi if nano bugs out
     https://ryanstutorials.net/linuxtutorial/cheatsheetvi.php
+    
+    to update brickpi3 firmware: 
+    sudo update-brickpi3-fw
 
 To connect:
 

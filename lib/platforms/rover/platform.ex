@@ -39,11 +39,11 @@ defmodule Andy.Rover.Platform do
   @doc "The device mode for the platform"
   def device_mode(device_type) do
     case device_type do
-      :infrared -> "brickpi-uart"
-      :touch -> "brickpi-analog"
-      :gyro -> "brickpi-uart"
-      :color -> "brickpi-uart"
-      :ultrasonic -> "brickpi-uart"
+      :infrared -> "ev3-uart"
+      :touch -> "ev3-analog"
+      :gyro -> "ev3-uart"
+      :color -> "ev3-uart"
+      :ultrasonic -> "ev3-uart"
       :large -> "tacho-motor"
       :medium -> "tacho-motor"
 			:led -> "led"
@@ -53,13 +53,13 @@ defmodule Andy.Rover.Platform do
   @doc "The device code for the platform"
   def device_code(device_type) do
     case device_type do
-      :infrared -> "lego-brickpi-ir"
-      :touch -> "lego-brickpi-touch"
-      :gyro -> "lego-brickpi-gyro"
-      :color -> "lego-brickpi-color"
-      :ultrasonic -> "lego-brickpi-us"
-      :large -> "lego-brickpi-l-motor"
-      :medium -> "lego-brickpi-m-motor"
+      :infrared -> "lego-ev3-ir"
+      :touch -> "lego-ev3-touch"
+      :gyro -> "lego-ev3-gyro"
+      :color -> "lego-ev3-color"
+      :ultrasonic -> "lego-ev3-us"
+      :large -> "lego-ev3-l-motor"
+      :medium -> "lego-ev3-m-motor"
     end
   end
 
