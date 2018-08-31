@@ -25,7 +25,7 @@ defmodule Andy.Speaker do
       @name,
       fn (state) ->
         voice = v || platform_dispatch(:voice)
-        args = ["-a", "#{volume}", "-s", "#{speed}", "-v", "#{voice}", words]
+        args = ["-a", "#{volume}", "-s", "#{speed}", "-v", "#{voice}", words, "2>/dev/null"]
         System.cmd("espeak", args)
         state
       end

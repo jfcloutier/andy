@@ -1,21 +1,29 @@
 # Andy
 
-Prediction Processing for Lego EV3 robots
+Prediction Processing for Lego BrickPi3 robots
 
-    cp rel/vm.args.andy rel/vm.args 
-    MIX_TARGET=ev3 mix firmware         # or cp rel/vm.args.marv rel/vm.args; mix firmware
-    MIX_TARGET=ev3 mix firmware.burn    # or ./upload.sh 192.168.1.181 # SLOW
+Setup:
 
-Top open a console:
+    https://www.ev3dev.org/downloads/
+    https://github.com/resin-io/etcher#debian-and-ubuntu-based-package-repository-gnulinux-x86x64
+    http://docs.ev3dev.org/projects/lego-linux-drivers/en/ev3dev-stretch/brickpi3.html#input-ports
+    http://docs.ev3dev.org/en/ev3dev-stretch/platforms/brickpi3.html
+    Don;t forget to enable sound by editing config.txt in EV3DEV_BOOT on the sd card
+    https://www.ev3dev.org/docs/tutorials/setting-up-wifi-using-the-command-line/
+    
+    Before installing erlang via apt-get install erlang
+    > sudo apt-get install -y gnupg
+    Install elixir from Precompiled.zip, add bin to PATH
+    
+    use vi if nano bugs out
+    https://ryanstutorials.net/linuxtutorial/cheatsheetvi.php
 
-    # Make sure PC connects via WiFi
-     ssh 192.168.1.181
-     iex > Andy.Application.shutdown # to shutdown
-    # Type ~. to close it
+To connect:
+
+    ssh robot@ev3dev.local
 
 ISSUES:
 
-* tacho-motors not detected when plugged into port A
 
 To test on PC: 
 
