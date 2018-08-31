@@ -7,7 +7,7 @@ defmodule Andy.BrickPi.LegoMotor do
 
 	@sys_path "/sys/class/tacho-motor"
   @prefix "motor" 
-  @driver_regex ~r/lego-brickpi-(\w)-motor/i
+  @driver_regex ~r/lego-ev3-(\w)-motor/i
 
   @doc "Is this type of device a motor?"
   def motor?(device_type) do
