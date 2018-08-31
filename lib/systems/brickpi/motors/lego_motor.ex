@@ -7,7 +7,7 @@ defmodule Andy.BrickPi.LegoMotor do
 
 	@sys_path "/sys/class/tacho-motor"
   @prefix "motor" 
-  @driver_regex ~r/lego-ev3-(\w)-motor/i
+  @driver_regex ~r/lego-(.+)-motor/i
 
   @doc "Is this type of device a motor?"
   def motor?(device_type) do
@@ -94,10 +94,11 @@ defmodule Andy.BrickPi.LegoMotor do
   defp init_motor(path) do
 		port_name = read_sys(path, "address")
     driver_name = read_sys(path, "driver_name")
-    [_, type_letter] = Regex.run(@driver_regex, driver_name)
-    type = case type_letter do
-						 "l" -> :large
-						 "m" -> :medium
+    [_, type_signature] = Regex.run(@driver_regex, driver_name)
+    type = case type_signature do
+						 "ev3-l" -> :large
+						 "ev3-m" -> :medium
+						 "nxt" -> :large # or whatever
            end
     motor = %Device{mod: module_for_type(type),
 										class: :motor,
