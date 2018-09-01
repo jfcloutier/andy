@@ -72,7 +72,7 @@ defmodule Andy.Detector do
             state
           msecs == :infinity ->
             if polling_task != nil, do: Task.shutdown(polling_task)
-            Logger.info("Stopped polling #{device.mod} about #{sense}")
+            Logger.info("Stopped polling #{device.mod} about #{inspect sense}")
             %{
               state |
               polling_task: nil,
@@ -80,7 +80,7 @@ defmodule Andy.Detector do
             }
           true ->
             if polling_task != nil, do: Task.shutdown(polling_task)
-            Logger.info("Now polling #{device.mod} about #{sense} every #{msecs} msecs")
+            Logger.info("Now polling #{device.mod} about #{inspect sense} every #{msecs} msecs")
             %{
               state |
               polling_task: Task.async(fn -> detect(detector_name) end),

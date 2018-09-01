@@ -172,6 +172,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_recently_ate,
+            perceived: [{ { :sensor, :timer, :time_elapsed }, { :gt, :count, 30 }, :now }],
             actuated: [{ :eating, { :sum, :quantity, 200 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfillments: [
@@ -195,7 +196,7 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [
               { :model, :getting_closer_to_food }
             ],
-            when_fulfilled: [eat({ :sensor, :color, :ambient })]
+            when_fulfilled: [eat({ :sensor, :color, :ambient }), say("nom de nom de nom")]
           )
         ],
         priority: :high
@@ -405,12 +406,16 @@ defmodule Andy.Puppy.Modeling do
       speed = cond do
         distance == 0 ->
           0
-        distance > 50 ->
+        distance > 90 ->
+          :very_fast
+        distance > 70 ->
           :fast
-        distance > 20 ->
-          :medium
-        true ->
+        distance > 60 ->
+          :normal
+        distance > 40 ->
           :slow
+        true ->
+          :very_slow
       end
       Action.new(
         intent_name: :go_forward,
@@ -471,25 +476,25 @@ defmodule Andy.Puppy.Modeling do
     end
   end
 
-#  defp turn_led_once(on_or_off) do
-#    fn ->
-#      Action.new(
-#        intent_name: :blue_lights,
-#        intent_value: on_or_off,
-#        once?: true
-#      )
-#    end
-#  end
-#
-#
-#  defp turn_led(on_or_off) do
-#    fn ->
-#      Action.new(
-#        intent_name: :blue_lights,
-#        intent_value: on_or_off
-#      )
-#    end
-#  end
+  #  defp turn_led_once(on_or_off) do
+  #    fn ->
+  #      Action.new(
+  #        intent_name: :blue_lights,
+  #        intent_value: on_or_off,
+  #        once?: true
+  #      )
+  #    end
+  #  end
+  #
+  #
+  #  defp turn_led(on_or_off) do
+  #    fn ->
+  #      Action.new(
+  #        intent_name: :blue_lights,
+  #        intent_value: on_or_off
+  #      )
+  #    end
+  #  end
 
   ### Utils
 

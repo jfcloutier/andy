@@ -48,7 +48,7 @@ defmodule Andy.Memory do
       @name,
       fn (state) ->
         percepts_since(
-          about,
+          as_percept_about(about),
           secs,
           state
         )
@@ -58,7 +58,7 @@ defmodule Andy.Memory do
 
   @doc "Recall latest unexpired, matching percept, if any"
   def recall_percepts_since(about, :now) do
-    case recall_percepts_since(about, { :past_secs, 1 }) do
+    case recall_percepts_since(as_percept_about(about), { :past_secs, 1 }) do
       [percept | _] ->
         [percept]
       [] ->
@@ -68,7 +68,7 @@ defmodule Andy.Memory do
 
   @doc "Recall latest unexpired, matching percept, if any"
   def recall_value_of_latest_percept(about) do
-    case recall_percepts_since(about, { :past_secs, @max_recall }) do
+    case recall_percepts_since(as_percept_about(about), { :past_secs, @max_recall }) do
       [percept | _] ->
         percept.value
       [] ->

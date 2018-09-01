@@ -87,6 +87,8 @@ defmodule Andy.Recall do
     Memory.recall_believed?(model_name)
   end
 
+  # TODO - cover for both atomic and mapped values
+
   defp apply_predicate({ :gt, val }, percept, _percepts) do
     percept.value > val
   end

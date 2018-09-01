@@ -9,7 +9,7 @@ defmodule Andy.MockRover.InfraredSensor do
   @max_distance 100
   @nudge_distance 10
   @max_heading 25
-  @nudge_heading 0..5
+  @nudge_heading 5
 
   def new() do
     %Device{
