@@ -20,9 +20,10 @@ defmodule Andy.MockRover.TouchSensor do
 	end
 
 	def read(sensor, _sense) do
-		value = case :rand.uniform(2) - 1 do
-			0 -> :released
-			1 -> :pressed
+		random = Enum.random(0..10)
+		value = cond do
+			random > 0 -> :released
+			true -> :pressed
     end
 		{value, sensor}
 	end
@@ -31,7 +32,7 @@ defmodule Andy.MockRover.TouchSensor do
 		case previous_value do
       nil -> value
       _ ->
-        if :rand.uniform(20) == 1 do
+        if Enum.random(0..10) == 0 do
           value
         else
           previous_value

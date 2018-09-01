@@ -5,7 +5,7 @@ defmodule Andy.MockRover.UltrasonicSensor do
 
   alias Andy.Device
 
-  @max_distance 30 # actual max is 2550 cms
+  @max_distance 100 # actual max is 2550 cms
   @nudge_distance 10
 
   def new() do
