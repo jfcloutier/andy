@@ -96,7 +96,7 @@ defmodule Andy do
               "S4" -> "in4"
             end
         end
-      true ->
+      _other ->
         port_name
     end
   end

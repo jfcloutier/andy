@@ -14,7 +14,8 @@ defmodule Andy.Prediction do
                fulfill_when: [atom],
                fulfillments: [Fulfillment.t],
                when_fulfilled: [any],
-               true_by_default?: boolean()
+               true_by_default?: boolean(),
+               time_sensitive?: boolean()
              }
 
   @keys [
@@ -26,7 +27,8 @@ defmodule Andy.Prediction do
     :fulfill_when,
     :fulfillments,
     :when_fulfilled,
-    :true_by_default?
+    :true_by_default?,
+    :time_sensitive?
   ]
 
   # prediction name is unique within a generative model
@@ -46,7 +48,9 @@ defmodule Andy.Prediction do
               # actions to execute when becoming fulfilled
             when_fulfilled: [],
               # whether a prediction is true until proven false
-            true_by_default?: true
+            true_by_default?: true,
+              # whether a prediction is to be reviewed when time passes
+            time_sensitive?: false
 
   def new(keywords) do
     Enum.reduce(

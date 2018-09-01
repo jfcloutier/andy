@@ -80,6 +80,18 @@ defmodule Andy.Predictor do
 
   ### Cognition Agent Behaviour
 
+  # If the prediction is time-sensitive, review it on each clock tick
+  def handle_event(
+        :tick,
+        %{ prediction: prediction } = state
+      ) do
+    if prediction.time_sensitive? do
+      review_prediction(state)
+    else
+      state
+    end
+  end
+
   def handle_event(
         { :percept_memorized, %Percept{ } = percept },
         %{ prediction: prediction } = state

@@ -177,7 +177,8 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [
               { :model, :feeding }
             ],
-            true_by_default?: false
+            true_by_default?: false,
+            time_sensitive?: true
           )
         ],
         priority: :medium
@@ -470,25 +471,25 @@ defmodule Andy.Puppy.Modeling do
     end
   end
 
-  defp turn_led_once(on_or_off) do
-    fn ->
-      Action.new(
-        intent_name: :blue_lights,
-        intent_value: on_or_off,
-        once?: true
-      )
-    end
-  end
-
-
-  defp turn_led(on_or_off) do
-    fn ->
-      Action.new(
-        intent_name: :blue_lights,
-        intent_value: on_or_off
-      )
-    end
-  end
+#  defp turn_led_once(on_or_off) do
+#    fn ->
+#      Action.new(
+#        intent_name: :blue_lights,
+#        intent_value: on_or_off,
+#        once?: true
+#      )
+#    end
+#  end
+#
+#
+#  defp turn_led(on_or_off) do
+#    fn ->
+#      Action.new(
+#        intent_name: :blue_lights,
+#        intent_value: on_or_off
+#      )
+#    end
+#  end
 
   ### Utils
 
