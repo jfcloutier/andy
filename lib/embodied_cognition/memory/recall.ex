@@ -144,16 +144,24 @@ defmodule Andy.Recall do
 
   # Is the value greater than or equal to the average of previous values?
   defp apply_predicate(:ascending, percept, percepts) do
-    { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
-    average = Enum.reduce(before, 0, &(&1.value + &2))
-    percept.value >= average
+    if Enum.count(percepts) > 0 do
+      { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
+      average = Enum.reduce(before, 0, &(&1.value + &2))
+      percept.value >= average
+    else
+      false
+    end
   end
 
   # Is the value greater than or equal to the average of previous values?
   defp apply_predicate(:descending, percept, percepts) do
-    { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
-    average = Enum.reduce(before, 0, &(&1.value + &2))
-    percept.value <= average
+    if Enum.count(percepts) > 0 do
+      { before, _ } = Enum.split_while(percepts, &(&1.id != percept.id))
+      average = Enum.reduce(before, 0, &(&1.value + &2))
+      percept.value <= average
+    else
+      false
+    end
   end
 
 

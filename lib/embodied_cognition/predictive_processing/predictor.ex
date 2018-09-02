@@ -98,14 +98,8 @@ defmodule Andy.Predictor do
       ) do
     # Validate prediction if relevant
     if percept_relevant?(percept, prediction) do
-      if state.prediction.name == :puppy_in_increasingly_lit_area do
-        Logger.info("Predictor #{state.predictor_name} revieing prediction")
-      end
       review_prediction(state)
     else
-      if state.prediction.name == :puppy_in_increasingly_lit_area do
-        Logger.info("Predictor #{state.predictor_name} ignoring percept #{inspect percept} as not relevant")
-      end
       state
     end
   end
@@ -186,7 +180,7 @@ defmodule Andy.Predictor do
 
   def handle_event(_event, state) do
     # Logger.debug("#{__MODULE__} ignored #{inspect event}")
-     state
+    state
   end
 
   #### Private
@@ -295,6 +289,7 @@ defmodule Andy.Predictor do
            effective_precision: precision
          } = state
        ) do
+    Logger.info("Reviewing prediction #{prediction.name} by predictor #{state.predictor_name}")
     if prediction_fulfilled?(prediction, precision) do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true

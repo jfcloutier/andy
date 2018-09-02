@@ -115,7 +115,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_in_increasingly_lit_area,
-            perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 2 } }],
+            perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 5 } }],
             precision: :medium,
             fulfillments: [
               { :actions, [turn(), forward()] },
