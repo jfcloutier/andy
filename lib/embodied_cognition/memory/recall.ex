@@ -51,6 +51,11 @@ defmodule Andy.Recall do
         value + acc
       end
     )
+    Logger.info(
+      "Sum of of intents #{inspect intent_about} is #{actual_sum} out of target #{target_sum} in #{
+        inspect time_period
+      }"
+    )
     if target_sum == 0, do: 1.0, else: min(1.0, actual_sum / target_sum)
   end
 
@@ -64,6 +69,11 @@ defmodule Andy.Recall do
         Map.get(value, attribute) + acc
       end
     )
+    Logger.info(
+      "Sum of #{attribute} of intents #{inspect intent_about} is #{actual_sum} out of target #{target_sum} in #{
+        inspect time_period
+      }"
+    )
     if target_sum == 0, do: 1.0, else: min(1.0, actual_sum / target_sum)
   end
 
@@ -71,6 +81,9 @@ defmodule Andy.Recall do
   def probability_of_actuated({ intent_about, { :times, target_number }, time_period } = _actuated) do
     actual_number = Memory.recall_intents_since(intent_about, time_period)
                     |> Enum.count()
+    Logger.info(
+      "#{actual_number} intents #{inspect intent_about} found out of target #{target_number} in #{inspect time_period}"
+    )
     if target_number == 0, do: 1.0, else: min(1.0, actual_number / target_number)
   end
 
