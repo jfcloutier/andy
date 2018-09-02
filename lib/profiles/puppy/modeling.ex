@@ -156,7 +156,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_close_to_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, @near }, { :past_secs, 2 }},
+              { { :sensor, :ultrasonic, :distance }, { :lt, @near }, { :past_secs, 2 } },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
@@ -175,7 +175,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_recently_ate,
-#            perceived: [{ { :sensor, :timer, :time_elapsed }, { :gt, :count, 30 }, :now }],
+            #            perceived: [{ { :sensor, :timer, :time_elapsed }, { :gt, :count, 30 }, :now }],
             actuated: [{ :eating, { :sum, :quantity, 200 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfillments: [
@@ -273,7 +273,8 @@ defmodule Andy.Puppy.Modeling do
             fulfill_when: [:puppy_has_clear_path],
             fulfillments: [
               { :actions, [move()] }
-            ]
+            ],
+            time_sensitive?: true
           ),
         ],
         priority: :low
@@ -320,7 +321,7 @@ defmodule Andy.Puppy.Modeling do
 
   ### PRIVATE
 
-    defp forward(speed \\ :normal) do
+  defp forward(speed \\ :normal) do
     fn ->
       Action.new(
         intent_name: :go_forward,
