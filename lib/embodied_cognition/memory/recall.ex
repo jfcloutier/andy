@@ -14,7 +14,7 @@ defmodule Andy.Recall do
         value + acc
       end
     )
-    if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
+    if target_sum == 0, do: 1.0, else: min(1.0, actual_sum / target_sum)
   end
 
   # Calculate the probability that the values of a kind of percepts within a given time period add up to a target value
@@ -27,7 +27,7 @@ defmodule Andy.Recall do
         Map.get(value, attribute) + acc
       end
     )
-    if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
+    if target_sum == 0, do: 1.0, else: min(1.0, actual_sum / target_sum)
   end
 
   # Calculate the probability that percepts a kind of percepts within a given time period validate a predicate
@@ -51,7 +51,7 @@ defmodule Andy.Recall do
         value + acc
       end
     )
-    if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
+    if target_sum == 0, do: 1.0, else: min(1.0, actual_sum / target_sum)
   end
 
   # Calculate the probability that the values of a kind of actuated intents within a given time period add up to a target value
@@ -64,14 +64,14 @@ defmodule Andy.Recall do
         Map.get(value, attribute) + acc
       end
     )
-    if target_sum == 0, do: 1.0, else: max(1.0, actual_sum / target_sum)
+    if target_sum == 0, do: 1.0, else: min(1.0, actual_sum / target_sum)
   end
 
   # Calculate the probability that actuated intents of a certain kind within a given time number up to target amount
   def probability_of_actuated({ intent_about, { :times, target_number }, time_period } = _actuated) do
     actual_number = Memory.recall_intents_since(intent_about, time_period)
                     |> Enum.count()
-    if target_number == 0, do: 1.0, else: max(1.0, actual_number / target_number)
+    if target_number == 0, do: 1.0, else: min(1.0, actual_number / target_number)
   end
 
   # Calculate the probability that percepts a kind of actuated intents within a given time period validate a predicate
