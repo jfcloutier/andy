@@ -43,7 +43,7 @@ defmodule Andy.Predictor do
          ) do
       { :ok, pid } ->
         spawn(fn -> predict(predictor_name) end)
-        Logger.info("Predictor #{predictor_name} started on #{Prediction.summary(prediction)}")
+        Logger.info("Predictor #{predictor_name} started on #{Prediction.summary(prediction)} with pid #{inspect pid}")
         listen_to_events(pid, __MODULE__)
         { :ok, pid }
       other ->
@@ -100,6 +100,9 @@ defmodule Andy.Predictor do
     if percept_relevant?(percept, prediction) do
       review_prediction(state)
     else
+      if state.predictor_name == :puppy_in_increasingly_lit_area do
+        Logger.info("Predictor #{state.predictor_name} ignoring percept #{inspect percept}")
+      end
       state
     end
   end
@@ -178,8 +181,11 @@ defmodule Andy.Predictor do
     end
   end
 
-  def handle_event(_event, state) do
+  def handle_event(event, state) do
     # Logger.debug("#{__MODULE__} ignored #{inspect event}")
+    if state.predictor_name == :puppy_in_increasingly_lit_area do
+      Logger.info("Predictor #{state.predictor_name} ignoring event #{inspect event}")
+    end
     state
   end
 

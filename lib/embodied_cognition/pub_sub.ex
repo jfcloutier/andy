@@ -36,7 +36,7 @@ defmodule Andy.PubSub do
 
   @doc "Register a subscriber"
   def register(module) do
-    Logger.info("Registering #{module} to pubsub")
+    Logger.info("Registering process #{inspect self()} on module #{module} to pubsub")
     Registry.register(@registry_name, @topic, module)
   end
 

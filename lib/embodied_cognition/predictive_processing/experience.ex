@@ -159,7 +159,7 @@ defmodule Andy.Experience do
       # A fulfillment has a 10% minimum probability of being selected
       if successes == 0, do: 0.1, else: max(successes / (successes + failures), 0.1)
     end
-    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for predictor #{predictor_name}")
+#    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for predictor #{predictor_name}")
     if Enum.count(ratings) == 0 do
       nil
     else
