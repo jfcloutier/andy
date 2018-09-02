@@ -34,7 +34,7 @@ defmodule Andy.Recall do
   def probability_of_perceived({ percept_about, predicate, time_period } = _perceived) do
     percepts = Memory.recall_percepts_since(percept_about, time_period)
     percepts_count = Enum.count(percepts)
-    Logger.info("Recalled #{percepts_count} percepts matching #{inspect percept_about} over #{inspect time_period}")
+    Logger.info("Recalled #{percepts_count} percepts matching #{inspect percept_about} over #{inspect time_period}: #{inspect percepts}")
     fitting_percepts = Enum.filter(percepts, &(apply_predicate(predicate, &1, percepts)))
     fitting_count = Enum.count(fitting_percepts)
     Logger.info("Fitting #{fitting_count} percepts with predicate #{inspect predicate}")
