@@ -4,6 +4,10 @@ defmodule Andy.Puppy.Modeling do
   alias Andy.{ GenerativeModel, Prediction, Action, Memory }
   import Andy.Utils, only: [choose_one: 1, as_percept_about: 1]
 
+  @low_light 3
+  @near 15
+  @prox_percent 90 # 100 is approx. 70 cm or more
+
   def generative_models() do
     [
       # Hyper-prior
@@ -97,7 +101,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_in_high_ambient_light,
-            perceived: [{ { :sensor, :color, :ambient }, { :gt, 5 }, { :past_secs, 3 } }],
+            perceived: [{ { :sensor, :color, :ambient }, { :gt, @low_light }, { :past_secs, 3 } }],
             precision: :medium,
             fulfillments: [
               { :model, :getting_lighter }
@@ -135,7 +139,7 @@ defmodule Andy.Puppy.Modeling do
             name: :puppy_touched_in_low_light,
             perceived: [
               { { :sensor, :touch, :touch }, { :eq, :pressed }, :now },
-              { { :sensor, :color, :ambient }, { :lt, 5 }, :now }
+              { { :sensor, :color, :ambient }, { :lt, @low_light }, :now }
             ],
             precision: :high,
             # We never want to fulfill this prediction
@@ -152,7 +156,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_close_to_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, 10 }, :now },
+              { { :sensor, :ultrasonic, :distance }, { :lt, @near }, { :past_secs, 2 }},
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
@@ -207,7 +211,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_smells_food,
-            perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, 30 }, { :past_secs, 5 } }],
+            perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, @prox_percent }, { :past_secs, 5 } }],
             precision: :high,
             fulfillments: [
               { :actions, [forward(), turn()] },
