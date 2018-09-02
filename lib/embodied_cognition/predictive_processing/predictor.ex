@@ -100,7 +100,7 @@ defmodule Andy.Predictor do
     if percept_relevant?(percept, prediction) do
       review_prediction(state)
     else
-      if state.prediction_name == :puppy_in_increasingly_lit_area do
+      if state.prediction.name == :puppy_in_increasingly_lit_area do
         Logger.info("Predictor #{state.predictor_name} ignoring percept #{inspect percept}")
       end
       state
@@ -183,7 +183,7 @@ defmodule Andy.Predictor do
 
   def handle_event(event, state) do
     # Logger.debug("#{__MODULE__} ignored #{inspect event}")
-    if state.prediction_name == :puppy_in_increasingly_lit_area do
+    if state.prediction.name == :puppy_in_increasingly_lit_area do
       Logger.info("Predictor #{state.predictor_name} ignoring event #{inspect event}")
     end
     state
