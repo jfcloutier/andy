@@ -211,7 +211,7 @@ defmodule Andy.PubSub do
                 do: Agent.cast(
                   pid,
                   fn (state) ->
-                    # Logger.debug("SENDING :handle_event #{inspect event} to #{module}")
+                    Logger.info("SENDING event #{inspect event} to #{module} at #{inspect pid}")
                     apply(module, :handle_event, [event, state])
                   end
                 )
