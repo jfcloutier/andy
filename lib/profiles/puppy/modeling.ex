@@ -97,7 +97,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_in_high_ambient_light,
-            perceived: [{ { :sensor, :color, :ambient }, { :gt, 50 }, { :past_secs, 3 } }],
+            perceived: [{ { :sensor, :color, :ambient }, { :gt, 20 }, { :past_secs, 3 } }],
             precision: :medium,
             fulfillments: [
               { :model, :getting_lighter }
