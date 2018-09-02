@@ -97,7 +97,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_in_high_ambient_light,
-            perceived: [{ { :sensor, :color, :ambient }, { :gt, 20 }, { :past_secs, 3 } }],
+            perceived: [{ { :sensor, :color, :ambient }, { :gt, 5 }, { :past_secs, 3 } }],
             precision: :medium,
             fulfillments: [
               { :model, :getting_lighter }
@@ -118,8 +118,7 @@ defmodule Andy.Puppy.Modeling do
             perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 5 } }],
             precision: :medium,
             fulfillments: [
-              { :actions, [turn(), forward()] },
-              { :actions, [turn(), backoff()] }
+              { :actions, [turn(), forward()] }
             ],
             when_fulfilled: [forward()]
           )
@@ -136,7 +135,7 @@ defmodule Andy.Puppy.Modeling do
             name: :puppy_touched_in_low_light,
             perceived: [
               { { :sensor, :touch, :touch }, { :eq, :pressed }, :now },
-              { { :sensor, :color, :ambient }, { :lt, 10 }, :now }
+              { { :sensor, :color, :ambient }, { :lt, 5 }, :now }
             ],
             precision: :high,
             # We never want to fulfill this prediction
@@ -300,7 +299,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_approaching_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, 20 }, :now },
+              { { :sensor, :ultrasonic, :distance }, { :lt, 50 }, :now },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
