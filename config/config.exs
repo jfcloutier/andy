@@ -55,9 +55,14 @@ config :andy,
        max_intent_age: 1500,
        strong_intent_factor: 3,
        max_beacon_channels: 3,
-       very_fast_rps: 3,
-       fast_rps: 2,
-       normal_rps: 1,
-       slow_rps: 0.5,
-       very_slow_rps: 0.3
+#       very_fast_rps: 3,
+#       fast_rps: 2,
+#       normal_rps: 1,
+#       slow_rps: 0.5,
+#       very_slow_rps: 0.3
+       very_fast_rps: 1,
+       fast_rps: 0.75,
+       normal_rps: 0.5,
+       slow_rps: 0.25,
+       very_slow_rps: 0.1
 

@@ -60,10 +60,10 @@ defmodule Andy.Puppy.Modeling do
             believed: { :not, :bumped_in_the_dark },
             precision: :high,
             fulfillments: [
-              { :actions, [backoff()] },
-              { :actions, [backoff(), turn()] },
-              { :actions, [turn(), backoff()] },
-              { :actions, [backoff(), turn(), backoff(), turn()] },
+              { :actions, [backoff(:fast)] },
+              { :actions, [backoff(:fast), turn()] },
+              { :actions, [turn(), backoff(:fast)] },
+              { :actions, [backoff(:fast), turn(), backoff(:fast), turn()] },
             ]
           ),
           prediction(
@@ -72,8 +72,8 @@ defmodule Andy.Puppy.Modeling do
             precision: :high,
             fulfillments: [
               { :actions, [turn()] },
-              { :actions, [backoff()] },
-              { :actions, [backoff(), turn()] }
+              { :actions, [backoff(:fast)] },
+              { :actions, [backoff(:fast), turn()] }
             ]
           ),
           prediction(
@@ -300,8 +300,8 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_approaching_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, 50 }, :now },
-              { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 10 } }
+              { { :sensor, :ultrasonic, :distance }, { :lt, 20 }, :now },
+              { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
             # We never want to fulfill this prediction
@@ -317,31 +317,31 @@ defmodule Andy.Puppy.Modeling do
 
   ### PRIVATE
 
-  defp forward() do
+    defp forward(speed \\ :normal) do
     fn ->
       Action.new(
         intent_name: :go_forward,
         intent_value: %{
-          speed: :fast,
+          speed: speed,
           time: 1
         }
       )
     end
   end
 
-  defp backoff() do
+  defp backoff(speed \\ :normal) do
     fn ->
       Action.new(
         intent_name: :go_backward,
         intent_value: %{
-          speed: :fast,
+          speed: speed,
           time: 1
         }
       )
     end
   end
 
-  defp move() do
+  defp move(speed \\ :normal) do
     fn ->
       random = choose_one(1..4)
       cond do
@@ -349,7 +349,7 @@ defmodule Andy.Puppy.Modeling do
           Action.new(
             intent_name: :go_forward,
             intent_value: %{
-              speed: :fast,
+              speed: speed,
               time: 1
             }
           )
@@ -362,7 +362,7 @@ defmodule Andy.Puppy.Modeling do
           Action.new(
             intent_name: :go_backward,
             intent_value: %{
-              speed: :fast,
+              speed: speed,
               time: 1
             }
           )
