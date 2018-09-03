@@ -35,10 +35,6 @@ defmodule Andy.Utils do
     Application.fetch_env!(:andy, :max_percept_age)
   end
 
-  def max_motive_age() do
-    Application.fetch_env!(:andy, :max_motive_age)
-  end
-
   def max_intent_age() do
     Application.fetch_env!(:andy, :max_intent_age)
   end
