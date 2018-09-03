@@ -112,8 +112,8 @@ defmodule Andy.Focus do
           competing_effective_priority = effective_priority(competing_model, deprioritizations)
           if Andy.lower_level?(reduced_priority, competing_effective_priority) do
             # Competing model gets deprioritized
-            Logger.info("Focus: Deprioritizing #{competing_model_name} by #{reduced_priority}")
-            PubSub.notify_model_deprioritized(competing_model_name, reduced_priority)
+            Logger.info("Focus: Deprioritizing #{competing_model_name} by #{reducing_priority}")
+            PubSub.notify_model_deprioritized(competing_model_name, reducing_priority)
           end
           [
             %Deprioritization{
