@@ -60,8 +60,8 @@ defmodule Andy.Puppy.Modeling do
         hypothesis: "The puppy is safe",
         predictions: [
           prediction(
-            name: :puppy_not_bumped_in_the_dark,
-            believed: { :not, :bumped_in_the_dark },
+            name: :puppy_not_bumping,
+            believed: { :not, :bumped },
             precision: :high,
             fulfillments: [
               { :actions, [backoff(:fast)] },
@@ -84,7 +84,7 @@ defmodule Andy.Puppy.Modeling do
             name: :puppy_is_in_the_light,
             believed: { :is, :in_the_light },
             precision: :high,
-            fulfill_when: [:puppy_not_bumped_in_the_dark],
+            fulfill_when: [:puppy_not_bumping],
             fulfillments: [
               { :actions, [say_once("It's too dark")] }
             ]
