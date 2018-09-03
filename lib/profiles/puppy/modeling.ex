@@ -5,9 +5,9 @@ defmodule Andy.Puppy.Modeling do
   import Andy.Utils, only: [choose_one: 1, as_percept_about: 1]
   require Logger
 
-  @low_light 3
-  @near 15
-  @prox_percent 90 # 100 is approx. 70 cm or more
+  @low_light 1
+  @us_near 15 # 15 cm
+  @prox_percent 90 # 90 is approx. 65 cm
 
   def generative_models() do
     [
@@ -19,7 +19,7 @@ defmodule Andy.Puppy.Modeling do
         name: :thriving,
         hypothesis: "The puppy is safe, has eaten recently, and can move about",
         predictions: [
-          # safe, sated and free are sinling models
+          # safe, sated and free are sibling models
           prediction(
             name: :puppy_is_safe,
             believed: { :is, :safe },
@@ -157,7 +157,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_close_to_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, @near }, { :past_secs, 2 } },
+              { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, { :past_secs, 2 } },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
@@ -215,9 +215,9 @@ defmodule Andy.Puppy.Modeling do
             perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, @prox_percent }, { :past_secs, 5 } }],
             precision: :high,
             fulfillments: [
-              { :actions, [forward(), turn()] },
+              { :actions, [forward()] },
               { :actions, [turn()] },
-              { :actions, [turn(), backoff()] }
+              { :actions, [backoff()] }
             ],
             when_fulfilled: [say("I smell food")]
           ),
