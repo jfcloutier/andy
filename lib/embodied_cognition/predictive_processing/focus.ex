@@ -27,6 +27,7 @@ defmodule Andy.Focus do
     { :ok, pid } = Agent.start_link(
       fn ->
         %{
+          # [%Deprioritization{}]
           deprioritizations: []
         }
       end,
@@ -96,12 +97,14 @@ defmodule Andy.Focus do
               |> Enum.uniq())
           }
         )
-      # New deprioritization of competing model by model
+      # New deprioritization of competing model by model, if it deprioritizes it more than it already is.
       nil ->
         reducing_priority = effective_priority(model, deprioritizations)
         if reducing_priority == :none do
           # No deprioritization
-          Logger.info("Focus: Model #{model.name} has effective priority :none. It can't deprioritize #{competing_model_name}")
+          Logger.info(
+            "Focus: Model #{model.name} has no effective priority. It can't deprioritize #{competing_model_name}"
+          )
           deprioritizations
         else
           competing_model = GenerativeModels.fetch!(competing_model_name)
@@ -139,8 +142,7 @@ defmodule Andy.Focus do
       [],
       fn (deprioritization,
          acc) ->
-        if deprioritization.model_name == update.model_name
-           and deprioritization.competing_model_name == update.competing_model_name do
+        if equivalent?(deprioritization, update) do
           [update | acc]
         else
           [deprioritization | acc]
@@ -149,6 +151,7 @@ defmodule Andy.Focus do
     )
   end
 
+  # Find the possibly reduced priority of a model
   defp effective_priority(model, deprioritizations) do
     Enum.reduce(
       deprioritizations,
@@ -166,9 +169,11 @@ defmodule Andy.Focus do
     )
   end
 
-  # Lose focus on a model on behalf of a prediction about that model
+  # Lose focus on a model on behalf of a prediction about that model because the prediction was validated
   defp focus_off(model_name, prediction_name, %{ deprioritizations: deprioritizations } = state) do
-    Logger.info("Focus: Maybe losing focus on model #{model_name} because belief prediction #{prediction_name} was validated")
+    Logger.info(
+      "Focus: Maybe losing focus on model #{model_name} because belief prediction #{prediction_name} was validated"
+    )
     updated_deprioritizations = Enum.reduce(
       deprioritizations,
       [],
@@ -183,7 +188,9 @@ defmodule Andy.Focus do
             )
             updated_prioritizations
           else
-          Logger.info("Focus: Focus remaining on model #{model_name} because of predictions #{inspect updated_prediction_names}")
+            Logger.info(
+              "Focus: Focus remaining on model #{model_name} because of predictions #{inspect updated_prediction_names}"
+            )
             update_deprioritizations(
               deprioritizations,
               %Deprioritization{ deprioritization | prediction_names: updated_prediction_names }
@@ -197,31 +204,34 @@ defmodule Andy.Focus do
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
-  defp reprioritize(competing_model_name, deprioritizations) do
-    effective_reduction = effective_reduction(competing_model_name, deprioritizations)
-    Logger.info("Focus: Reprioritizing #{competing_model_name} by reducing its base priority by #{effective_reduction}")
-    PubSub.notify_model_deprioritized(competing_model_name, effective_reduction)
+  # Update the priority of a model given new deprioritizations
+  defp reprioritize(model_name, deprioritizations) do
+    effective_reduction = effective_reduction(model_name, deprioritizations)
+    Logger.info("Focus: Reprioritizing #{model_name} by reducing its base priority by #{effective_reduction}")
+    PubSub.notify_model_deprioritized(model_name, effective_reduction)
   end
 
-  # Lose focus on a model unconditionally
+  # Lose focus on a model because its' believer was terminated
   defp focus_off_unconditionally(model_name, %{ deprioritizations: deprioritizations } = state) do
     Logger.info("Focus: Losing any focus on #{model_name} because believer was terminated")
-    updated_deprioritizations = Enum.reduce(
+    { updated_deprioritizations, to_reprioritize } = Enum.reduce(
       deprioritizations,
-      [],
+      { [], [] },
       fn (%{
             model_name: deprioritizing_model_name,
             competing_model_name: competing_model_name
           } = deprioritization,
-         acc) ->
+         { deprioritizations_acc, to_reprioritize_acc }) ->
         if deprioritizing_model_name == model_name do
-          reprioritize(competing_model_name, deprioritizations)
-          acc
+          { deprioritizations_acc, [competing_model_name | to_reprioritize_acc] }
         else
-          [deprioritization | acc]
+          { [deprioritization | deprioritizations_acc], to_reprioritize_acc }
         end
       end
     )
+    for competing_model_name <- to_reprioritize do
+      reprioritize(competing_model_name, updated_deprioritizations)
+    end
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
@@ -251,14 +261,18 @@ defmodule Andy.Focus do
       deprioritizations,
       [],
       fn (deprioritization, acc) ->
-        if deprioritization.model_name == element.model_name and
-           deprioritization.competing_model_name == element.competing_model_name do
+        if equivalent?(deprioritization, element) do
           acc
         else
           [deprioritization | acc]
         end
       end
     )
+  end
+
+  defp equivalent?(deprioritization, other) do
+    deprioritization.model_name == other.model_name and
+    deprioritization.competing_model_name == other.competing_model_name
   end
 
 end
