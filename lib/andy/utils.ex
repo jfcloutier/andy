@@ -3,8 +3,10 @@ defmodule Andy.Utils do
   @moduledoc "Utility functions"
 
   alias Andy.PubSub
+  require Logger
 
   @ttl 10_000
+  @brickpi_port_pattern ~r/spi0.1:(.+)/
 
   def listen_to_events(pid, module) do
     spawn(
@@ -155,12 +157,36 @@ defmodule Andy.Utils do
   end
 
   def as_percept_about({ class, port, type, sense } = _percept_specs) do
-       %{
-        class: class,
-        port: port,
-        type: type,
-        sense: sense
-      }
+    %{
+      class: class,
+      port: port,
+      type: type,
+      sense: sense
+    }
+  end
+
+  def translate_port(port_name) do
+    Logger.info("Translating #{port_name} in system #{inspect Andy.system()}")
+    case Andy.system() do
+      "brickpi" ->
+        case Regex.run(@brickpi_port_pattern, port_name) do
+          nil ->
+            port_name
+          [_, name] ->
+            case name do
+              "MA" -> "outA"
+              "MB" -> "outB"
+              "MC" -> "outC"
+              "MD" -> "outD"
+              "S1" -> "in1"
+              "S2" -> "in2"
+              "S3" -> "in3"
+              "S4" -> "in4"
+            end
+        end
+      _other ->
+        port_name
+    end
   end
 
   ### PRIVATE

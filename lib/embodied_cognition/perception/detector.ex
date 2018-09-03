@@ -3,7 +3,12 @@ defmodule Andy.Detector do
 
   require Logger
   alias Andy.{ Percept, PubSub, Device }
-  import Andy.Utils, only: [platform_dispatch: 2, timeout: 0, default_ttl: 1, listen_to_events: 2]
+  import Andy.Utils, only: [
+    platform_dispatch: 2,
+    timeout: 0,
+    default_ttl: 1,
+    listen_to_events: 2,
+    translate_port: 1]
 
   @behaviour Andy.EmbodiedCognitionAgent
 
@@ -127,7 +132,7 @@ defmodule Andy.Detector do
         if value != nil do
           previous_value = Map.get(state.previous_values, sense, nil)
           nudged_value = platform_dispatch(:nudge, [updated_device, sense, value, previous_value])
-          about = %{ class: device.class, port: device.port, type: device.type, sense: sense }
+          about = %{ class: device.class, port: translate_port(device.port), type: device.type, sense: sense }
           percept = Percept.new(
             about: about,
             value: nudged_value

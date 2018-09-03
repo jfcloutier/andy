@@ -5,7 +5,6 @@ defmodule Andy do
   import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
   @default_ttl 10_000
-  @brickpi_port_pattern ~r/spi0.1:(.+)/
 
   def platform() do
     platform_name = get_andy_env("ANDY_PLATFORM", "mock_rover")
@@ -75,30 +74,6 @@ defmodule Andy do
 
   def ports_config() do
     platform_dispatch(:ports_config)
-  end
-
-  def translate_port(port_name) do
-    Logger.info("Translating #{port_name} in system #{inspect system()}")
-    case system() do
-      "brickpi" ->
-        case Regex.run(@brickpi_port_pattern, port_name) do
-          nil ->
-            port_name
-          [_, name] ->
-            case name do
-              "MA" -> "outA"
-              "MB" -> "outB"
-              "MC" -> "outC"
-              "MD" -> "outD"
-              "S1" -> "in1"
-              "S2" -> "in2"
-              "S3" -> "in3"
-              "S4" -> "in4"
-            end
-        end
-      _other ->
-        port_name
-    end
   end
 
   def sensors() do
@@ -172,10 +147,28 @@ defmodule Andy do
     end
   end
 
+  @doc "Of two levels give the lowest one"
+  def lowest_level(level1, level2) do
+    cond do
+      :none in [level1, level2] -> :none
+      :low in [level1, level2] -> :low
+      :medium in [level1, level2] -> :medium
+      true -> :high
+    end
+  end
+
   @doc "Is the first level higher than the second?"
   def higher_level?(level1, level2) do
     level1 != level2
     and highest_level(level1, level2) == level1
+  end
+
+  def lower_level?(level, level) do
+    false
+  end
+
+  def lower_level?(level1, level2) do
+    level1 == lowest_level(level1, level2)
   end
 
   def reduce_level_by(level, :none) do

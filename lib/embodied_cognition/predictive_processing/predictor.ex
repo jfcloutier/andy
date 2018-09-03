@@ -298,7 +298,10 @@ defmodule Andy.Predictor do
         PubSub.notify_prediction_fulfilled(
           prediction_fulfilled(fulfilled_state)
         )
-        execute_actions_post_fulfillment(prediction.when_fulfilled)
+        # Only execute post-fulfillment actions if effective precision is not none
+        if precision != :none do
+          execute_actions_post_fulfillment(prediction.when_fulfilled)
+        end
         deactivate_current_fulfillment(fulfilled_state)
       else
         fulfilled_state
