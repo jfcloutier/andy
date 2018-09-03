@@ -65,7 +65,7 @@ defmodule Andy.Puppy.Modeling do
             believed: { :not, :bumped },
             precision: :high,
             fulfillments: [
-              { :actions, [backoff(:fast)] },
+              { :actions, [backoff(:fast), backoff(:fast), turn()] },
               { :actions, [backoff(:fast), turn()] },
               { :actions, [turn(), backoff(:fast)] },
               { :actions, [backoff(:fast), turn(), backoff(:fast), turn()] },
@@ -305,7 +305,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_approaching_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, 50 }, :now },
+              { { :sensor, :ultrasonic, :distance }, { :lt, 30 }, :now },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
@@ -365,6 +365,7 @@ defmodule Andy.Puppy.Modeling do
           Action.new(
             intent_name: choose_one([:turn_right, :turn_left]),
             intent_value: choose_one(1..3)
+            # 1 to 3 secs
           )
         true ->
           Action.new(
@@ -383,7 +384,8 @@ defmodule Andy.Puppy.Modeling do
       Logger.info("Action turn")
       Action.new(
         intent_name: choose_one([:turn_right, :turn_left]),
-        intent_value: choose_one(1..10) / 10
+        intent_value: 1
+        # turn for 1 sec
       )
     end
   end
@@ -415,15 +417,20 @@ defmodule Andy.Puppy.Modeling do
       distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
       Logger.info("Action approach from distance #{distance}")
       speed = cond do
+        # On top of it
         distance == 0 ->
-          0
-        distance > 90 ->
+          :zero
+        # Don't know how far the beacon is. There might be no beacon at all.
+        distance == 100 ->
+          :zero
+        # A meter or more
+        distance > 50 ->
           :very_fast
-        distance > 70 ->
+        distance > 30 ->
           :fast
-        distance > 60 ->
+        distance > 20 ->
           :normal
-        distance > 40 ->
+        distance > 10 ->
           :slow
         true ->
           :very_slow
@@ -442,17 +449,21 @@ defmodule Andy.Puppy.Modeling do
     fn ->
       distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
       Logger.info("Action avoid from distance #{distance}")
-      how_much = cond do
+      seconds = cond do
         distance < 5 ->
           3
-        distance < 15 ->
+        distance < 10 ->
           2
-        true ->
+        distance < 20 ->
           1
+        distance < 30 ->
+          0.5
+        true ->
+          0
       end
       Action.new(
         intent_name: choose_one([:turn_right, :turn_left]),
-        intent_value: how_much
+        intent_value: seconds
       )
     end
   end

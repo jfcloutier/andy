@@ -128,6 +128,7 @@ defmodule Andy.Rover.Actuation do
       :normal -> normal_rps()
       :slow -> slow_rps()
       :very_slow -> very_slow_rps()
+      :zero -> 0
     end
   end
 
