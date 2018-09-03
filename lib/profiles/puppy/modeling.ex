@@ -3,6 +3,7 @@ defmodule Andy.Puppy.Modeling do
 
   alias Andy.{ GenerativeModel, Prediction, Action, Memory }
   import Andy.Utils, only: [choose_one: 1, as_percept_about: 1]
+  require Logger
 
   @low_light 3
   @near 15
@@ -194,7 +195,7 @@ defmodule Andy.Puppy.Modeling do
         predictions: [
           prediction(
             name: :puppy_on_food,
-            perceived: [{ { :sensor, :color, :color }, { :eq, :blue }, :now }],
+            perceived: [{ { :sensor, :color, :color }, { :eq, :blue }, { :past_secs, 3 } }],
             precision: :high,
             fulfillments: [
               { :model, :getting_closer_to_food }
@@ -268,7 +269,7 @@ defmodule Andy.Puppy.Modeling do
           ),
           prediction(
             name: :puppy_is_moving,
-            actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 3 } }],
+            actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 10 } }],
             precision: :medium,
             fulfill_when: [:puppy_has_clear_path],
             fulfillments: [
@@ -323,6 +324,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp forward(speed \\ :normal) do
     fn ->
+      Logger.info("Action forward")
       Action.new(
         intent_name: :go_forward,
         intent_value: %{
@@ -335,6 +337,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp backoff(speed \\ :normal) do
     fn ->
+      Logger.info("Action backoff")
       Action.new(
         intent_name: :go_backward,
         intent_value: %{
@@ -347,6 +350,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp move(speed \\ :normal) do
     fn ->
+      Logger.info("Action move at #{speed} speed")
       random = choose_one(1..4)
       cond do
         random in 1..2 ->
@@ -376,6 +380,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp turn() do
     fn ->
+      Logger.info("Action turn")
       Action.new(
         intent_name: choose_one([:turn_right, :turn_left]),
         intent_value: choose_one(1..10) / 10
@@ -387,6 +392,7 @@ defmodule Andy.Puppy.Modeling do
     fn ->
       heading = Memory.recall_value_of_latest_percept(heading_percept_specs) || 0
       direction = if heading < 0, do: :turn_right, else: :turn_left
+      Logger.info("Action turn_toward heading #{heading} and direction #{direction}")
       how_much = cond do
         heading == 0 ->
           0
@@ -407,6 +413,7 @@ defmodule Andy.Puppy.Modeling do
   defp approach(distance_percept_specs) do
     fn ->
       distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
+      Logger.info("Action approach from distance #{distance}")
       speed = cond do
         distance == 0 ->
           0
@@ -434,6 +441,7 @@ defmodule Andy.Puppy.Modeling do
   defp avoid(distance_percept_specs) do
     fn ->
       distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
+      Logger.info("Action avoid from distance #{distance}")
       how_much = cond do
         distance < 5 ->
           3
@@ -451,6 +459,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp say_once(words) do
     fn ->
+      Logger.info("Action say_once #{words}")
       Action.new(
         intent_name: :say,
         intent_value: words,
@@ -461,6 +470,7 @@ defmodule Andy.Puppy.Modeling do
 
   defp say(words) do
     fn ->
+      Logger.info("Action say #{words}")
       Action.new(
         intent_name: :say,
         intent_value: words,
@@ -473,6 +483,7 @@ defmodule Andy.Puppy.Modeling do
   defp eat(ambient_percept_specs) do
     fn ->
       ambient_level = Memory.recall_value_of_latest_percept(as_percept_about(ambient_percept_specs)) || 0
+      Logger.info("Action eat in ambient light #{ambient_level}")
       Action.new(
         intent_name: :eat,
         intent_value: ambient_level
