@@ -166,7 +166,6 @@ defmodule Andy.Utils do
   end
 
   def translate_port(port_name) do
-    Logger.info("Translating #{port_name} in system #{inspect Andy.system()}")
     case Andy.system() do
       "brickpi" ->
         case Regex.run(@brickpi_port_pattern, port_name) do

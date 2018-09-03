@@ -58,8 +58,8 @@ defmodule Andy.GenerativeModels do
 
   @doc """
   Find all models that compete with a model.
-  Competing models of a model are either non-predecessor siblings or their children,
-  but not the model itself or its own descendants.
+  Competing models of a model are models of equal or lower priority that are either non-predecessor siblings
+  or their children, but not the model itself or its own descendants.
   """
   def competing_model_names(model) do
     competing_model_names = Agent.get(
@@ -67,12 +67,14 @@ defmodule Andy.GenerativeModels do
       fn (state) ->
         siblings = sibling_names(model.name, state.family_tree)
         predecessors = Map.get(state.predecessors, model.name, [])
-        competing_siblings = Enum.reject(siblings, &(&1 in predecessors))
+        # Competing siblings are siblings with lower or equal priority, and that are not in predecessors
+        competing_siblings = Enum.reject(siblings, &(Andy.lower_level?(model.priority, priority_from_name(&1, state))))
+                             |> Enum.reject(&(&1 in predecessors))
         competing_descendants = Enum.map(competing_siblings, &(descendant_names(&1, state.family_tree)))
-        #        Logger.info("Model #{model.name} has siblings #{inspect siblings}")
-        #        Logger.info("Model #{model.name} has predecessors #{inspect predecessors}")
-        #        Logger.info("Model #{model.name} has competing siblings #{inspect competing_siblings}")
-        #        Logger.info("Model #{model.name} has competing descendants #{inspect competing_descendants}")
+        Logger.info("Model #{model.name} has siblings #{inspect siblings}")
+        Logger.info("Model #{model.name} has predecessors #{inspect predecessors}")
+        Logger.info("Model #{model.name} has competing siblings #{inspect competing_siblings}")
+        Logger.info("Model #{model.name} has competing descendants #{inspect competing_descendants}")
         (competing_descendants ++ competing_siblings)
         |> List.flatten()
         |> Enum.uniq()
@@ -249,6 +251,11 @@ defmodule Andy.GenerativeModels do
       { _, believed_model_name } ->
         believed_model_name
     end
+  end
+
+  defp priority_from_name(model_name, %{models: models} = _state) do
+    model = Enum.find(models, &(&1.name == model_name))
+    model.priority
   end
 
 end

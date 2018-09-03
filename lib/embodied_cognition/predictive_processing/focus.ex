@@ -181,7 +181,7 @@ defmodule Andy.Focus do
         if deprioritization.model_name == model_name and prediction_name in prediction_names do
           updated_prediction_names = List.delete(prediction_names, prediction_name)
           if updated_prediction_names == [] do
-            updated_prioritizations = remove_prioritization(deprioritizations, deprioritization)
+            updated_prioritizations = remove_deprioritization(deprioritizations, deprioritization)
             reprioritize(
               deprioritization.competing_model_name,
               updated_prioritizations
@@ -235,7 +235,7 @@ defmodule Andy.Focus do
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
-  # Find by how much a competing model should now have its priority be reduced given remaining deprioritizations
+  # Find by how much a model should now have its priority reduced given remaining deprioritizations
   defp effective_reduction(competing_model_name, deprioritizations) do
     Enum.reduce(
       deprioritizations,
@@ -256,7 +256,8 @@ defmodule Andy.Focus do
     )
   end
 
-  defp remove_prioritization(deprioritizations, element) do
+  # Remove a deprioritization
+  defp remove_deprioritization(deprioritizations, element) do
     Enum.reduce(
       deprioritizations,
       [],

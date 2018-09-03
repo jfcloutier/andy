@@ -202,7 +202,7 @@ defmodule Andy.Puppy.Modeling do
             when_fulfilled: [eat({ :sensor, :color, :ambient }), say("nom de nom de nom")]
           )
         ],
-        priority: :high
+        priority: :medium
       ),
 
       generative_model(
