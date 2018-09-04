@@ -176,7 +176,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_recently_ate,
             #            perceived: [{ { :sensor, :timer, :time_elapsed }, { :gt, :count, 30 }, :now }],
-            actuated: [{ :eating, { :sum, :quantity, 200 }, { :past_secs, 30 } }],
+            actuated: [{ :eat, { :sum, :quantity, 4 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfillments: [
               { :model, :feeding }
