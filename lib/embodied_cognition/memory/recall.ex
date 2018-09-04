@@ -52,7 +52,7 @@ defmodule Andy.Recall do
       end
     )
     Logger.info(
-      "Sum of of intents #{inspect intent_about} is #{actual_sum} out of target #{target_sum} in #{
+      "Sum of #{Enum.count(intents)} intents #{inspect intent_about} is #{actual_sum} out of target #{target_sum} in #{
         inspect time_period
       }"
     )
