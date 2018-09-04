@@ -26,7 +26,8 @@ defmodule Andy.BelieversSupervisor do
     spec = { Believer, [model] }
     :ok = case DynamicSupervisor.start_child(@name, spec) do
       { :ok, _pid } -> :ok
-      { :error, { :already_started, _pid } } -> :ok
+      { :error, { :already_started, pid } } -> :ok
+      Believer.reset_predictors(pid)
       other -> other
     end
     model.name

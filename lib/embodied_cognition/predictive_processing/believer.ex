@@ -114,6 +114,18 @@ defmodule Andy.Believer do
     )
   end
 
+  @doc "Reset the believer's predictors"
+  def reset_predictors(believer_pid) do
+    Agent.cast(
+      believer_pid,
+      fn (%{ predictor_names: predictor_names } = _state) ->
+        for predictor_name <- predictor_names do
+          Predictor.reset(predictor_name)
+        end
+      end
+    )
+  end
+
   @doc "Is this believer only enlisted by predictors positively asserting the belief?"
   def predicted_to_be_validated?(believer_name) do
     Agent.get(

@@ -64,6 +64,7 @@ defmodule Andy.Predictor do
 
   @doc "Reset - fulfillment status only"
   def reset(predictor_name) do
+    Logger.info("Resetting predictor #{predictor_name}")
     Agent.update(
       predictor_name,
       fn (state) ->
