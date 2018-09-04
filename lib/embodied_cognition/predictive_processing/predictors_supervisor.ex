@@ -28,14 +28,16 @@ defmodule Andy.PredictorsSupervisor do
   @doc "Starts predictor if not already started. Returns predictor name"
   def start_predictor(prediction, believer_name, model_name) do
     spec = { Predictor, [prediction, believer_name, model_name] }
+    predictor_name = Predictor.predictor_name(prediction, model_name)
     :ok = case DynamicSupervisor.start_child(@name, spec) do
       { :ok, _pid } ->
         :ok
       { :error, { :already_started, _pid } } ->
+        Predictor.reset(predictor_name)
         :ok
       other -> other
     end
-    Predictor.predictor_name(prediction, model_name)
+    predictor_name
   end
 
   @doc "Terminates predictor if not already terminated."

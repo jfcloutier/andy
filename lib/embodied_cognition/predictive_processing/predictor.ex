@@ -62,6 +62,16 @@ defmodule Andy.Predictor do
     direct_attention(predictor_name)
   end
 
+  @doc "Reset - fulfillment status only"
+  def reset(predictor_name) do
+    Agent.update(
+      predictor_name,
+      fn (state) ->
+        %{state | fulfilled?: false}
+      end
+    )
+  end
+
   @doc """
    Release any enlisted believer and deactivate
    any current fulfillment, before being terminated"
@@ -341,6 +351,7 @@ defmodule Andy.Predictor do
         execute_actions_post_fulfillment(prediction.when_fulfilled)
         deactivate_current_fulfillment(fulfilled_state)
       else
+        Logger.info("Prediction #{prediction.name} was already fulfilled")
         fulfilled_state
       end
     else
