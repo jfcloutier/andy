@@ -212,6 +212,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_smells_food,
             perceived: [
+              { { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, 90 }, :now },
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 25 }, { :past_secs, 2 } }
             ],
             precision: :medium, # because not entirely reliable (sometimes fails to see beacon heading when right in front)
@@ -224,7 +225,8 @@ defmodule Andy.Puppy.Modeling do
           ),
           prediction(
             name: :puppy_faces_food,
-            perceived: [{ { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
+            perceived: [
+             { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
             precision: :medium,
             fulfill_when: [:puppy_smells_food],
             fulfillments: [
