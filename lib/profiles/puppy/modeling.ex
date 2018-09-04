@@ -396,7 +396,7 @@ defmodule Andy.Puppy.Modeling do
   defp turn_toward(heading_percept_specs) do
     fn ->
       heading = Memory.recall_value_of_latest_percept(heading_percept_specs) || 0
-      direction = if heading < 0, do: :turn_right, else: :turn_left
+      direction = if heading < 0, do: :turn_left, else: :turn_right
       how_much = cond do
         heading == 0 ->
           0
