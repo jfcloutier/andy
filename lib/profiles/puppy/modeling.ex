@@ -208,11 +208,13 @@ defmodule Andy.Puppy.Modeling do
 
       generative_model(
         name: :getting_closer_to_food,
-        hypothesis: "The puppy is getting closer to food",
+        hypothesis: "The puppy detects food",
         predictions: [
           prediction(
             name: :puppy_smells_food,
-            perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, @prox_percent }, { :past_secs, 5 } }],
+            perceived: [
+              { { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, @prox_percent }, { :past_secs, 5 } },
+              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 25 }, { :past_secs, 2 } }],
             precision: :high,
             fulfillments: [
               { :actions, [forward()] },
@@ -394,7 +396,6 @@ defmodule Andy.Puppy.Modeling do
     fn ->
       heading = Memory.recall_value_of_latest_percept(heading_percept_specs) || 0
       direction = if heading < 0, do: :turn_right, else: :turn_left
-      Logger.info("Action turn_toward heading #{heading} and direction #{direction}")
       how_much = cond do
         heading == 0 ->
           0
@@ -405,6 +406,7 @@ defmodule Andy.Puppy.Modeling do
         true ->
           1
       end
+      Logger.info("Action turn_toward heading #{heading}, direction #{direction} for #{how_much} secs")
       Action.new(
         intent_name: direction,
         intent_value: how_much
@@ -415,7 +417,6 @@ defmodule Andy.Puppy.Modeling do
   defp approach(distance_percept_specs) do
     fn ->
       distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
-      Logger.info("Action approach from distance #{distance}")
       speed = cond do
         # On top of it
         distance == 0 ->
@@ -435,6 +436,7 @@ defmodule Andy.Puppy.Modeling do
         true ->
           :very_slow
       end
+      Logger.info("Action approach from distance #{distance} at speed #{speed} for 1 second")
       Action.new(
         intent_name: :go_forward,
         intent_value: %{
