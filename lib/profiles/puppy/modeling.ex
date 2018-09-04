@@ -7,7 +7,6 @@ defmodule Andy.Puppy.Modeling do
 
   @low_light 1
   @us_near 15 # 15 cm
-  @prox_percent 90 # 90 is approx. 65 cm
 
   def generative_models() do
     [
@@ -215,7 +214,7 @@ defmodule Andy.Puppy.Modeling do
             perceived: [
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 25 }, { :past_secs, 2 } }
             ],
-            precision: :high,
+            precision: :medium, # because not entirely reliable
             fulfillments: [
               { :actions, [forward()] },
               { :actions, [turn()] },
@@ -226,7 +225,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_faces_food,
             perceived: [{ { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
-            precision: :high,
+            precision: :medium,
             fulfill_when: [:puppy_smells_food],
             fulfillments: [
               { :actions, [turn_toward({ :sensor, :infrared, { :beacon_heading, 1 } })] }
@@ -235,7 +234,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_approaches_food,
             perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, :descending, { :past_secs, 2 } }],
-            precision: :high,
+            precision: :medium,
             fulfill_when: [:puppy_faces_food],
             fulfillments: [
               { :actions, [approach({ :sensor, :infrared, { :beacon_distance, 1 } })] }
