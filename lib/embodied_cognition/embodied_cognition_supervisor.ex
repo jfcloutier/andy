@@ -47,6 +47,8 @@ defmodule Andy.EmbodiedCognitionSupervisor do
     spawn(
       fn ->
         Process.sleep(5000)
+        Andy.BrickPi.LegoSound.speak("Ready")
+        Process.sleep(2000)
         Logger.info("*** STARTING EMBODIED COGNITION ***")
         start_detectors()
         start_actuators()
