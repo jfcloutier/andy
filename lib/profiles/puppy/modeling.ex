@@ -329,7 +329,7 @@ defmodule Andy.Puppy.Modeling do
         intent_name: :go_forward,
         intent_value: %{
           speed: speed,
-          time: 1
+          time: 2
         }
       )
     end
@@ -342,7 +342,7 @@ defmodule Andy.Puppy.Modeling do
         intent_name: :go_backward,
         intent_value: %{
           speed: speed,
-          time: 1
+          time: 3
         }
       )
     end
