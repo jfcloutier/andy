@@ -298,14 +298,15 @@ defmodule Andy.Predictor do
            deprioritization: deprioritization
          } = state
        ) do
-    random = Enum.random(1..100)
+#    random = Enum.random(1..100)
     review_prediction? = case deprioritization do
       :none -> true
-      :high -> false
-      # don't review
-      :medium -> random in 1..10
-      # review 10% of the time
-      :low -> random == 1..5 # review 5% of the time
+      _other -> false
+#      :high -> false
+#      # don't review
+#      :medium -> random in 1..10
+#      # review 10% of the time
+#      :low -> random == 1..5 # review 5% of the time
     end
     if review_prediction? do
       do_review_prediction(state)
