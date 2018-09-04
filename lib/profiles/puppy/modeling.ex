@@ -226,7 +226,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_faces_food,
             perceived: [
-             { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
+              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
             precision: :medium,
             fulfill_when: [:puppy_smells_food],
             fulfillments: [
@@ -399,6 +399,8 @@ defmodule Andy.Puppy.Modeling do
       direction = if heading < 0, do: :turn_right, else: :turn_left
       how_much = cond do
         heading == 0 ->
+          0
+        abs(heading) == 25 -> # don't really know where it is, so don't bother
           0
         abs(heading) > 20 ->
           0.5

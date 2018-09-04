@@ -298,15 +298,15 @@ defmodule Andy.Predictor do
            deprioritization: deprioritization
          } = state
        ) do
-#    random = Enum.random(1..100)
+    #    random = Enum.random(1..100)
     review_prediction? = case deprioritization do
       :none -> true
       _other -> false
-#      :high -> false
-#      # don't review
-#      :medium -> random in 1..10
-#      # review 10% of the time
-#      :low -> random == 1..5 # review 5% of the time
+      #      :high -> false
+      #      # don't review
+      #      :medium -> random in 1..10
+      #      # review 10% of the time
+      #      :low -> random == 1..5 # review 5% of the time
     end
     if review_prediction? do
       do_review_prediction(state)
@@ -390,7 +390,13 @@ defmodule Andy.Predictor do
   end
 
   # Whether or not the predicted perceptions are verified with a given precision.
-  defp perceived_as_predicted?(%{ perceived: perceived_list, precision: precision } = _prediction) do
+  defp perceived_as_predicted?(
+         %{
+           perceived: perceived_list,
+           precision: precision,
+           name: name
+         } = _prediction
+       ) do
     probability = Enum.reduce(
       perceived_list,
       1.0,
@@ -400,7 +406,7 @@ defmodule Andy.Predictor do
     )
     perceived_as_predicted? = Andy.in_probable_range?(probability, precision)
     Logger.info(
-      "Perceived as predicted is #{perceived_as_predicted?} for #{inspect perceived_list} (probability = #{
+      "Perceived as predicted is #{perceived_as_predicted?} for #{name}: #{inspect perceived_list} (probability = #{
         probability
       }, precision = #{precision})"
     )

@@ -58,21 +58,32 @@ defmodule Andy.Memory do
 
   @doc "Recall latest unexpired, matching percept, if any"
   def recall_percepts_since(about, :now) do
-    case recall_percepts_since(as_percept_about(about), { :past_secs, 1 }) do
-      [percept | _] ->
-        [percept]
-      [] ->
+    case recall_latest_percept(about) do
+      nil ->
         []
+      percept ->
+        [percept]
     end
+  end
+
+  @doc "Recall latest matching percept"
+  def recall_latest_percept(about) do
+    case recall_percepts_since(as_percept_about(about), { :past_secs, @max_recall }) do
+      [percept | _] ->
+        percept
+      [] ->
+        nil
+    end
+
   end
 
   @doc "Recall latest unexpired, matching percept, if any"
   def recall_value_of_latest_percept(about) do
-    case recall_percepts_since(as_percept_about(about), { :past_secs, @max_recall }) do
-      [percept | _] ->
-        percept.value
-      [] ->
+    case recall_latest_percept(about) do
+      nil ->
         nil
+      percept ->
+        percept.value
     end
   end
 
@@ -106,7 +117,7 @@ defmodule Andy.Memory do
     forget()
   end
 
-  # Store a percept or extend a current one
+  # Store a percept
   defp store(%Percept{ about: about } = percept, state) do
     key = about.sense
     percepts = Map.get(state.percepts, key, [])
@@ -136,13 +147,7 @@ defmodule Andy.Memory do
 
   # Update stored percepts with a new one
   defp update_percepts(percept, [previous | others]) do
-    if not change_felt?(percept, previous) do
-      Logger.info("Extending percept #{inspect percept}")
-      extended_percept = %Percept{ previous | until: percept.since }
-      [extended_percept | others]
-    else
-      [percept, previous | others]
-    end
+    [percept, previous | others]
   end
 
   # Update stored actuated intents with a new one
@@ -184,22 +189,8 @@ defmodule Andy.Memory do
     case Map.get(state.beliefs, model_name) do
       nil ->
         false
-      %Belief{value: believed?} ->
+      %Belief{ value: believed? } ->
         believed?
-    end
-  end
-
-  # Is a percept the same as another value-wise?
-  # Both percepts are assumed to be from the same sense, thus comparable
-  defp change_felt?(percept, previous) do
-    cond do
-      percept.resolution == nil or previous.resolution == nil ->
-        percept.value != previous.value
-      not is_number(percept.value) or not is_number(previous.value) ->
-        percept.value != previous.value
-      true ->
-        resolution = max(percept.resolution, previous.resolution)
-        abs(percept.value - previous.value) >= resolution
     end
   end
 
