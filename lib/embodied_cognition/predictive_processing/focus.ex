@@ -181,12 +181,12 @@ defmodule Andy.Focus do
         if deprioritization.model_name == model_name and prediction_name in prediction_names do
           updated_prediction_names = List.delete(prediction_names, prediction_name)
           if updated_prediction_names == [] do
-            updated_prioritizations = remove_deprioritization(deprioritizations, deprioritization)
+            reduced_deprioritizations = remove_deprioritization(deprioritizations, deprioritization)
             reprioritize(
               deprioritization.competing_model_name,
-              updated_prioritizations
+              reduced_deprioritizations
             )
-            updated_prioritizations
+            reduced_deprioritizations
           else
             Logger.info(
               "Focus: Focus remaining on model #{model_name} because of predictions #{inspect updated_prediction_names}"
@@ -206,6 +206,7 @@ defmodule Andy.Focus do
 
   # Update the priority of a model given new deprioritizations
   defp reprioritize(model_name, deprioritizations) do
+    Logger.info("Reprioritizing #{model_name} given #{inspect deprioritizations}")
     effective_reduction = effective_reduction(model_name, deprioritizations)
     Logger.info("Focus: Reprioritizing #{model_name} by reducing its base priority by #{effective_reduction}")
     PubSub.notify_model_deprioritized(model_name, effective_reduction)
