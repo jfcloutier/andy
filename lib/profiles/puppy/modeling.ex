@@ -213,8 +213,8 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_smells_food,
             perceived: [
-              { { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, @prox_percent }, { :past_secs, 5 } },
-              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 25 }, { :past_secs, 2 } }],
+              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 25 }, { :past_secs, 2 } }
+            ],
             precision: :high,
             fulfillments: [
               { :actions, [forward()] },
