@@ -36,7 +36,7 @@ defmodule Andy.Puppy.Modeling do
             fulfillments: [
               { :actions, [say_once("I am hungry")] }
             ],
-            when_fulfilled: [say("I am full")]
+            when_fulfilled: [say("I am full"), backoff()]
           ),
           prediction(
             name: :puppy_is_free,
@@ -221,7 +221,7 @@ defmodule Andy.Puppy.Modeling do
               { :actions, [turn()] },
               { :actions, [backoff()] }
             ],
-            when_fulfilled: [say("I smell food")]
+            when_fulfilled: [say_once("I smell food")]
           ),
           prediction(
             name: :puppy_faces_food,

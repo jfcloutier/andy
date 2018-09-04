@@ -206,7 +206,6 @@ defmodule Andy.Focus do
 
   # Update the priority of a model given new deprioritizations
   defp reprioritize(model_name, deprioritizations) do
-    Logger.info("Reprioritizing #{model_name} given #{inspect deprioritizations}")
     effective_reduction = effective_reduction(model_name, deprioritizations)
     Logger.info("Focus: Reprioritizing #{model_name} by reducing its base priority by #{effective_reduction}")
     PubSub.notify_model_deprioritized(model_name, effective_reduction)
