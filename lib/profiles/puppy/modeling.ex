@@ -214,7 +214,7 @@ defmodule Andy.Puppy.Modeling do
             perceived: [
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 25 }, { :past_secs, 2 } }
             ],
-            precision: :medium, # because not entirely reliable
+            precision: :medium, # because not entirely reliable (sometimes fails to see beacon heading when right in front)
             fulfillments: [
               { :actions, [forward()] },
               { :actions, [turn()] },
@@ -306,7 +306,7 @@ defmodule Andy.Puppy.Modeling do
           prediction(
             name: :puppy_approaching_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, 30 }, :now },
+              { { :sensor, :ultrasonic, :distance }, { :lt, 20 }, :now },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,

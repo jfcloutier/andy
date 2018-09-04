@@ -31,8 +31,8 @@ defmodule Andy.Predictor do
                believer_name: believer_name,
                # the prediction made about the model
                prediction: prediction,
-               # the effective precision for the prediction
-               effective_precision: prediction.precision,
+               # By how much is the predictor deprioritized?
+               deprioritization: :none,
                # Is is currently fulfilled? For starters, yes
                fulfilled?: true,
                # index of the fulfillment currently being tried. Nil if none.
@@ -161,18 +161,18 @@ defmodule Andy.Predictor do
         { :model_deprioritized, model_name, priority },
         %{
           predictor_name: predictor_name,
-          prediction: prediction,
-          predicted_model_name: predicted_model_name
+          predicted_model_name: predicted_model_name,
+          deprioritization: deprioritization
         } = state
       ) do
     if model_name == predicted_model_name do
-      updated_effective_precision = reduce_precision_by(prediction.precision, priority)
       Logger.info(
-        "Changing effective precision of predictor #{predictor_name} from #{prediction.precision} to #{
-          updated_effective_precision
+        "Changing deprioritization of predictor #{predictor_name} from #{deprioritization} to #{
+          priority
         }"
       )
-      %{ state | effective_precision: updated_effective_precision }
+      redirect_attention(state)
+      %{ state | deprioritization: priority }
     else
       state
     end
@@ -227,12 +227,25 @@ defmodule Andy.Predictor do
     |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, precision)))
   end
 
+  # Redirect attention after a deprioritization or reprioritization
+  defp redirect_attention(
+         %{
+           predictor_name: predictor_name,
+           prediction: prediction,
+           deprioritization: deprioritization
+         } = _state
+       ) do
+    effective_precision = reduce_precision_by(prediction.precision, deprioritization)
+    Prediction.detector_specs(prediction)
+    |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, effective_precision)))
+  end
+
   # Get the specs of detectors which attention is required to make the predictor's prediction
   defp required_detection(predictor_name) do
     Agent.get(
       predictor_name,
-      fn (%{ prediction: prediction, effective_precision: effective_precision }) ->
-        { Prediction.detector_specs(prediction), effective_precision }
+      fn (%{ prediction: prediction }) ->
+        { Prediction.detector_specs(prediction), prediction.precision }
       end
     )
   end
@@ -278,19 +291,45 @@ defmodule Andy.Predictor do
     model_name == believed_model_name
   end
 
+  # Only review prediction for sure if not deprioritized
+  defp review_prediction(
+         %{
+           predictor_name: predictor_name,
+           deprioritization: deprioritization
+         } = state
+       ) do
+    random = Enum.random(1..10)
+    review_prediction? = case deprioritization do
+      :none -> true
+      :high -> false
+      # don't review
+      :medium -> random in 1..2
+      # review 20% of the time
+      :low -> random == 1 # review 10% of the time
+    end
+    if review_prediction? do
+      do_review_prediction(state)
+    else
+      Logger.info(
+        "Not reviewing prediction this time: Predictor #{predictor_name} has #{deprioritization} deprioritization."
+      )
+      state
+    end
+  end
+
   # Review the predictor's prediction (is it now valid, invalid?) and react accordingly
   # by raising a predicton error or a prediction fulfilled.
   # If the prediction is fulfilled, deactivate the current fulfillment, if any,
   # and execute any post-fulfillment actions
-  defp review_prediction(
+  defp do_review_prediction(
          %{
            prediction: prediction,
            fulfilled?: was_fulfilled?,
-           effective_precision: precision
+           prediction: prediction
          } = state
        ) do
     Logger.info("Reviewing prediction #{prediction.name} by predictor #{state.predictor_name}")
-    if prediction_fulfilled?(prediction, precision) do
+    if prediction_fulfilled?(prediction) do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true
       if not was_fulfilled? do
@@ -298,10 +337,7 @@ defmodule Andy.Predictor do
         PubSub.notify_prediction_fulfilled(
           prediction_fulfilled(fulfilled_state)
         )
-        # Only execute post-fulfillment actions if effective precision is not none
-        if precision != :none do
-          execute_actions_post_fulfillment(prediction.when_fulfilled)
-        end
+        execute_actions_post_fulfillment(prediction.when_fulfilled)
         deactivate_current_fulfillment(fulfilled_state)
       else
         fulfilled_state
@@ -315,10 +351,10 @@ defmodule Andy.Predictor do
   end
 
   # Is the prediction fulfilled?
-  defp prediction_fulfilled?(prediction, precision) do
+  defp prediction_fulfilled?(prediction) do
     believed_as_predicted?(prediction)
-    and perceived_as_predicted?(prediction, precision)
-    and actuated_as_predicted?(prediction, precision)
+    and perceived_as_predicted?(prediction)
+    and actuated_as_predicted?(prediction)
   end
 
   defp believed_as_predicted?(
@@ -348,12 +384,12 @@ defmodule Andy.Predictor do
     believed_as_predicted?
   end
 
-  defp perceived_as_predicted?(%{ perceived: [] } = _prediction, _precision) do
+  defp perceived_as_predicted?(%{ perceived: [] } = _prediction) do
     true
   end
 
   # Whether or not the predicted perceptions are verified with a given precision.
-  defp perceived_as_predicted?(%{ perceived: perceived_list } = _prediction, precision) do
+  defp perceived_as_predicted?(%{ perceived: perceived_list, precision: precision } = _prediction) do
     probability = Enum.reduce(
       perceived_list,
       1.0,
@@ -370,12 +406,12 @@ defmodule Andy.Predictor do
     perceived_as_predicted?
   end
 
-  defp actuated_as_predicted?(%{ actuated: [] } = _prediction, _precision) do
+  defp actuated_as_predicted?(%{ actuated: [] } = _prediction) do
     true
   end
 
   # Whether or not the predicted actuations are verified with a given precision.
-  defp actuated_as_predicted?(%{ actuated: actuated_list } = _prediction, precision) do
+  defp actuated_as_predicted?(%{ actuated: actuated_list, precision: precision } = _prediction) do
     probability = Enum.reduce(
       actuated_list,
       1.0,
