@@ -118,10 +118,11 @@ defmodule Andy.Believer do
   def reset_predictors(believer_pid) do
     Agent.cast(
       believer_pid,
-      fn (%{ predictor_names: predictor_names } = _state) ->
+      fn (%{ predictor_names: predictor_names } = state) ->
         for predictor_name <- predictor_names do
           Predictor.reset(predictor_name)
         end
+        state
       end
     )
   end

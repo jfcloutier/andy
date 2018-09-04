@@ -35,7 +35,8 @@ defmodule Andy.PredictorsSupervisor do
       { :error, { :already_started, _pid } } ->
         Predictor.reset(predictor_name)
         :ok
-      other -> other
+      other ->
+        other
     end
     predictor_name
   end
