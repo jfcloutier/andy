@@ -400,11 +400,11 @@ defmodule Andy.Puppy.Modeling do
         heading == 0 ->
           0
         abs(heading) > 20 ->
-          3
-        abs(heading) > 10 ->
-          2
-        true ->
           1
+        abs(heading) > 10 ->
+          0.25
+        true ->
+          0.1
       end
       Logger.info("Action turn_toward heading #{heading}, direction #{direction} for #{how_much} secs")
       Action.new(
