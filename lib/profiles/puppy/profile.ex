@@ -5,7 +5,7 @@ defmodule Andy.Puppy.Profile do
 	@behaviour Andy.ProfileBehaviour
 
 	def conjectures() do
-    Andy.Puppy.Modeling.conjectures()
+    Andy.Puppy.Profiling.conjectures()
   end
 
 end

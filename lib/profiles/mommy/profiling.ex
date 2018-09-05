@@ -1,4 +1,4 @@
-defmodule Andy.Mommy.Modeling do
+defmodule Andy.Mommy.Profiling do
 
   def conjectures() do
     [] # TODO

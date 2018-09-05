@@ -1,4 +1,4 @@
-defmodule Andy.Puppy.Modeling do
+defmodule Andy.Puppy.Profiling do
   @moduledoc "The conjectures for a puppy profile"
 
   alias Andy.{ Conjecture, Prediction, Action, Memory }
@@ -70,8 +70,8 @@ defmodule Andy.Puppy.Modeling do
             ]
           ),
           prediction(
-            name: :puppy_not_about_to_collide,
-            believed: { :not, :about_to_collide },
+            name: :puppy_not_about_to_bump,
+            believed: { :not, :about_to_bump },
             precision: :high,
             fulfillments: [
               { :actions, [turn()] },
@@ -147,10 +147,10 @@ defmodule Andy.Puppy.Modeling do
         ],
         priority: :high
       ),
-      # About to collide
+      # About to bump
       conjecture(
-        name: :about_to_collide,
-        hypothesis: "The puppy is about to collide",
+        name: :about_to_bump,
+        hypothesis: "The puppy is about to bump",
         predictions: [
           prediction(
             name: :puppy_close_to_obstacle,
