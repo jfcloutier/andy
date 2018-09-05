@@ -97,12 +97,12 @@ defmodule Andy.Memory do
     )
   end
 
-  @doc "Recall whether a model is currently believed in"
-  def recall_believed?(model_name) do
+  @doc "Recall whether a conjecture is currently believed in"
+  def recall_believed?(conjecture_name) do
     Agent.get(
       @name,
       fn (state) ->
-        believed?(model_name, state)
+        believed?(conjecture_name, state)
       end
     )
   end
@@ -134,10 +134,10 @@ defmodule Andy.Memory do
     %{ state | intents: Map.put(state.intents, intent.about, new_intents) }
   end
 
-  # Update the current belief in a model
+  # Update the current belief in a conjecture
   defp store(%Belief{ } = belief, %{ beliefs: beliefs } = state) do
     PubSub.notify_belief_memorized(belief)
-    %{ state | beliefs: Map.put(beliefs, belief.model_name, belief) }
+    %{ state | beliefs: Map.put(beliefs, belief.conjecture_name, belief) }
   end
 
   # Update stored percepts with a new one
@@ -185,8 +185,8 @@ defmodule Andy.Memory do
   end
 
   # Find whether a nodel is currently believed in
-  defp believed?(model_name, state) do
-    case Map.get(state.beliefs, model_name) do
+  defp believed?(conjecture_name, state) do
+    case Map.get(state.beliefs, conjecture_name) do
       nil ->
         false
       %Belief{ value: believed? } ->

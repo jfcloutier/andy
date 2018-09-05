@@ -3,7 +3,7 @@ defmodule Andy.BelieversSupervisor do
 
   @name __MODULE__
   use DynamicSupervisor
-  alias Andy.{ Believer, GenerativeModels }
+  alias Andy.{ Believer, Conjectures }
   require Logger
 
   @doc "Child spec as supervised supervisor"
@@ -21,34 +21,34 @@ defmodule Andy.BelieversSupervisor do
     DynamicSupervisor.start_link(@name, [], name: @name)
   end
 
-  @doc "Start a believer on a generative model"
-  def start_believer(model) do
-    spec = { Believer, [model] }
+  @doc "Start a believer on a conjecture"
+  def start_believer(conjecture) do
+    spec = { Believer, [conjecture] }
     :ok = case DynamicSupervisor.start_child(@name, spec) do
       { :ok, _pid } -> :ok
       { :error, { :already_started, pid } } ->
-        Believer.reset_predictors(pid)
+        Believer.reset_validators(pid)
         :ok
       other -> other
     end
-    model.name
+    conjecture.name
   end
 
-  @doc " A predictor enlists a believer"
-  def enlist_believer(model_name, predictor_name, is_or_not) do
-    Logger.info("Enlisting believer of model #{model_name} for predictor #{predictor_name}")
-    model = GenerativeModels.fetch!(model_name)
-    believer_name = start_believer(model)
-    Believer.enlisted_by_predictor(believer_name, predictor_name, is_or_not)
-    # The name of the model is also the name of its believer
-    model_name
+  @doc " A validator enlists a believer"
+  def enlist_believer(conjecture_name, validator_name, is_or_not) do
+    Logger.info("Enlisting believer of conjecture #{conjecture_name} for validator #{validator_name}")
+    conjecture = Conjectures.fetch!(conjecture_name)
+    believer_name = start_believer(conjecture)
+    Believer.enlisted_by_validator(believer_name, validator_name, is_or_not)
+    # The name of the conjecture is also the name of its believer
+    conjecture_name
   end
 
-  @doc " A predictor releases a believer by its model name, which is its name"
-  def release_believer(model_name, predictor_name) do
-    Logger.info("Releasing believer of model #{model_name} from predictor #{predictor_name}")
-    # A believer's name is that of its model
-    Believer.released_by_predictor(model_name, predictor_name)
+  @doc " A validator releases a believer by its conjecture name, which is its name"
+  def release_believer(conjecture_name, validator_name) do
+    Logger.info("Releasing believer of conjecture #{conjecture_name} from validator #{validator_name}")
+    # A believer's name is that of its conjecture
+    Believer.released_by_validator(conjecture_name, validator_name)
   end
 
   @doc "Terminate a believer"

@@ -1,6 +1,6 @@
 defmodule Andy.Prediction do
 
-  @moduledoc "A prediction that sets belief in a generative model"
+  @moduledoc "A prediction that sets belief in a generative conjecture"
 
   alias Andy.{ Fulfillment, Prediction }
   import Andy.Utils, only: [as_percept_about: 1]
@@ -31,13 +31,13 @@ defmodule Andy.Prediction do
     :time_sensitive?
   ]
 
-  # prediction name is unique within a generative model
+  # prediction name is unique within a generative conjecture
   defstruct name: nil,
               # e.g. [{ { :sensor, :any, :color, :ambient }, { :gt, 50 }, { :past_secs, 2 } }]
             perceived: [],
               # { :eating, :any, { :past_secs, 5 } }
             actuated: [],
-              # {:is | :not, model_name} or nil
+              # {:is | :not, conjecture_name} or nil
             believed: nil,
               # One of :high, :medium, :low
             precision: nil,
@@ -121,8 +121,8 @@ defmodule Andy.Prediction do
         case fulfillment_spec do
           { :actions, actions } ->
             Fulfillment.new(actions: actions)
-          { :model, model_name } ->
-            Fulfillment.new(model_name: model_name)
+          { :conjecture, conjecture_name } ->
+            Fulfillment.new(conjecture_name: conjecture_name)
         end
       end
     )

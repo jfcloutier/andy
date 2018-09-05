@@ -1,6 +1,6 @@
 defmodule Andy.Attention do
   @moduledoc """
-  Responsible for activating and deactivating detectors as needed by predictors,
+  Responsible for activating and deactivating detectors as needed by validators,
   and setting their polling frequency"
   """
   require Logger
@@ -25,7 +25,7 @@ defmodule Andy.Attention do
     { :ok, pid } = Agent.start_link(
       fn ->
         %{
-          # [%{predictor_name: ..., detector_specs: ..., precision: ...}, ...] - precision in [:none, :low, :medium, :high]
+          # [%{validator_name: ..., detector_specs: ..., precision: ...}, ...] - precision in [:none, :low, :medium, :high]
           attended_list: []
         }
       end,
@@ -40,12 +40,12 @@ defmodule Andy.Attention do
 
   ## Handle timer events
 
-  def handle_event({ :attention_on, detector_specs, predictor_name, precision }, state) do
-    pay_attention(detector_specs, predictor_name, precision, state)
+  def handle_event({ :attention_on, detector_specs, validator_name, precision }, state) do
+    pay_attention(detector_specs, validator_name, precision, state)
   end
 
-  def handle_event({ :attention_off, predictor_name }, state) do
-    lose_attention(predictor_name, state)
+  def handle_event({ :attention_off, validator_name }, state) do
+    lose_attention(validator_name, state)
   end
 
   def handle_event(_event, state) do
@@ -55,40 +55,40 @@ defmodule Andy.Attention do
 
   ### PRIVATE
 
-  # Add, on behalf of a predictor, to the detections that are active
+  # Add, on behalf of a validator, to the detections that are active
   # and adjust the polling frequency of activated detectors.
   defp pay_attention(
          detector_specs,
-         predictor_name,
+         validator_name,
          precision,
          %{ attended_list: attended_list } = state
        ) do
-    Logger.info("Paying attention to #{inspect detector_specs} for predictor #{predictor_name}")
-    attended_minus = remove_attended(attended_list, detector_specs, predictor_name)
-    new_attended = %{ predictor_name: predictor_name, detector_specs: detector_specs, precision: precision }
+    Logger.info("Paying attention to #{inspect detector_specs} for validator #{validator_name}")
+    attended_minus = remove_attended(attended_list, detector_specs, validator_name)
+    new_attended = %{ validator_name: validator_name, detector_specs: detector_specs, precision: precision }
     new_state = %{ state | attended_list: [new_attended | attended_minus] }
     adjust_polling_precision(detector_specs, new_state)
     new_state
   end
 
-  # Remove, on behalf of a predictor, from the detections that are active
+  # Remove, on behalf of a validator, from the detections that are active
   # and adjust the polling frequency of activated detectors.
-  defp lose_attention(predictor_name, %{ attended_list: attended_list } = state) do
-    Logger.info("Losing attention for predictor #{predictor_name}")
-    detector_specs = predictor_detector_specs(predictor_name, state)
-    attended_minus = remove_any_attended(attended_list, predictor_name)
+  defp lose_attention(validator_name, %{ attended_list: attended_list } = state) do
+    Logger.info("Losing attention for validator #{validator_name}")
+    detector_specs = validator_detector_specs(validator_name, state)
+    attended_minus = remove_any_attended(attended_list, validator_name)
     new_state = %{ state | attended_list: attended_minus }
     adjust_polling_precision(detector_specs, new_state)
     new_state
   end
 
-  # Remove the given detector specs from what's attended to on behalf of a predictor
-  defp remove_attended(attended_list, detector_specs, predictor_name) do
+  # Remove the given detector specs from what's attended to on behalf of a validator
+  defp remove_attended(attended_list, detector_specs, validator_name) do
     Enum.reduce(
       attended_list,
       [],
       fn (attended, acc) ->
-        if attended.predictor_name == predictor_name and Percept.about_match?(
+        if attended.validator_name == validator_name and Percept.about_match?(
           detector_specs,
           attended.detector_specs
            ) do
@@ -100,13 +100,13 @@ defmodule Andy.Attention do
     )
   end
 
-  # Remove all detector specs from what's attended to on behalf of a predictor
-  defp remove_any_attended(attended_list, predictor_name) do
+  # Remove all detector specs from what's attended to on behalf of a validator
+  defp remove_any_attended(attended_list, validator_name) do
     Enum.reduce(
       attended_list,
       [],
       fn (attended, acc) ->
-        if attended.predictor_name == predictor_name do
+        if attended.validator_name == validator_name do
           acc
         else
           [attended | acc]
@@ -115,12 +115,12 @@ defmodule Andy.Attention do
     )
   end
 
-  # Get all detected specs being attended to for a predictor
-  defp predictor_detector_specs(
-         predictor_name,
+  # Get all detected specs being attended to for a validator
+  defp validator_detector_specs(
+         validator_name,
          %{ attended_list: attended_list } = _state
        ) do
-    case Enum.find(attended_list, &(&1.predictor_name == predictor_name)) do
+    case Enum.find(attended_list, &(&1.validator_name == validator_name)) do
       nil ->
         nil
       %{ detector_specs: specs } ->

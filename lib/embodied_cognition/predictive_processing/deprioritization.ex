@@ -1,9 +1,9 @@
 defmodule Andy.Deprioritization do
-  @moduledoc "Struct describing a model deprioritization by Focus"
+  @moduledoc "Struct describing a conjecture deprioritization by Focus"
 
-  defstruct model_name: nil,
+  defstruct conjecture_name: nil,
             prediction_names: [],
-            competing_model_name: nil,
+            competing_conjecture_name: nil,
             from_priority: nil,
             to_priority: nil
 

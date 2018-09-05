@@ -1,45 +1,45 @@
 defmodule Andy.Believer do
 
-  @moduledoc "Track belief in a generative model from prediction errors and fulfillments."
+  @moduledoc "Track belief in a conjecture from prediction errors and fulfillments."
 
   require Logger
-  alias Andy.{ PubSub, Belief, Prediction, Predictor, BelieversSupervisor, PredictorsSupervisor }
+  alias Andy.{ PubSub, Belief, Prediction, Validator, BelieversSupervisor, ValidatorsSupervisor }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
-  def child_spec([generative_model]) do
+  def child_spec([conjecture]) do
     %{
       # defaults to restart: permanent and type: :worker
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [generative_model] }
+      start: { __MODULE__, :start_link, [conjecture] }
     }
   end
 
-  @doc "Start the embodied cognition agent responsible for believing in a generative model"
-  def start_link(generative_model) do
-    believer_name = generative_model.name
+  @doc "Start the embodied cognition agent responsible for believing in a conjecture"
+  def start_link(conjecture) do
+    believer_name = conjecture.name
     case Agent.start_link(
            fn () ->
              %{
                believer_name: believer_name,
-               model: generative_model,
+               conjecture: conjecture,
                # prediction_name => true|false -- the believer is validated if all predictions are true
                validations: %{ },
-               # the names of the believer's predictors
-               predictor_names: [],
-               # The names of the predictors that enlisted this believer and whether they are validated by the model being believed
-               for_predictors: %{ }
-               # %{predictor_name => :is | :not}
+               # the names of the believer's validators
+               validator_names: [],
+               # The names of the validators that enlisted this believer and whether they are validated by the conjecture being believed
+               for_validators: %{ }
+               # %{validator_name => :is | :not}
              }
            end,
            [name: believer_name]
          ) do
       { :ok, pid } ->
-        spawn(fn -> start_predictors(believer_name) end)
+        spawn(fn -> start_validators(believer_name) end)
         PubSub.notify_believer_started(believer_name)
-        Logger.info("Believer #{believer_name} started on generative model #{generative_model.name}")
+        Logger.info("Believer #{believer_name} started on conjecture #{conjecture.name}")
         listen_to_events(pid, __MODULE__)
         { :ok, pid }
       other ->
@@ -47,28 +47,28 @@ defmodule Andy.Believer do
     end
   end
 
-  @doc "A believer is enlisted by a predictor predicting that a belief is validated or not"
-  def enlisted_by_predictor(believer_name, predictor_name, is_or_not) do
+  @doc "A believer is enlisted by a validator predicting that a belief is validated or not"
+  def enlisted_by_validator(believer_name, validator_name, is_or_not) do
     Agent.update(
       believer_name,
-      fn (%{ for_predictors: for_predictors } = state) ->
-        %{ state | for_predictors: Map.put(for_predictors, predictor_name, is_or_not) }
+      fn (%{ for_validators: for_validators } = state) ->
+        %{ state | for_validators: Map.put(for_validators, validator_name, is_or_not) }
       end
     )
   end
 
-  @doc "A believer was released by a predictor"
-  def released_by_predictor(believer_name, predictor_name) do
-    Logger.info("Believer #{believer_name} released by predictor #{predictor_name}")
+  @doc "A believer was released by a validator"
+  def released_by_validator(believer_name, validator_name) do
+    Logger.info("Believer #{believer_name} released by validator #{validator_name}")
     Agent.update(
       believer_name,
-      fn (%{ for_predictors: for_predictors } = state) ->
-        %{ state | for_predictors: Map.delete(for_predictors, predictor_name) }
+      fn (%{ for_validators: for_validators } = state) ->
+        %{ state | for_validators: Map.delete(for_validators, validator_name) }
       end
     )
     if obsolete?(believer_name) do
       Logger.info("Believer #{believer_name} is obsolete")
-      terminate_predictors(believer_name)
+      terminate_validators(believer_name)
       BelieversSupervisor.terminate(believer_name)
       PubSub.notify_believer_terminated(believer_name)
     else
@@ -81,25 +81,25 @@ defmodule Andy.Believer do
   def obsolete?(believer_name) do
     Agent.get(
       believer_name,
-      fn (%{ for_predictors: for_predictors, model: model }) ->
-        not model.hyper_prior? and Enum.empty?(for_predictors)
+      fn (%{ for_validators: for_validators, conjecture: conjecture }) ->
+        not conjecture.hyper_prior? and Enum.empty?(for_validators)
       end
     )
   end
 
-  @doc "Start a predictor for each prediction about the model"
-  def start_predictors(believer_name) do
+  @doc "Start a validator for each prediction about the conjecture"
+  def start_validators(believer_name) do
     Agent.update(
       believer_name,
-      fn (%{ model: model } = state) ->
-        predictor_names = Enum.map(
-          model.predictions,
+      fn (%{ conjecture: conjecture } = state) ->
+        validator_names = Enum.map(
+          conjecture.predictions,
           fn (prediction) ->
-            PredictorsSupervisor.start_predictor(prediction, believer_name, model.name)
+            ValidatorsSupervisor.start_validator(prediction, believer_name, conjecture.name)
           end
         )
         validations = Enum.reduce(
-          model.predictions,
+          conjecture.predictions,
           %{ },
           fn (prediction, acc) ->
             Map.put(
@@ -109,30 +109,30 @@ defmodule Andy.Believer do
             )
           end
         )
-        %{ state | predictor_names: predictor_names, validations: validations }
+        %{ state | validator_names: validator_names, validations: validations }
       end
     )
   end
 
-  @doc "Reset the believer's predictors"
-  def reset_predictors(believer_pid) do
+  @doc "Reset the believer's validators"
+  def reset_validators(believer_pid) do
     Agent.cast(
       believer_pid,
-      fn (%{ predictor_names: predictor_names } = state) ->
-        for predictor_name <- predictor_names do
-          Predictor.reset(predictor_name)
+      fn (%{ validator_names: validator_names } = state) ->
+        for validator_name <- validator_names do
+          Validator.reset(validator_name)
         end
         state
       end
     )
   end
 
-  @doc "Is this believer only enlisted by predictors positively asserting the belief?"
+  @doc "Is this believer only enlisted by validators positively asserting the belief?"
   def predicted_to_be_validated?(believer_name) do
     Agent.get(
       believer_name,
-      fn (%{ for_predictors: for_predictors } = _state) ->
-        Enum.all?(Map.values(for_predictors), &(&1 == :is))
+      fn (%{ for_validators: for_validators } = _state) ->
+        Enum.all?(Map.values(for_validators), &(&1 == :is))
       end
     )
   end
@@ -140,12 +140,12 @@ defmodule Andy.Believer do
   ### Cognition Agent Behaviour
 
   def handle_event(
-        { :prediction_error, %{ model_name: model_name } = prediction_error },
+        { :prediction_error, %{ conjecture_name: conjecture_name } = prediction_error },
         %{
-          model: model
+          conjecture: conjecture
         } = state
       ) do
-    if  model.name == model_name do
+    if  conjecture.name == conjecture_name do
       process_prediction_error(prediction_error, state)
     else
       state
@@ -153,12 +153,12 @@ defmodule Andy.Believer do
   end
 
   def handle_event(
-        { :prediction_fulfilled, %{ model_name: model_name } = prediction_fulfilled },
+        { :prediction_fulfilled, %{ conjecture_name: conjecture_name } = prediction_fulfilled },
         %{
-          model: model
+          conjecture: conjecture
         } = state
       ) do
-    if  model.name == model_name do
+    if  conjecture.name == conjecture_name do
       process_prediction_fulfilled(prediction_fulfilled, state)
     else
       state
@@ -173,33 +173,33 @@ defmodule Andy.Believer do
 
   # PRIVATE
 
-  # Are all predictions from the model been validated?
+  # Are all predictions from the conjecture been validated?
   defp all_predictions_validated?(validations) do
     Enum.all?(validations, fn ({ _, value }) -> value == true end)
   end
 
-  # Terminate all the predictors of a believer
-  defp terminate_predictors(believer_name) do
+  # Terminate all the validators of a believer
+  defp terminate_validators(believer_name) do
     Agent.update(
       believer_name,
-      fn (%{ predictor_names: predictor_names } = state) ->
+      fn (%{ validator_names: validator_names } = state) ->
         Enum.each(
-          predictor_names,
-          &(PredictorsSupervisor.terminate_predictor(&1))
+          validator_names,
+          &(ValidatorsSupervisor.terminate_validator(&1))
         )
-        %{ state | predictor_names: [] }
+        %{ state | validator_names: [] }
       end
     )
   end
 
-  # Process a prediction error about the believer's model
+  # Process a prediction error about the believer's conjecture
   defp process_prediction_error(prediction_error, %{ validations: validations } = state) do
-    PubSub.notify_believed(Belief.new(state.model.name, false))
+    PubSub.notify_believed(Belief.new(state.conjecture.name, false))
     updated_state = %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
-    activate_or_terminate_dependent_predictors(updated_state)
+    activate_or_terminate_dependent_validators(updated_state)
   end
 
-  # Process the fulfimmnet of a prediction about the believer's model. Perhaps activate/terminate dependent predictors.
+  # Process the fulfimmnet of a prediction about the believer's conjecture. Perhaps activate/terminate dependent validators.
   defp process_prediction_fulfilled(
          prediction_fulfilled,
          %{
@@ -209,59 +209,59 @@ defmodule Andy.Believer do
     updated_validations = Map.put(validations, prediction_fulfilled.prediction_name, true)
     was_already_believed? = all_predictions_validated?(validations)
     if not was_already_believed? and all_predictions_validated?(updated_validations) do
-      PubSub.notify_believed(Belief.new(state.model.name, true))
+      PubSub.notify_believed(Belief.new(state.conjecture.name, true))
     end
     updated_state = %{ state | validations: updated_validations }
-    activate_or_terminate_dependent_predictors(updated_state)
+    activate_or_terminate_dependent_validators(updated_state)
   end
 
-  # Activate or terminate predictors that need a prediction to first be true before they are activated
-  defp activate_or_terminate_dependent_predictors(
+  # Activate or terminate validators that need a prediction to first be true before they are activated
+  defp activate_or_terminate_dependent_validators(
          %{
            believer_name: believer_name,
            validations: validations,
-           model: model
+           conjecture: conjecture
          } = state
        ) do
     Enum.reduce(
-      model.predictions,
+      conjecture.predictions,
       state,
       fn (prediction, acc) ->
         case prediction.fulfill_when do
           [] ->
-            # corresponding predictor not dependent on siblings
+            # corresponding validator not dependent on siblings
             acc
           fulfill_when ->
             if predictions_validated?(fulfill_when, validations) do
-              # All pre-requisite predictions for a prediction are validated, activate a predictor for it
+              # All pre-requisite predictions for a prediction are validated, activate a validator for it
               Logger.info(
-                "Starting predictor for #{prediction.name} because all pre-requisites #{
+                "Starting validator for #{prediction.name} because all pre-requisites #{
                   inspect fulfill_when
                 } are now valid"
               )
-              predictor_name = PredictorsSupervisor.start_predictor(
+              validator_name = ValidatorsSupervisor.start_validator(
                 prediction,
                 believer_name,
-                model.name
+                conjecture.name
               )
               %{
                 acc |
-                predictor_names: (
-                  [predictor_name | acc.predictor_names]
+                validator_names: (
+                  [validator_name | acc.validator_names]
                   |> Enum.uniq())
               }
             else
-              # Not all pre-requisite predictors are validated for a prediction, terminate the predictor for it
-              predictor_name = Predictor.predictor_name(prediction, model.name)
+              # Not all pre-requisite validators are validated for a prediction, terminate the validator for it
+              validator_name = Validator.validator_name(prediction, conjecture.name)
               Logger.info(
-                "Terminating predictor for #{prediction.name} because some pre-requisites #{
+                "Terminating validator for #{prediction.name} because some pre-requisites #{
                   inspect fulfill_when
                 } are no longer valid"
               )
-              PredictorsSupervisor.terminate_predictor(
-                predictor_name
+              ValidatorsSupervisor.terminate_validator(
+                validator_name
               )
-              %{ acc | predictor_names: List.delete(acc.predictor_names, predictor_name) }
+              %{ acc | validator_names: List.delete(acc.validator_names, validator_name) }
             end
         end
       end

@@ -1,6 +1,6 @@
-defmodule Andy.Predictor do
+defmodule Andy.Validator do
   @moduledoc """
-    Given a prediction about a model, validate it when needed, and react to it being validated or invalidated."
+    Given a prediction about a conjecture, validate it when needed, and react to it being validated or invalidated."
   """
   require Logger
   alias Andy.{ PubSub, Prediction, Percept, Belief, Fulfill, Action, Intent,
@@ -10,28 +10,28 @@ defmodule Andy.Predictor do
   @behaviour Andy.EmbodiedCognitionAgent
 
   @doc "Child spec asked by DynamicSupervisor"
-  def child_spec([prediction, believer_name, model_name]) do
+  def child_spec([prediction, believer_name, conjecture_name]) do
     %{
       # defaults to restart: permanent and type: :worker
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [prediction, believer_name, model_name] }
+      start: { __MODULE__, :start_link, [prediction, believer_name, conjecture_name] }
     }
   end
 
-  @doc "Start the embodied cognition agent responsible for a prediction in a generative model"
-  def start_link(prediction, believer_name, model_name) do
-    predictor_name = predictor_name(prediction, model_name)
+  @doc "Start the embodied cognition agent responsible for a prediction in a conjecture"
+  def start_link(prediction, believer_name, conjecture_name) do
+    validator_name = validator_name(prediction, conjecture_name)
     case Agent.start_link(
            fn ->
              %{
-               predictor_name: predictor_name,
-               # the name of the model this predictor helps validate
-               predicted_model_name: model_name,
-               # name of model believer making (owning) the prediction
+               validator_name: validator_name,
+               # the name of the conjecture this validator helps validate
+               predicted_conjecture_name: conjecture_name,
+               # name of conjecture believer making (owning) the prediction
                believer_name: believer_name,
-               # the prediction made about the model
+               # the prediction made about the conjecture
                prediction: prediction,
-               # By how much is the predictor deprioritized?
+               # By how much is the validator deprioritized?
                deprioritization: :none,
                # Is is currently fulfilled? For starters, yes
                fulfilled?: true,
@@ -39,11 +39,11 @@ defmodule Andy.Predictor do
                fulfillment_index: nil
              }
            end,
-           [name: predictor_name]
+           [name: validator_name]
          ) do
       { :ok, pid } ->
-        spawn(fn -> predict(predictor_name) end)
-        Logger.info("Predictor #{predictor_name} started on #{Prediction.summary(prediction)} with pid #{inspect pid}")
+        spawn(fn -> validate(validator_name) end)
+        Logger.info("Validator #{validator_name} started on #{Prediction.summary(prediction)} with pid #{inspect pid}")
         listen_to_events(pid, __MODULE__)
         { :ok, pid }
       other ->
@@ -51,22 +51,22 @@ defmodule Andy.Predictor do
     end
   end
 
-  @doc "Generate the predictor's name from the prediction it is responsible for and the model predicted"
-  def predictor_name(prediction, model_name) do
-    String.to_atom("#{prediction.name} in #{model_name}")
+  @doc "Generate the validator's name from the prediction it is responsible for and the conjecture predicted"
+  def validator_name(prediction, conjecture_name) do
+    String.to_atom("#{prediction.name} in #{conjecture_name}")
   end
 
   @doc "Enlist a believer and direct attention, if appropriate"
-  def predict(predictor_name) do
-    enlist_believer(predictor_name)
-    direct_attention(predictor_name)
+  def validate(validator_name) do
+    enlist_believer(validator_name)
+    direct_attention(validator_name)
   end
 
   @doc "Reset - fulfillment status only"
-  def reset(predictor_name) do
-    Logger.info("Resetting predictor #{predictor_name}")
+  def reset(validator_name) do
+    Logger.info("Resetting validator #{validator_name}")
     Agent.update(
-      predictor_name,
+      validator_name,
       fn (state) ->
         %{state | fulfilled?: false}
       end
@@ -77,13 +77,13 @@ defmodule Andy.Predictor do
    Release any enlisted believer and deactivate
    any current fulfillment, before being terminated"
   """
-  def about_to_be_terminated(predictor_name) do
-    PubSub.notify_attention_off(predictor_name)
+  def about_to_be_terminated(validator_name) do
+    PubSub.notify_attention_off(validator_name)
     Agent.update(
-      predictor_name,
+      validator_name,
       fn (state) ->
         state
-        |> release_believer_from_predictor()
+        |> release_believer_from_validator()
         |> deactivate_current_fulfillment()
       end
     )
@@ -145,18 +145,18 @@ defmodule Andy.Predictor do
         {
           :fulfill,
           %Fulfill{
-            predictor_name: fulfill_predictor_name,
+            validator_name: fulfill_validator_name,
             fulfillment_index: new_fulfillment_index
           }
         },
         %{
-          predictor_name: predictor_name,
+          validator_name: validator_name,
           fulfillment_index: current_fulfillment_index
         } = state
       ) do
     # Try a given fulfillment in response to a prediction error -
-    # It might instantiate a temporary model believer for a fulfillment action
-    if predictor_name == fulfill_predictor_name do
+    # It might instantiate a temporary conjecture believer for a fulfillment action
+    if validator_name == fulfill_validator_name do
       if new_fulfillment_index != current_fulfillment_index do
         updated_state = deactivate_current_fulfillment(state)
         activate_fulfillment(new_fulfillment_index, updated_state, :first_time)
@@ -169,16 +169,16 @@ defmodule Andy.Predictor do
   end
 
   def handle_event(
-        { :model_deprioritized, model_name, priority },
+        { :conjecture_deprioritized, conjecture_name, priority },
         %{
-          predictor_name: predictor_name,
-          predicted_model_name: predicted_model_name,
+          validator_name: validator_name,
+          predicted_conjecture_name: predicted_conjecture_name,
           deprioritization: deprioritization
         } = state
       ) do
-    if model_name == predicted_model_name do
+    if conjecture_name == predicted_conjecture_name do
       Logger.info(
-        "Changing deprioritization of predictor #{predictor_name} from #{deprioritization} to #{
+        "Changing deprioritization of validator #{validator_name} from #{deprioritization} to #{
           priority
         }"
       )
@@ -196,35 +196,35 @@ defmodule Andy.Predictor do
 
   #### Private
 
-  # Enlist a believer if belief (or non-belief) in a model is what is being predicted
-  defp enlist_believer(predictor_name) do
+  # Enlist a believer if belief (or non-belief) in a conjecture is what is being predicted
+  defp enlist_believer(validator_name) do
     Agent.update(
-      predictor_name,
+      validator_name,
       fn (%{ prediction: %{ believed: believed } = _prediction } = state) ->
         case believed do
           nil ->
             state
-          { is_or_not, model_name } ->
-            believer_name = BelieversSupervisor.enlist_believer(model_name, predictor_name, is_or_not)
+          { is_or_not, conjecture_name } ->
+            believer_name = BelieversSupervisor.enlist_believer(conjecture_name, validator_name, is_or_not)
             %{ state | believer_name: believer_name }
         end
       end
     )
   end
 
-  # Release any believer enlisted by the predictor
-  defp release_believer_from_predictor(
+  # Release any believer enlisted by the validator
+  defp release_believer_from_validator(
          %{
            believer_name: believer_name,
-           predictor_name: predictor_name
+           validator_name: validator_name
          } = state
        ) do
-    Logger.info("Releasing believer from belief predictor #{predictor_name}")
+    Logger.info("Releasing believer from belief validator #{validator_name}")
     if believer_name != nil do
       # Spawn, else deadlock
       spawn(
         fn ->
-          BelieversSupervisor.release_believer(believer_name, predictor_name)
+          BelieversSupervisor.release_believer(believer_name, validator_name)
         end
       )
       %{ state | believer_name: nil }
@@ -232,36 +232,36 @@ defmodule Andy.Predictor do
   end
 
   # Direct attention by detectors to the predicted perceptions, if any
-  defp direct_attention(predictor_name) do
-    { detector_specs_list, precision } = required_detection(predictor_name)
+  defp direct_attention(validator_name) do
+    { detector_specs_list, precision } = required_detection(validator_name)
     detector_specs_list
-    |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, precision)))
+    |> Enum.each(&(PubSub.notify_attention_on(&1, validator_name, precision)))
   end
 
   # Redirect attention after a deprioritization or reprioritization
   defp redirect_attention(
          %{
-           predictor_name: predictor_name,
+           validator_name: validator_name,
            prediction: prediction,
            deprioritization: deprioritization
          } = _state
        ) do
     effective_precision = reduce_precision_by(prediction.precision, deprioritization)
     Prediction.detector_specs(prediction)
-    |> Enum.each(&(PubSub.notify_attention_on(&1, predictor_name, effective_precision)))
+    |> Enum.each(&(PubSub.notify_attention_on(&1, validator_name, effective_precision)))
   end
 
-  # Get the specs of detectors which attention is required to make the predictor's prediction
-  defp required_detection(predictor_name) do
+  # Get the specs of detectors which attention is required to make the validator's prediction
+  defp required_detection(validator_name) do
     Agent.get(
-      predictor_name,
+      validator_name,
       fn (%{ prediction: prediction }) ->
         { Prediction.detector_specs(prediction), prediction.precision }
       end
     )
   end
 
-  # Is a percept relevant to the predictor's prediction?
+  # Is a percept relevant to the validator's prediction?
   defp percept_relevant?(
          %Percept{ about: percept_about },
          %Prediction{ perceived: perceived_specs } = _prediction
@@ -274,7 +274,7 @@ defmodule Andy.Predictor do
     )
   end
 
-  # Is an actuated intent relevant to the predictor's prediction?
+  # Is an actuated intent relevant to the validator's prediction?
   defp intent_relevant?(
          %Intent{ about: about },
          %Prediction{ actuated: actuated_specs } = _prediction
@@ -294,18 +294,18 @@ defmodule Andy.Predictor do
     false
   end
 
-  # Is a belief in a model relevant to the predictor's prediction?
+  # Is a belief in a conjecture relevant to the validator's prediction?
   defp belief_relevant?(
-         %Belief{ model_name: model_name },
-         %Prediction{ believed: { _is_or_not, believed_model_name } = _prediction }
+         %Belief{ conjecture_name: conjecture_name },
+         %Prediction{ believed: { _is_or_not, believed_conjecture_name } = _prediction }
        ) do
-    model_name == believed_model_name
+    conjecture_name == believed_conjecture_name
   end
 
   # Only review prediction for sure if not deprioritized
   defp review_prediction(
          %{
-           predictor_name: predictor_name,
+           validator_name: validator_name,
            deprioritization: deprioritization
          } = state
        ) do
@@ -323,13 +323,13 @@ defmodule Andy.Predictor do
       do_review_prediction(state)
     else
       Logger.info(
-        "Not reviewing prediction this time: Predictor #{predictor_name} has #{deprioritization} deprioritization."
+        "Not reviewing prediction this time: Validator #{validator_name} has #{deprioritization} deprioritization."
       )
       state
     end
   end
 
-  # Review the predictor's prediction (is it now valid, invalid?) and react accordingly
+  # Review the validator's prediction (is it now valid, invalid?) and react accordingly
   # by raising a predicton error or a prediction fulfilled.
   # If the prediction is fulfilled, deactivate the current fulfillment, if any,
   # and execute any post-fulfillment actions
@@ -340,7 +340,7 @@ defmodule Andy.Predictor do
            prediction: prediction
          } = state
        ) do
-    Logger.info("Reviewing prediction #{prediction.name} by predictor #{state.predictor_name}")
+    Logger.info("Reviewing prediction #{prediction.name} by validator #{state.validator_name}")
     if prediction_fulfilled?(prediction) do
       fulfilled_state = %{ state | fulfilled?: true }
       # Notify of prediction recovered if prediction becomes true
@@ -376,12 +376,12 @@ defmodule Andy.Predictor do
     true
   end
 
-  # Whether the model is believed in or not as predicted
+  # Whether the conjecture is believed in or not as predicted
   defp believed_as_predicted?(
-         %{ believed: { is_or_not, model_name } } = prediction
+         %{ believed: { is_or_not, conjecture_name } } = prediction
        ) do
-    # A believer has the name of the model it believers in.
-    believes? = Recall.recall_believed?(model_name)
+    # A believer has the name of the conjecture it believers in.
+    believes? = Recall.recall_believed?(conjecture_name)
     believed_as_predicted? = case is_or_not do
       :is ->
         believes?
@@ -389,11 +389,11 @@ defmodule Andy.Predictor do
         not believes?
     end
     PubSub.notify_believed_as_predicted(
-      model_name,
+      conjecture_name,
       prediction.name,
       believed_as_predicted?
     )
-    Logger.info("Believed as predicted is #{believed_as_predicted?} that #{inspect { is_or_not, model_name }}")
+    Logger.info("Believed as predicted is #{believed_as_predicted?} that #{inspect { is_or_not, conjecture_name }}")
     believed_as_predicted?
   end
 
@@ -447,22 +447,22 @@ defmodule Andy.Predictor do
     actuated_as_predicted?
   end
 
-  # Make a prediction error from the state of the predictor
+  # Make a prediction error from the state of the validator
   defp prediction_error(state) do
     PredictionError.new(
-      predictor_name: state.predictor_name,
-      model_name: state.predicted_model_name,
+      validator_name: state.validator_name,
+      conjecture_name: state.predicted_conjecture_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index,
       fulfillment_count: Enum.count(state.prediction.fulfillments)
     )
   end
 
-  # Make a prediction fulfilled from the state of the predictor
+  # Make a prediction fulfilled from the state of the validator
   defp prediction_fulfilled(state) do
     PredictionFulfilled.new(
-      predictor_name: state.predictor_name,
-      model_name: state.predicted_model_name,
+      validator_name: state.validator_name,
+      conjecture_name: state.predicted_conjecture_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index,
       fulfillment_count: Enum.count(state.prediction.fulfillments)
@@ -482,17 +482,17 @@ defmodule Andy.Predictor do
          %{
            fulfillment_index: fulfillment_index,
            prediction: prediction,
-           predictor_name: predictor_name
+           validator_name: validator_name
          } = state
        ) do
     Logger.info("Deactivating fulfillment #{fulfillment_index} of prediction #{prediction.name}")
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
     # Stop whatever was started when activating the current fulfillment, if any
-    if  fulfillment.model_name != nil do
+    if  fulfillment.conjecture_name != nil do
       # Spawn else DEADLOCK!
       spawn(
         fn ->
-          BelieversSupervisor.release_believer(fulfillment.model_name, predictor_name)
+          BelieversSupervisor.release_believer(fulfillment.conjecture_name, validator_name)
         end
       )
     end
@@ -504,7 +504,7 @@ defmodule Andy.Predictor do
          state,
          _first_time_or_repeated
        ) do
-    Logger.info("Activating no fulfillment in predictor #{state.predictor_name}")
+    Logger.info("Activating no fulfillment in validator #{state.validator_name}")
     %{ state | fulfillment_index: nil }
   end
 
@@ -513,15 +513,15 @@ defmodule Andy.Predictor do
          fulfillment_index,
          %{
            prediction: prediction,
-           predictor_name: predictor_name
+           validator_name: validator_name
          } = state,
          first_time_or_repeated
        ) do
-    Logger.info("Activating fulfillment #{fulfillment_index} in predictor #{predictor_name}")
+    Logger.info("Activating fulfillment #{fulfillment_index} in validator #{validator_name}")
     fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
-    if  fulfillment.model_name != nil do
+    if  fulfillment.conjecture_name != nil do
       # Believing as a fulfillment is always affirmative
-      BelieversSupervisor.enlist_believer(fulfillment.model_name, predictor_name, :is)
+      BelieversSupervisor.enlist_believer(fulfillment.conjecture_name, validator_name, :is)
     end
     if fulfillment.actions != nil do
       Enum.each(fulfillment.actions, &(Action.execute_action(&1, first_time_or_repeated)))
@@ -539,7 +539,7 @@ defmodule Andy.Predictor do
     Enum.each(actions, &(Action.execute(&1.())))
   end
 
-  # Calculate a new (effective) precision when reduce by a given model priority
+  # Calculate a new (effective) precision when reduce by a given conjecture priority
   defp reduce_precision_by(precision, priority) do
     case priority do
       :none ->

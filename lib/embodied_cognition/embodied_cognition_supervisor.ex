@@ -7,9 +7,9 @@ defmodule Andy.EmbodiedCognitionSupervisor do
   use Supervisor
   require Logger
   alias Andy.{ PubSub, Memory, Memorizer,
-               DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, PredictorsSupervisor,
+               DetectorsSupervisor, ActuatorsSupervisor, BelieversSupervisor, ValidatorsSupervisor,
                InternalClock, PG2Communicator, Device,
-               RESTCommunicator, GenerativeModels, Attention, Experience, Focus }
+               RESTCommunicator, Conjectures, Attention, Experience, Focus }
 
   @name __MODULE__
 
@@ -26,13 +26,13 @@ defmodule Andy.EmbodiedCognitionSupervisor do
       PubSub,
       Memory,
       Memorizer,
-      GenerativeModels,
+      Conjectures,
       PG2Communicator,
       RESTCommunicator,
       InternalClock,
       DetectorsSupervisor,
       ActuatorsSupervisor,
-      PredictorsSupervisor,
+      ValidatorsSupervisor,
       BelieversSupervisor,
       Experience,
       Focus,
@@ -77,10 +77,10 @@ defmodule Andy.EmbodiedCognitionSupervisor do
     |> Enum.each(&(ActuatorsSupervisor.start_actuator(&1)))
   end
 
-  # Start and activate a believer for each hyper-prior model
+  # Start and activate a believer for each hyper-prior conjecture
   defp start_prior_believers() do
     Logger.info("Starting believers")
-    GenerativeModels.hyper_prior_models()
+    Conjectures.hyper_prior_conjectures()
     |> Enum.each(&(BelieversSupervisor.start_believer(&1)))
   end
 

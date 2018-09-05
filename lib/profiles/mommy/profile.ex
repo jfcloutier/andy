@@ -4,8 +4,8 @@ defmodule Andy.Mommy.Profile do
 
 	@behaviour Andy.ProfileBehaviour
 
-  def generative_models() do
-    Andy.Mommy.Modeling.generative_models()
+  def conjectures() do
+    Andy.Mommy.Modeling.conjectures()
   end
 
 end

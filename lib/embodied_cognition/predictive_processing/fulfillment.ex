@@ -6,21 +6,21 @@ defmodule Andy.Fulfillment do
   alias Andy.Action
 
   @type t :: %__MODULE__{
-               model_name: String.t,
+               conjecture_name: String.t,
                actions: [[Action.t] | fun()]
                # actions or a function that produce actions
              }
 
   # Fulfillment name is unique within a prediction
-  defstruct model_name: nil,
+  defstruct conjecture_name: nil,
               # and/or actions to carry out
-            actions: [] # (generators of individual) actions that might fulfill a model's prediction
+            actions: [] # (generators of individual) actions that might fulfill a conjecture's prediction
 
   def new(
-        model_name: model_name
+        conjecture_name: conjecture_name
       ) do
     %Fulfillment{
-      model_name: model_name
+      conjecture_name: conjecture_name
     }
   end
 
@@ -34,11 +34,11 @@ defmodule Andy.Fulfillment do
 
   def new(
         actions: actions,
-        model_name: model_name
+        conjecture_name: conjecture_name
       ) do
     %Fulfillment{
       actions: actions,
-      model_name: model_name
+      conjecture_name: conjecture_name
     }
   end
 

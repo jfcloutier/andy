@@ -1,19 +1,19 @@
 defmodule Andy.Belief do
 
-  @moduledoc "Belief in a model"
+  @moduledoc "Belief in a conjecture"
 
   import Andy.Utils, only: [time_secs: 0]
 
   alias __MODULE__
 
-  defstruct model_name: nil,
+  defstruct conjecture_name: nil,
               # initially belief is 100%
             value: true,
             as_of: nil
 
-  def new(model_name, value) do
+  def new(conjecture_name, value) do
     %Belief{
-      model_name: model_name,
+      conjecture_name: conjecture_name,
       value: value,
       as_of: time_secs()
     }

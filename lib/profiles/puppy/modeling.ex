@@ -1,29 +1,28 @@
 defmodule Andy.Puppy.Modeling do
-  @moduledoc "The generative models for a puppy profile"
+  @moduledoc "The conjectures for a puppy profile"
 
-  alias Andy.{ GenerativeModel, Prediction, Action, Memory }
+  alias Andy.{ Conjecture, Prediction, Action, Memory }
   import Andy.Utils, only: [choose_one: 1, as_percept_about: 1]
   require Logger
 
   @low_light 1
   @us_near 15 # 15 cm
 
-  def generative_models() do
+  def conjectures() do
     [
       # Hyper-prior
 
       #THRIVING
 
-      generative_model(
+      conjecture(
         name: :thriving,
         hypothesis: "The puppy is safe, has eaten recently, and can move about",
         predictions: [
-          # safe, sated and free are sibling models
+          # safe, sated and free are sibling conjectures
           prediction(
             name: :puppy_is_safe,
             believed: { :is, :safe },
             precision: :high,
-            # try this first (of course it won't fulfil the prediction of believing that one is safe)
             fulfillments: [
               { :actions, [say_once("I am scared")] }
             ],
@@ -48,14 +47,14 @@ defmodule Andy.Puppy.Modeling do
             when_fulfilled: [say("I'm free")]
           )
         ],
-        # Let activated sub-models dictate priority
+        # Let activated sub-conjectures dictate priority
         priority: :high,
         hyper_prior?: true
       ),
 
       # SAFE
 
-      generative_model(
+      conjecture(
         name: :safe,
         hypothesis: "The puppy is safe",
         predictions: [
@@ -95,7 +94,7 @@ defmodule Andy.Puppy.Modeling do
 
       # In a well-light area
 
-      generative_model(
+      conjecture(
         name: :in_the_light,
         hypothesis: "The puppy is in a well-light area",
         predictions: [
@@ -104,7 +103,7 @@ defmodule Andy.Puppy.Modeling do
             perceived: [{ { :sensor, :color, :ambient }, { :gt, @low_light }, { :past_secs, 3 } }],
             precision: :medium,
             fulfillments: [
-              { :model, :getting_lighter }
+              { :conjecture, :getting_lighter }
             ]
           )
         ],
@@ -113,7 +112,7 @@ defmodule Andy.Puppy.Modeling do
 
       # It's getting lighter
 
-      generative_model(
+      conjecture(
         name: :getting_lighter,
         hypothesis: "The puppy is in a better-lit area",
         predictions: [
@@ -131,7 +130,7 @@ defmodule Andy.Puppy.Modeling do
       ),
 
       # Recently got bumped while in the dark
-      generative_model(
+      conjecture(
         name: :bumped_in_the_dark,
         hypothesis: "The puppy bumped into something in the dark",
         predictions: [
@@ -149,7 +148,7 @@ defmodule Andy.Puppy.Modeling do
         priority: :high
       ),
       # About to collide
-      generative_model(
+      conjecture(
         name: :about_to_collide,
         hypothesis: "The puppy is about to collide",
         predictions: [
@@ -169,7 +168,7 @@ defmodule Andy.Puppy.Modeling do
 
       # SATED
 
-      generative_model(
+      conjecture(
         name: :sated,
         hypothesis: "The puppy ate enough recently",
         predictions: [
@@ -179,7 +178,7 @@ defmodule Andy.Puppy.Modeling do
             actuated: [{ :eat, { :sum, 4 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfillments: [
-              { :model, :feeding }
+              { :conjecture, :feeding }
             ],
             true_by_default?: false,
             time_sensitive?: true
@@ -188,7 +187,7 @@ defmodule Andy.Puppy.Modeling do
         priority: :medium
       ),
 
-      generative_model(
+      conjecture(
         name: :feeding,
         hypothesis: "The puppy is feeding",
         predictions: [
@@ -197,7 +196,7 @@ defmodule Andy.Puppy.Modeling do
             perceived: [{ { :sensor, :color, :color }, { :eq, :blue }, { :past_secs, 3 } }],
             precision: :high,
             fulfillments: [
-              { :model, :getting_closer_to_food }
+              { :conjecture, :getting_closer_to_food }
             ],
             when_fulfilled: [eat({ :sensor, :color, :ambient }), say("nom de nom de nom")]
           )
@@ -205,7 +204,7 @@ defmodule Andy.Puppy.Modeling do
         priority: :medium
       ),
 
-      generative_model(
+      conjecture(
         name: :getting_closer_to_food,
         hypothesis: "The puppy detects food",
         predictions: [
@@ -247,7 +246,7 @@ defmodule Andy.Puppy.Modeling do
       ),
 
       # FREE
-      generative_model(
+      conjecture(
         name: :free,
         hypothesis: "The puppy is free to move about",
         predictions: [
@@ -284,7 +283,7 @@ defmodule Andy.Puppy.Modeling do
         priority: :low
       ),
       # Recently got bumped
-      generative_model(
+      conjecture(
         name: :bumped,
         hypothesis: "The puppy bumped into something",
         predictions: [
@@ -301,7 +300,7 @@ defmodule Andy.Puppy.Modeling do
       ),
 
       # Approaching an obstacle
-      generative_model(
+      conjecture(
         name: :approaching_obstacle,
         hypothesis: "The puppy is approaching an obstacle",
         predictions: [
@@ -529,8 +528,8 @@ defmodule Andy.Puppy.Modeling do
 
   ### Utils
 
-  defp generative_model(keywords) do
-    GenerativeModel.new(keywords)
+  defp conjecture(keywords) do
+    Conjecture.new(keywords)
   end
 
   defp prediction(keywords) do

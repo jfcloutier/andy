@@ -95,9 +95,9 @@ defmodule Andy.Recall do
     if intents_count == 0, do: 0, else: Enum.count(fitting_intents) / intents_count
   end
 
-  @doc "Whether the model is currently believed in"
-  def recall_believed?(model_name) do
-    Memory.recall_believed?(model_name)
+  @doc "Whether the conjecture is currently believed in"
+  def recall_believed?(conjecture_name) do
+    Memory.recall_believed?(conjecture_name)
   end
 
   # TODO - cover for both atomic and mapped values

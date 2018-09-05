@@ -95,39 +95,39 @@ defmodule Andy.PubSub do
     notify({ :prediction_fulfilled, prediction_fulfilled })
   end
 
-  @doc "Notify that a predictor is paying attention to some detection"
-  def notify_attention_on(detector_specs, predictor_name, precision) do
-    notify({ :attention_on, detector_specs, predictor_name, precision })
+  @doc "Notify that a validator is paying attention to some detection"
+  def notify_attention_on(detector_specs, validator_name, precision) do
+    notify({ :attention_on, detector_specs, validator_name, precision })
   end
 
-  @doc "Notify that a predictor is no longer paying attention"
-  def notify_attention_off(predictor_pid) do
-    notify({ :attention_off, predictor_pid })
+  @doc "Notify that a validator is no longer paying attention"
+  def notify_attention_off(validator_pid) do
+    notify({ :attention_off, validator_pid })
   end
 
-  @doc "Notify that a predictor is to use a given fulfillment"
+  @doc "Notify that a validator is to use a given fulfillment"
   def notify_fulfill(fulfill) do
     notify({ :fulfill, fulfill })
   end
 
-  @doc "Notify that a model was believed or not as predicted"
-  def notify_believed_as_predicted(model_name, prediction_name, believed?) do
-    notify({ :believed_as_predicted, model_name, prediction_name, believed? })
+  @doc "Notify that a conjecture was believed or not as predicted"
+  def notify_believed_as_predicted(conjecture_name, prediction_name, believed?) do
+    notify({ :believed_as_predicted, conjecture_name, prediction_name, believed? })
   end
 
-  @doc "Notify that a believer started on a model"
-  def notify_believer_started(model_name) do
-    notify({ :believer_started, model_name })
+  @doc "Notify that a believer started on a conjecture"
+  def notify_believer_started(conjecture_name) do
+    notify({ :believer_started, conjecture_name })
   end
 
-  @doc "Notify that a believer terminated on a model"
-  def notify_believer_terminated(model_name) do
-    notify({ :believer_terminated, model_name })
+  @doc "Notify that a believer terminated on a conjecture"
+  def notify_believer_terminated(conjecture_name) do
+    notify({ :believer_terminated, conjecture_name })
   end
 
-  @doc "Notify that a model has been deprioritized"
-  def notify_model_deprioritized(model_name, priority) do
-    notify({ :model_deprioritized, model_name, priority })
+  @doc "Notify that a conjecture has been deprioritized"
+  def notify_conjecture_deprioritized(conjecture_name, priority) do
+    notify({ :conjecture_deprioritized, conjecture_name, priority })
   end
 
   @doc "Found the id channel of another member of the community"

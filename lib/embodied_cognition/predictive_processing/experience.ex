@@ -1,7 +1,7 @@
 defmodule Andy.Experience do
   @moduledoc """
-  Responsible for learning which prediction fulfillments work best for each predictor
-  and having predictors try the better ones more often than not.
+  Responsible for learning which prediction fulfillments work best for each validator
+  and having validators try the better ones more often than not.
   """
 
   require Logger
@@ -26,7 +26,7 @@ defmodule Andy.Experience do
     { :ok, pid } = Agent.start_link(
       fn ->
         %{
-          # %{predictor_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
+          # %{validator_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
           fulfillment_stats: %{ }
         }
       end,
@@ -49,7 +49,7 @@ defmodule Andy.Experience do
       Logger.info("Experience chose fulfillment #{fulfillment_index} to address #{inspect prediction_error}")
       # Activate fulfillment
       PubSub.notify_fulfill(
-        Fulfill.new(predictor_name: prediction_error.predictor_name, fulfillment_index: fulfillment_index)
+        Fulfill.new(validator_name: prediction_error.validator_name, fulfillment_index: fulfillment_index)
       )
     else
       Logger.info("Experience chose no fulfillment to address #{inspect prediction_error}")
@@ -68,18 +68,18 @@ defmodule Andy.Experience do
 
   ### PRIVATE
 
-  # Update the fulfillment stats of a predictor given a prediction error generated,
+  # Update the fulfillment stats of a validator given a prediction error generated,
   # possibly when a fulfillment option is active
   defp update_fulfillment_stats(
          %PredictionError{
-           predictor_name: predictor_name,
+           validator_name: validator_name,
            fulfillment_index: fulfillment_index,
            fulfillment_count: fulfillment_count
          },
          state
        ) do
     learn_from_success_or_failure(
-      predictor_name,
+      validator_name,
       fulfillment_index,
       fulfillment_count,
       :failure,
@@ -87,18 +87,18 @@ defmodule Andy.Experience do
     )
   end
 
-  # Update the fulfillment stats of a predictor given a prediction fulfillment generated,
+  # Update the fulfillment stats of a validator given a prediction fulfillment generated,
   # possibly when a fulfillment option is active
   defp update_fulfillment_stats(
          %PredictionFulfilled{
-           predictor_name: predictor_name,
+           validator_name: validator_name,
            fulfillment_index: fulfillment_index,
            fulfillment_count: fulfillment_count
          },
          state
        )  do
     learn_from_success_or_failure(
-      predictor_name,
+      validator_name,
       fulfillment_index,
       fulfillment_count,
       :success,
@@ -106,39 +106,39 @@ defmodule Andy.Experience do
     )
   end
 
-  # Learn from the fulfillment success or failure of a predictor by updating success/failure stats
+  # Learn from the fulfillment success or failure of a validator by updating success/failure stats
   defp learn_from_success_or_failure(
-         predictor_name,
+         validator_name,
          fulfillment_index,
          fulfillment_count,
          success_or_failure,
          %{ fulfillment_stats: fulfillment_stats } = state
        ) do
     Logger.info(
-      "Fulfillment data = #{inspect { fulfillment_index, fulfillment_count } } from predictor #{predictor_name}"
+      "Fulfillment data = #{inspect { fulfillment_index, fulfillment_count } } from validator #{validator_name}"
     )
-    # The predictor has an active fulfillment we are learning about
-    new_predictor_stats = case Map.get(fulfillment_stats, predictor_name) do
+    # The validator has an active fulfillment we are learning about
+    new_validator_stats = case Map.get(fulfillment_stats, validator_name) do
       nil ->
-        initial_predictor_stats = List.duplicate({ 0, 0 }, fulfillment_count)
-        Logger.info("New predictor stats = #{inspect initial_predictor_stats}")
-        capture_success_or_failure(initial_predictor_stats, fulfillment_index, success_or_failure)
-      predictor_stats ->
-        Logger.info("Prior predictor stats = #{inspect predictor_stats}")
-        capture_success_or_failure(predictor_stats, fulfillment_index, success_or_failure)
+        initial_validator_stats = List.duplicate({ 0, 0 }, fulfillment_count)
+        Logger.info("New validator stats = #{inspect initial_validator_stats}")
+        capture_success_or_failure(initial_validator_stats, fulfillment_index, success_or_failure)
+      validator_stats ->
+        Logger.info("Prior validator stats = #{inspect validator_stats}")
+        capture_success_or_failure(validator_stats, fulfillment_index, success_or_failure)
     end
-    updated_fulfillment_stats = Map.put(fulfillment_stats, predictor_name, new_predictor_stats)
+    updated_fulfillment_stats = Map.put(fulfillment_stats, validator_name, new_validator_stats)
     %{ state | fulfillment_stats: updated_fulfillment_stats }
   end
 
-  defp capture_success_or_failure(predictor_stats, nil, _success_or_failure) do
-    predictor_stats
+  defp capture_success_or_failure(validator_stats, nil, _success_or_failure) do
+    validator_stats
   end
 
   # Update success/failure stats
-  defp capture_success_or_failure(predictor_stats, fulfillment_index, success_or_failure) do
-    stats = Enum.at(predictor_stats, fulfillment_index)
-    List.replace_at(predictor_stats, fulfillment_index, increment(stats, success_or_failure))
+  defp capture_success_or_failure(validator_stats, fulfillment_index, success_or_failure) do
+    stats = Enum.at(validator_stats, fulfillment_index)
+    List.replace_at(validator_stats, fulfillment_index, increment(stats, success_or_failure))
   end
 
   defp increment({ successes, failures }, :success) do
@@ -152,14 +152,14 @@ defmodule Andy.Experience do
   # Returns the index of a fulfillment option for a prediction, favoring the more successful ones,
   # or returns nil if no option is available
   defp choose_fulfillment_index(
-         %{ predictor_name: predictor_name } = _prediction_error,
+         %{ validator_name: validator_name } = _prediction_error,
          %{ fulfillment_stats: fulfillment_stats } = _state
        ) do
-    ratings = for { successes, failures } <- Map.get(fulfillment_stats, predictor_name, []) do
+    ratings = for { successes, failures } <- Map.get(fulfillment_stats, validator_name, []) do
       # A fulfillment has a 10% minimum probability of being selected
       if successes == 0, do: 0.1, else: max(successes / (successes + failures), 0.1)
     end
-#    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for predictor #{predictor_name}")
+#    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")
     if Enum.count(ratings) == 0 do
       nil
     else

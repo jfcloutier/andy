@@ -1,6 +1,6 @@
 defmodule Andy.Mommy.Modeling do
 
-  def generative_models() do
+  def conjectures() do
     [] # TODO
   end
 

@@ -100,8 +100,8 @@ defmodule Andy do
     profile_dispatch(:perception_logic)
   end
 
-  def generative_models() do
-    profile_dispatch(:generative_models)
+  def conjectures() do
+    profile_dispatch(:conjectures)
   end
 
   def actuation_logic() do
