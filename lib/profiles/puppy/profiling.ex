@@ -23,27 +23,21 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_is_safe,
             believed: { :is, :safe },
             precision: :high,
-            fulfillments: [
-              { :actions, [say_once("I am scared")] }
-            ],
+            fulfill_by: { :doing, [say_once("I am scared")] },
             when_fulfilled: [say("I am ok now")]
           ),
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :medium,
-            fulfillments: [
-              { :actions, [say_once("I am hungry")] }
-            ],
+            fulfill_by: { :doing, [say_once("I am hungry")] },
             when_fulfilled: [say("I am full"), backoff()]
           ),
           prediction(
             name: :puppy_is_free,
             believed: { :is, :free },
             precision: :low,
-            fulfillments: [
-              { :actions, [say_once("I'm stuck")] }
-            ],
+            fulfill_by: { :doing, [say_once("I'm stuck")] },
             when_fulfilled: [say("I'm free")]
           )
         ],
@@ -62,31 +56,34 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_not_bumping,
             believed: { :not, :bumped },
             precision: :high,
-            fulfillments: [
-              { :actions, [backoff(:fast), backoff(:fast), turn()] },
-              { :actions, [backoff(:fast), turn()] },
-              { :actions, [turn(), backoff(:fast)] },
-              { :actions, [backoff(:fast), turn(), backoff(:fast), turn()] },
-            ]
+            fulfill_by:
+              {
+              :doing,
+              %{
+                pick: 2,
+                from: [backoff(), turn(), forward()],
+                allow_duplicates: true
+              }
+            }
           ),
           prediction(
             name: :puppy_not_about_to_bump,
             believed: { :not, :about_to_bump },
             precision: :high,
-            fulfillments: [
-              { :actions, [turn()] },
-              { :actions, [backoff(:fast)] },
-              { :actions, [backoff(:fast), turn()] }
-            ]
+            fulfill_by:
+              { :doing,
+              %{
+                pick: 2,
+                from: [backoff(), turn(), forward()],
+                allow_duplicates: true
+              } }
           ),
           prediction(
             name: :puppy_is_in_the_light,
             believed: { :is, :in_the_light },
             precision: :high,
             fulfill_when: [:puppy_not_bumping],
-            fulfillments: [
-              { :actions, [say_once("It's too dark")] }
-            ]
+            fulfill_by: { :doing, [say_once("It's too dark")] }
           )
         ],
         priority: :high
@@ -102,9 +99,7 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_in_high_ambient_light,
             perceived: [{ { :sensor, :color, :ambient }, { :gt, @low_light }, { :past_secs, 3 } }],
             precision: :medium,
-            fulfillments: [
-              { :conjecture, :getting_lighter }
-            ]
+            fulfill_by: { :believing_in, :getting_lighter }
           )
         ],
         priority: :medium
@@ -120,9 +115,12 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_in_increasingly_lit_area,
             perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 5 } }],
             precision: :medium,
-            fulfillments: [
-              { :actions, [turn(), forward()] }
-            ],
+            fulfill_by: { :doing,
+              %{
+                pick: 2,
+                from: [backoff(), turn(), forward()],
+                allow_duplicates: true
+              } },
             when_fulfilled: [forward()]
           )
         ],
@@ -140,9 +138,7 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :touch, :touch }, { :eq, :pressed }, :now },
               { { :sensor, :color, :ambient }, { :lt, @low_light }, :now }
             ],
-            precision: :high,
-            # We never want to fulfill this prediction
-            fulfillments: []
+            precision: :high
           )
         ],
         priority: :high
@@ -158,9 +154,7 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, { :past_secs, 2 } },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
-            precision: :high,
-            # We never want to fulfill this prediction
-            fulfillments: []
+            precision: :high
           )
         ],
         priority: :high
@@ -177,9 +171,7 @@ defmodule Andy.Puppy.Profiling do
             #            perceived: [{ { :sensor, :timer, :time_elapsed }, { :gt, :count, 30 }, :now }],
             actuated: [{ :eat, { :sum, 4 }, { :past_secs, 30 } }],
             precision: :medium,
-            fulfillments: [
-              { :conjecture, :feeding }
-            ],
+            fulfill_by: { :believing_in, :feeding },
             true_by_default?: false,
             time_sensitive?: true
           )
@@ -195,9 +187,7 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_on_food,
             perceived: [{ { :sensor, :color, :color }, { :eq, :blue }, { :past_secs, 3 } }],
             precision: :high,
-            fulfillments: [
-              { :conjecture, :getting_closer_to_food }
-            ],
+            fulfill_by: { :believing_in, :getting_closer_to_food },
             when_fulfilled: [eat({ :sensor, :color, :ambient }), say("nom de nom de nom")]
           )
         ],
@@ -215,11 +205,12 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 20 }, { :past_secs, 2 } }
             ],
             precision: :medium, # because not entirely reliable (sometimes fails to see beacon heading when right in front)
-            fulfillments: [
-              { :actions, [forward()] },
-              { :actions, [turn()] },
-              { :actions, [backoff()] }
-            ],
+            fulfill_by: { :doing,
+              %{
+                pick: 2,
+                from: [backoff(), turn(), forward()],
+                allow_duplicates: true
+              } },
             when_fulfilled: [say_once("I smell food")]
           ),
           prediction(
@@ -228,18 +219,14 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
             precision: :medium,
             fulfill_when: [:puppy_smells_food],
-            fulfillments: [
-              { :actions, [turn_toward({ :sensor, :infrared, { :beacon_heading, 1 } })] }
-            ]
+            fulfill_by: { :doing, [turn_toward({ :sensor, :infrared, { :beacon_heading, 1 } })] }
           ),
           prediction(
             name: :puppy_approaches_food,
             perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, :descending, { :past_secs, 2 } }],
             precision: :medium,
             fulfill_when: [:puppy_faces_food],
-            fulfillments: [
-              { :actions, [approach({ :sensor, :infrared, { :beacon_distance, 1 } })] }
-            ]
+            fulfill_by: { :doing, [approach({ :sensor, :infrared, { :beacon_distance, 1 } })] }
           )
         ],
         priority: :high
@@ -254,29 +241,32 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_unobstructed,
             believed: { :not, :bumped },
             precision: :high,
-            fulfillments: [
-              { :actions, [backoff(), turn()] },
-              { :actions, [backoff(), turn(), turn()] },
-              { :actions, [backoff()] }
-            ]
+            fulfill_by: { :doing,
+              %{
+                pick: 2,
+                from: [backoff(), turn(), forward()],
+                allow_duplicates: true
+              } }
           ),
           prediction(
             name: :puppy_has_clear_path,
             believed: { :not, :approaching_obstacle },
             precision: :medium,
             fulfill_when: [:puppy_unobstructed],
-            fulfillments: [
-              { :actions, [avoid({ :sensor, :ultrasonic, :distance })] }
-            ]
+            fulfill_by: { :doing, [avoid({ :sensor, :ultrasonic, :distance })] }
           ),
           prediction(
             name: :puppy_is_moving,
             actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 10 } }],
             precision: :medium,
             fulfill_when: [:puppy_has_clear_path],
-            fulfillments: [
-              { :actions, [move()] }
-            ],
+            fulfill_by:
+              { :doing,
+              %{
+                pick: 2,
+                from: [backoff(), turn(), forward()],
+                allow_duplicates: true
+              } },
             time_sensitive?: true
           ),
         ],
@@ -291,8 +281,6 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_recently_touched,
             perceived: [{ { :sensor, :touch, :touch }, { :eq, :pressed }, :now }],
             precision: :high,
-            # We never want to fulfill this prediction
-            fulfillments: [],
             when_fulfilled: [say("Ouch!")]
           )
         ],
@@ -311,8 +299,6 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
-            # We never want to fulfill this prediction
-            fulfillments: [],
             when_fulfilled: [say("Uh oh!")]
           )
         ],
@@ -347,37 +333,6 @@ defmodule Andy.Puppy.Profiling do
           time: 3
         }
       )
-    end
-  end
-
-  defp move(speed \\ :normal) do
-    fn ->
-      Logger.info("Action move at #{speed} speed")
-      random = choose_one(1..4)
-      cond do
-        random in 1..2 ->
-          Action.new(
-            intent_name: :go_forward,
-            intent_value: %{
-              speed: speed,
-              time: 1
-            }
-          )
-        random == 3 ->
-          Action.new(
-            intent_name: choose_one([:turn_right, :turn_left]),
-            intent_value: choose_one(1..3)
-            # 1 to 3 secs
-          )
-        true ->
-          Action.new(
-            intent_name: :go_backward,
-            intent_value: %{
-              speed: speed,
-              time: 1
-            }
-          )
-      end
     end
   end
 

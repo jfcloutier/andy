@@ -12,7 +12,7 @@ defmodule Andy.Prediction do
                actuated: [{ atom, any, any }],
                believed: { :not | :is, atom } | nil,
                fulfill_when: [atom],
-               fulfillments: [Fulfillment.t],
+               fulfill_by: Fulfillment.t | nil,
                when_fulfilled: [any],
                true_by_default?: boolean(),
                time_sensitive?: boolean()
@@ -25,7 +25,7 @@ defmodule Andy.Prediction do
     :actuated,
     :believed,
     :fulfill_when,
-    :fulfillments,
+    :fulfill_by,
     :when_fulfilled,
     :true_by_default?,
     :time_sensitive?
@@ -43,8 +43,8 @@ defmodule Andy.Prediction do
             precision: nil,
               # list of sibling predictions that must already be fulfilled for this one to attempt fulfillment
             fulfill_when: [],
-              # how much the precision of lower priority predictions are reduced
-            fulfillments: [],
+              # prediction fulfillment
+            fulfill_by: nil,
               # actions to execute when becoming fulfilled
             when_fulfilled: [],
               # whether a prediction is true until proven false
@@ -62,8 +62,8 @@ defmodule Andy.Prediction do
         case key do
           :perceived ->
             Map.put(acc, :perceived, format_perceived(value))
-          :fulfillments ->
-            Map.put(acc, :fulfillments, format_fulfillments(value))
+          :fulfill_by ->
+            Map.put(acc, :fulfill_by, format_fulfill_by(value))
           _other ->
             Map.put(acc, key, value)
         end
@@ -99,6 +99,37 @@ defmodule Andy.Prediction do
     true_by_default?
   end
 
+  def count_fulfillment_options(prediction) do
+    case prediction.fulfill_by do
+      nil ->
+        0
+      fulfillment ->
+        Fulfillment.count_options(fulfillment)
+    end
+  end
+
+  def get_actions_at(prediction, fulfillment_index) do
+    case prediction.fulfill_by do
+      nil ->
+        []
+      fulfillment ->
+        Fulfillment.get_actions_at(fulfillment, fulfillment_index)
+    end
+
+  end
+
+  def believing?(%Prediction{ believed: believed }) do
+    believed != nil
+  end
+
+  def conjecture_name(%Prediction{ believed: {_, conjecture_name} }) do
+    conjecture_name
+  end
+
+  def fulfilled_by_doing?(%Prediction{ fulfill_by: fulfillment }) do
+    fulfillment != nil and Fulfillment.by_doing?(fulfillment)
+  end
+
   ### PRIVATE
 
   defp format_perceived(nil) do
@@ -114,18 +145,12 @@ defmodule Andy.Prediction do
     )
   end
 
-  defp format_fulfillments(fulfillments) do
-    Enum.map(
-      fulfillments,
-      fn (fulfillment_spec) ->
-        case fulfillment_spec do
-          { :actions, actions } ->
-            Fulfillment.new(actions: actions)
-          { :conjecture, conjecture_name } ->
-            Fulfillment.new(conjecture_name: conjecture_name)
-        end
-      end
-    )
+  defp format_fulfill_by({ :doing, actions_spec }) do
+    Fulfillment.from_doing(actions_spec)
+  end
+
+  defp format_fulfill_by({ :believing_in, conjecture_name }) do
+    Fulfillment.from_believing(conjecture_name)
   end
 
 end

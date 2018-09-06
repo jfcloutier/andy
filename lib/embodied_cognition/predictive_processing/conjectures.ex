@@ -1,6 +1,7 @@
 defmodule Andy.Conjectures do
   @moduledoc "Dispenser and analyzer of all known conjectures"
 
+  alias Andy.{Prediction, Fulfillment}
   require Logger
 
   @name __MODULE__
@@ -68,7 +69,10 @@ defmodule Andy.Conjectures do
         siblings = sibling_names(conjecture.name, state.family_tree)
         predecessors = Map.get(state.predecessors, conjecture.name, [])
         # Competing siblings are siblings with lower or equal priority, and that are not in predecessors
-        competing_siblings = Enum.reject(siblings, &(Andy.lower_level?(conjecture.priority, priority_from_name(&1, state))))
+        competing_siblings = Enum.reject(
+                               siblings,
+                               &(Andy.lower_level?(conjecture.priority, priority_from_name(&1, state)))
+                             )
                              |> Enum.reject(&(&1 in predecessors))
         competing_descendants = Enum.map(competing_siblings, &(descendant_names(&1, state.family_tree)))
 #        Logger.info("Conjecture #{conjecture.name} has siblings #{inspect siblings}")
@@ -165,28 +169,23 @@ defmodule Andy.Conjectures do
       conjecture.predictions,
       [],
       fn (prediction, acc) ->
-        predicted = case prediction.believed do
-          nil ->
-            acc
-          { _, predicted_conjecture_name } ->
-            [predicted_conjecture_name | acc]
+        with_predicted = if Prediction.believing?(prediction) do
+          [Prediction.conjecture_name(prediction) | acc]
+        else
+          acc
         end
-        to_fulfill = Enum.reduce(
-          prediction.fulfillments,
-          [],
-          fn (fulfillment, acc1) ->
-            case fulfillment.conjecture_name do
-              nil ->
-                acc1
-              fulfillment_conjecture_name ->
-                [fulfillment_conjecture_name | acc1]
+        case prediction.fulfill_by do
+          nil ->
+            with_predicted
+          fulfillment ->
+            if Fulfillment.by_believing?(fulfillment) do
+              [fulfillment.conjecture_name | with_predicted]
+            else
+              with_predicted
             end
-          end
-        )
-        predicted ++ to_fulfill ++ acc
-      end
+        end
+       end
     )
-    |> List.flatten()
     |> Enum.uniq()
     |> Enum.map(
          fn (name) ->
@@ -194,7 +193,7 @@ defmodule Andy.Conjectures do
          end
        )
       # TODO - for now, until the conjectureing is complete
-    |> Enum.reject(&(&1 == nil))
+ #   |> Enum.reject(&(&1 == nil))
   end
 
   # Find the predecessors of all conjectures.
@@ -253,7 +252,7 @@ defmodule Andy.Conjectures do
     end
   end
 
-  defp priority_from_name(conjecture_name, %{conjectures: conjectures} = _state) do
+  defp priority_from_name(conjecture_name, %{ conjectures: conjectures } = _state) do
     conjecture = Enum.find(conjectures, &(&1.name == conjecture_name))
     conjecture.priority
   end

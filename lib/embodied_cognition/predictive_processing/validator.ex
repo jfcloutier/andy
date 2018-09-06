@@ -454,7 +454,7 @@ defmodule Andy.Validator do
       conjecture_name: state.predicted_conjecture_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index,
-      fulfillment_count: Enum.count(state.prediction.fulfillments)
+      fulfillment_count: Prediction.count_fulfillment_options(state.prediction)
     )
   end
 
@@ -465,7 +465,7 @@ defmodule Andy.Validator do
       conjecture_name: state.predicted_conjecture_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index,
-      fulfillment_count: Enum.count(state.prediction.fulfillments)
+      fulfillment_count: Prediction.count_fulfillment_options(state.prediction)
     )
   end
 
@@ -486,7 +486,7 @@ defmodule Andy.Validator do
          } = state
        ) do
     Logger.info("Deactivating fulfillment #{fulfillment_index} of prediction #{prediction.name}")
-    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
+    fulfillment = Enum.at(prediction.fulfill_by, fulfillment_index)
     # Stop whatever was started when activating the current fulfillment, if any
     if  fulfillment.conjecture_name != nil do
       # Spawn else DEADLOCK!
@@ -518,13 +518,13 @@ defmodule Andy.Validator do
          first_time_or_repeated
        ) do
     Logger.info("Activating fulfillment #{fulfillment_index} in validator #{validator_name}")
-    fulfillment = Enum.at(prediction.fulfillments, fulfillment_index)
-    if  fulfillment.conjecture_name != nil do
+    if  Prediction.believing?(prediction) do
       # Believing as a fulfillment is always affirmative
-      BelieversSupervisor.enlist_believer(fulfillment.conjecture_name, validator_name, :is)
+      BelieversSupervisor.enlist_believer(Prediction.conjecture_name(prediction), validator_name, :is)
     end
-    if fulfillment.actions != nil do
-      Enum.each(fulfillment.actions, &(Action.execute_action(&1, first_time_or_repeated)))
+    if Prediction.fulfilled_by_doing?(prediction) do
+      actions = Prediction.get_actions_at(prediction, fulfillment_index)
+      Enum.each(actions, &(Action.execute_action(&1, first_time_or_repeated)))
     end
     %{ state | fulfillment_index: fulfillment_index }
   end
