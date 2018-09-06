@@ -43,7 +43,7 @@ defmodule Andy.Experience do
   def load_experience_state() do
     path = experience_path()
     if File.exists?(path) do
-      Logger.info("Experience loading saved fulfillment stats")
+      Logger.info("Experience loading saved state")
       { state, [] } = Code.eval_file(path)
       state
     else
