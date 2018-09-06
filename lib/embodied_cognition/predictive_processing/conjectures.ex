@@ -192,8 +192,6 @@ defmodule Andy.Conjectures do
            Enum.find(conjectures, &(&1.name == name))
          end
        )
-      # TODO - for now, until the conjectureing is complete
- #   |> Enum.reject(&(&1 == nil))
   end
 
   # Find the predecessors of all conjectures.

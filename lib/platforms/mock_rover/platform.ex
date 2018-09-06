@@ -94,7 +94,9 @@ defmodule Andy.MockRover.Platform do
   end
 
   def shutdown() do
-    System.cmd("poweroff", [])
+    Logger.info("Shutting down")
+    Process.sleep(3000)
+    Application.stop(:andy)
   end
 
   def voice() do

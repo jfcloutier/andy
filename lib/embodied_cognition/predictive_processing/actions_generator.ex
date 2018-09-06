@@ -36,7 +36,7 @@ defmodule Andy.ActionsGenerator do
           pick: pick,
           from: actions,
           allow_duplicates: allow_duplicates?
-        } = action_generator
+        }
       ) do
     factor = if allow_duplicates?, do: pick, else: 1
     n = Enum.count(actions) * factor

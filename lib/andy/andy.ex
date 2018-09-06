@@ -1,10 +1,19 @@
 defmodule Andy do
 
   require Logger
-  alias Andy.Communicators
+  alias Andy.{Communicators, PubSub}
   import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
   @default_ttl 10_000
+
+  @doc "Shut down the Prediction Processing"
+  def shutdown() do
+    PubSub.notify_shutdown()
+  end
+
+  def toggle_paused() do
+    PubSub.toggle_paused()
+  end
 
   def platform() do
     platform_name = get_andy_env("ANDY_PLATFORM", "mock_rover")

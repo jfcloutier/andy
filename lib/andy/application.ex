@@ -55,15 +55,6 @@ defmodule Andy.Application do
     push_runtime_stats()
   end
 
-  @doc "Shut down the Prediction Processing"
-  def shutdown() do
-    PubSub.notify_shutdown()
-  end
-
-  def toggle_paused() do
-    PubSub.toggle_paused()
-  end
-
   def go() do
     spawn(fn () -> connect_to_nodes() end)
     EmbodiedCognitionSupervisor.start_embodied_cognition()

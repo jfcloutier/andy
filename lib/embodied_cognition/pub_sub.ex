@@ -42,6 +42,7 @@ defmodule Andy.PubSub do
 
   @doc "Notify of a shutdown request"
   def notify_shutdown() do
+    notify(:shutdown)
     platform_dispatch(:shutdown)
   end
 

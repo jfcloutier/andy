@@ -9,6 +9,7 @@ defmodule Andy.Experience do
   import Andy.Utils, only: [listen_to_events: 2]
 
   @name __MODULE__
+  @stats_file "experience_stats.exs"
 
   @behaviour Andy.EmbodiedCognitionAgent
 
@@ -27,13 +28,29 @@ defmodule Andy.Experience do
       fn ->
         %{
           # %{validator_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
-          fulfillment_stats: %{ }
+          fulfillment_stats: load_fulfillment_stats()
         }
       end,
       [name: @name]
     )
     listen_to_events(pid, __MODULE__)
     { :ok, pid }
+  end
+
+  def load_fulfillment_stats() do
+    if File.exists?(@stats_file) do
+      Logger.info("Experience loading saved fulfillment stats")
+      {stats, []} = Code.eval_file(@stats_file)
+      stats
+    else
+      %{ }
+    end
+  end
+
+  def save_fulfillment_stats(%{ fulfillment_stats: fulfillment_stats } = state) do
+    Logger.info("Experience is saving fulfillment stats")
+    File.write(@stats_file, inspect(fulfillment_stats))
+    state
   end
 
   ### Cognition Agent Behaviour
@@ -59,6 +76,10 @@ defmodule Andy.Experience do
 
   def handle_event({ :prediction_fulfilled, prediction_fulfilled }, state) do
     update_fulfillment_stats(prediction_fulfilled, state)
+  end
+
+  def handle_event(:shutdown, state) do
+    save_fulfillment_stats(state)
   end
 
   def handle_event(_event, state) do
@@ -159,7 +180,7 @@ defmodule Andy.Experience do
       # A fulfillment has a 10% minimum probability of being selected
       if successes == 0, do: 0.1, else: max(successes / (successes + failures), 0.1)
     end
-#    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")
+    #    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")
     if Enum.count(ratings) == 0 do
       nil
     else

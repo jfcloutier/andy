@@ -6,6 +6,8 @@ defmodule Andy.Rover.Platform do
 
 	alias Andy.BrickPi.{Brick, LegoSound, LegoSensor, LegoMotor, LegoLED, InfraredSensor}
 	require Logger
+
+  @shutdown_delay 5000 # 5 secs to system shutdown
 	
 	### PlatformBehaviour
 
@@ -89,7 +91,10 @@ defmodule Andy.Rover.Platform do
 	end
 
 	def shutdown() do
-		System.cmd("poweroff", [])
+    Logger.info("Shutting down")
+		Process.sleep(@shutdown_delay)
+		Application.stop(:andy)
+#		System.cmd("poweroff", [])
 	end
 
 	def voice() do
