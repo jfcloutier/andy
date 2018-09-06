@@ -9,7 +9,8 @@ defmodule Andy.Experience do
   import Andy.Utils, only: [listen_to_events: 2]
 
   @name __MODULE__
-  @stats_file "experience_stats.exs"
+  @experience_dir "experience"
+  @experience_file "state.exs"
 
   @behaviour Andy.EmbodiedCognitionAgent
 
@@ -26,10 +27,12 @@ defmodule Andy.Experience do
   def start_link() do
     { :ok, pid } = Agent.start_link(
       fn ->
-        %{
-          # %{validator_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
-          fulfillment_stats: load_fulfillment_stats()
-        }
+        # %{
+        #    fulfillment_stats: %{} - %{validator_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
+        #    prediction_error_stats: %{} - %{conjecture_name: number of prediction errors}
+        #  prediction_fulfilled_stats: %{} - %{conjecture_name: number of prediction fulfilled}
+        #  }
+        load_experience_state()
       end,
       [name: @name]
     )
@@ -37,20 +40,37 @@ defmodule Andy.Experience do
     { :ok, pid }
   end
 
-  def load_fulfillment_stats() do
-    if File.exists?(@stats_file) do
+  def load_experience_state() do
+    path = experience_path()
+    if File.exists?(path) do
       Logger.info("Experience loading saved fulfillment stats")
-      {stats, []} = Code.eval_file(@stats_file)
-      stats
+      { state, [] } = Code.eval_file(path)
+      state
     else
-      %{ }
+      %{
+        fulfillment_stats: %{ },
+        prediction_error_stats: %{ },
+        prediction_fulfilled_stats: %{ }
+      }
     end
   end
 
-  def save_fulfillment_stats(%{ fulfillment_stats: fulfillment_stats } = state) do
-    Logger.info("Experience is saving fulfillment stats")
-    File.write(@stats_file, inspect(fulfillment_stats))
+  def save_experience_state(state) do
+    Logger.info("Experience is saving its state")
+    path = experience_path()
+    if File.exists?(path) do
+      ts = DateTime.utc_now
+           |> to_string
+           |> String.replace(" ", "T")
+      File.cp(path, "#{path}_#{ts}")
+    end
+    File.write(experience_path(), inspect(state))
     state
+  end
+
+  defp experience_path() do
+    File.mkdir_p(@experience_dir)
+    "#{@experience_dir}/#{@experience_file}"
   end
 
   ### Cognition Agent Behaviour
@@ -71,15 +91,16 @@ defmodule Andy.Experience do
     else
       Logger.info("Experience chose no fulfillment to address #{inspect prediction_error}")
     end
-    updated_state
+    increment_prediction_error_count(updated_state, prediction_error)
   end
 
   def handle_event({ :prediction_fulfilled, prediction_fulfilled }, state) do
     update_fulfillment_stats(prediction_fulfilled, state)
+    |> increment_prediction_fulfilled_count(prediction_fulfilled)
   end
 
   def handle_event(:shutdown, state) do
-    save_fulfillment_stats(state)
+    save_experience_state(state)
   end
 
   def handle_event(_event, state) do
@@ -197,6 +218,28 @@ defmodule Andy.Experience do
       random = Enum.random(1..1000) / 1000
       Enum.find(0..Enum.count(ranges) - 1, &(random < Enum.at(ranges, &1)))
     end
+  end
+
+  defp increment_prediction_error_count(
+         %{ prediction_error_stats: stats } = state,
+         %PredictionError{
+           conjecture_name: conjecture_name
+         } = _prediction_error
+       ) do
+    count = Map.get(stats, conjecture_name, 0)
+    updated_stats = Map.put(stats, conjecture_name, count + 1)
+    %{ state | prediction_error_stats: updated_stats }
+  end
+
+  defp increment_prediction_fulfilled_count(
+         %{ prediction_fulfilled_stats: stats } = state,
+         %PredictionFulfilled{
+           conjecture_name: conjecture_name
+         } = _prediction_fulfilled
+       ) do
+    count = Map.get(stats, conjecture_name, 0)
+    updated_stats = Map.put(stats, conjecture_name, count + 1)
+    %{ state | prediction_fulfilled_stats: updated_stats }
   end
 
 end

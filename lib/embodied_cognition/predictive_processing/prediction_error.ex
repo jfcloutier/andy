@@ -1,6 +1,6 @@
 defmodule Andy.PredictionError do
 
-  @moduledoc "A prediction error reported by a validator possibly attempting a fulfimmnet option"
+  @moduledoc "A prediction error reported by a validator possibly attempting a fulfillment option"
 
   alias __MODULE__
 
