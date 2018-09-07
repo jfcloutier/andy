@@ -1,7 +1,7 @@
 defmodule Andy.Conjectures do
   @moduledoc "Dispenser and analyzer of all known conjectures"
 
-  alias Andy.{Prediction, Fulfillment}
+  alias Andy.{ Prediction, Fulfillment }
   require Logger
 
   @name __MODULE__
@@ -60,7 +60,7 @@ defmodule Andy.Conjectures do
   @doc """
   Find all conjectures that compete with a conjecture.
   Competing conjectures of a conjecture are conjectures of equal or lower priority that are either non-predecessor siblings
-  or their children, but not the conjecture itself or its own descendants.
+  or their children, but not the conjecture itself or its own descendants or the descendants of its non-competing siblings.
   """
   def competing_conjecture_names(conjecture) do
     competing_conjecture_names = Agent.get(
@@ -74,17 +74,26 @@ defmodule Andy.Conjectures do
                                &(Andy.lower_level?(conjecture.priority, priority_from_name(&1, state)))
                              )
                              |> Enum.reject(&(&1 in predecessors))
+        competing_descendants = Enum.map(competing_siblings, &(descendant_names(&1, state.family_tree)))
+        competing = (competing_descendants ++ competing_siblings)
+                    |> List.flatten()
+        descendants = descendant_names(conjecture.name, state.family_tree)
         non_competing_siblings = siblings -- competing_siblings
         non_competing_sibling_descendants = Enum.map(non_competing_siblings, &(descendant_names(&1, state.family_tree)))
-        competing_descendants = Enum.map(competing_siblings, &(descendant_names(&1, state.family_tree)))
-#        Logger.info("Conjecture #{conjecture.name} has siblings #{inspect siblings}")
-#        Logger.info("Conjecture #{conjecture.name} has predecessors #{inspect predecessors}")
-#        Logger.info("Conjecture #{conjecture.name} has competing siblings #{inspect competing_siblings}")
-#        Logger.info("Conjecture #{conjecture.name} has competing descendants #{inspect competing_descendants}")
-        (competing_descendants ++ competing_siblings -- non_competing_sibling_descendants)
-        |> List.flatten()
+        non_competing = [conjecture.name | descendants ++ non_competing_sibling_descendants]
+                        |> List.flatten()
+        #        Logger.info("Conjecture #{conjecture.name} has siblings #{inspect siblings}")
+        #        Logger.info("Conjecture #{conjecture.name} has predecessors #{inspect predecessors}")
+        #        Logger.info("Conjecture #{conjecture.name} has competing siblings #{inspect competing_siblings}")
+        #        Logger.info("Conjecture #{conjecture.name} has competing descendants #{inspect competing_descendants}")
+        #        Logger.info("Conjecture #{conjecture.name} has non-competing siblings #{inspect non_competing_siblings}")
+        #        Logger.info(
+        #          "Conjecture #{conjecture.name} has non-competing sibling descendants #{
+        #            inspect non_competing_sibling_descendants
+        #          }"
+        #        )
+        (competing -- non_competing)
         |> Enum.uniq()
-        |> Enum.reject(&(&1 in [conjecture.name | descendant_names(conjecture.name, state.family_tree)]))
       end
     )
     Logger.info("Conjecture #{conjecture.name} has competitors #{inspect competing_conjecture_names}")
@@ -186,7 +195,7 @@ defmodule Andy.Conjectures do
               with_predicted
             end
         end
-       end
+      end
     )
     |> Enum.uniq()
     |> Enum.map(
