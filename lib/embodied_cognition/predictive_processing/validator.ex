@@ -84,7 +84,7 @@ defmodule Andy.Validator do
       fn (state) ->
         state
         |> release_believer_from_validator()
-        |> deactivate_current_fulfillment()
+        |> deactivate_fulfillment()
       end
     )
   end
@@ -158,7 +158,7 @@ defmodule Andy.Validator do
     # It might instantiate a temporary conjecture believer for a fulfillment action
     if validator_name == fulfill_validator_name do
       if new_fulfillment_index != current_fulfillment_index do
-        updated_state = deactivate_current_fulfillment(state)
+        updated_state = deactivate_fulfillment(state)
         activate_fulfillment(new_fulfillment_index, updated_state, :first_time)
       else
         activate_fulfillment(new_fulfillment_index, state, :repeated)
@@ -350,7 +350,7 @@ defmodule Andy.Validator do
           prediction_fulfilled(fulfilled_state)
         )
         execute_actions_post_fulfillment(prediction.when_fulfilled)
-        deactivate_current_fulfillment(fulfilled_state)
+        deactivate_fulfillment(fulfilled_state)
       else
         Logger.info("Prediction #{prediction.name} was already fulfilled")
         fulfilled_state
@@ -469,7 +469,7 @@ defmodule Andy.Validator do
     )
   end
 
-  defp deactivate_current_fulfillment(
+  defp deactivate_fulfillment(
          %{
            fulfillment_index: nil
          } = state
@@ -478,22 +478,18 @@ defmodule Andy.Validator do
   end
 
   # Deactivate the current fulfillment
-  defp deactivate_current_fulfillment(
+  defp deactivate_fulfillment(
          %{
-           fulfillment_index: fulfillment_index,
            prediction: prediction,
            validator_name: validator_name
          } = state
        ) do
-    Logger.info("Deactivating fulfillment #{fulfillment_index} of prediction #{prediction.name}")
-    fulfillment = Enum.at(prediction.fulfill_by, fulfillment_index)
-    # Stop whatever was started when activating the current fulfillment, if any
-    if  fulfillment.conjecture_name != nil do
-      # Spawn else DEADLOCK!
-      spawn(
-        fn ->
-          BelieversSupervisor.release_believer(fulfillment.conjecture_name, validator_name)
-        end
+    Logger.info("Deactivating fulfillment of prediction #{prediction.name}")
+    # Stop any believer started when activating the current fulfillment
+    if  Prediction.fulfilled_by_believing?(prediction) do
+      BelieversSupervisor.release_believer(
+        Prediction.fulfillment_conjecture_name(prediction),
+        validator_name
       )
     end
     %{ state | fulfillment_index: nil }
