@@ -80,7 +80,7 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_is_in_the_light,
             believed: { :is, :in_the_light },
             precision: :high,
-            fulfill_when: [:puppy_not_bumping],
+            fulfill_when: [:puppy_not_bumping, :puppy_not_about_to_bump],
             fulfill_by: { :doing, [say_once("It's too dark")] }
           )
         ],

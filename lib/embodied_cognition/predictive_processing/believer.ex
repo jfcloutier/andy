@@ -199,7 +199,7 @@ defmodule Andy.Believer do
     activate_or_terminate_dependent_validators(updated_state)
   end
 
-  # Process the fulfimmnet of a prediction about the believer's conjecture. Perhaps activate/terminate dependent validators.
+  # Process the fulfillment of a prediction about the believer's conjecture. Perhaps activate/terminate dependent validators.
   defp process_prediction_fulfilled(
          prediction_fulfilled,
          %{

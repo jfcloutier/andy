@@ -346,15 +346,14 @@ defmodule Andy.Validator do
       # Notify of prediction recovered if prediction becomes true
       if not was_fulfilled? do
         Logger.info("Prediction #{prediction.name} becomes fulfilled")
-        PubSub.notify_prediction_fulfilled(
-          prediction_fulfilled(fulfilled_state)
-        )
         execute_actions_post_fulfillment(prediction.when_fulfilled)
-        deactivate_fulfillment(fulfilled_state)
       else
         Logger.info("Prediction #{prediction.name} was already fulfilled")
         fulfilled_state
       end
+      # notify fulfilled and deactivate fulfillment even if already fulfilled (b/c race conditions?)
+      PubSub.notify_prediction_fulfilled(prediction_fulfilled(fulfilled_state))
+      deactivate_fulfillment(fulfilled_state)
     else
       unfulfilled_state = %{ state | fulfilled?: false }
       # Notify of prediction error if prediction (still) not true
