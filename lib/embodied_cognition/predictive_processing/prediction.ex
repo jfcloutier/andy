@@ -126,6 +126,14 @@ defmodule Andy.Prediction do
     conjecture_name
   end
 
+  def fulfillment_conjecture_name(%Prediction{ fulfill_by: fulfillment }) do
+    fulfillment.conjecture_name
+  end
+
+  def fulfilled_by_believing?(%Prediction{ fulfill_by: fulfillment }) do
+    fulfillment != nil and Fulfillment.by_believing?(fulfillment)
+  end
+
   def fulfilled_by_doing?(%Prediction{ fulfill_by: fulfillment }) do
     fulfillment != nil and Fulfillment.by_doing?(fulfillment)
   end

@@ -148,7 +148,7 @@ defmodule Andy.Puppy.Profiling do
         hypothesis: "The puppy is about to bump",
         predictions: [
           prediction(
-            name: :puppy_close_to_obstacle,
+            name: :puppy_about_to_bump,
             perceived: [
               { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, { :past_secs, 2 } },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }

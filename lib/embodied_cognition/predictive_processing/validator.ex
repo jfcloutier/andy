@@ -68,7 +68,7 @@ defmodule Andy.Validator do
     Agent.update(
       validator_name,
       fn (state) ->
-        %{state | fulfilled?: false}
+        %{ state | fulfilled?: false }
       end
     )
   end
@@ -518,9 +518,13 @@ defmodule Andy.Validator do
          first_time_or_repeated
        ) do
     Logger.info("Activating fulfillment #{fulfillment_index} in validator #{validator_name}")
-    if  Prediction.believing?(prediction) do
+    if  Prediction.fulfilled_by_believing?(prediction) do
       # Believing as a fulfillment is always affirmative
-      BelieversSupervisor.enlist_believer(Prediction.conjecture_name(prediction), validator_name, :is)
+      BelieversSupervisor.enlist_believer(
+        Prediction.fulfillment_conjecture_name(prediction),
+        validator_name,
+        :is
+      )
     end
     if Prediction.fulfilled_by_doing?(prediction) do
       actions = Prediction.get_actions_at(prediction, fulfillment_index)
