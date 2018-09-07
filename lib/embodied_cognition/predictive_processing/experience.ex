@@ -14,6 +14,9 @@ defmodule Andy.Experience do
 
   @behaviour Andy.EmbodiedCognitionAgent
 
+  # Act as if each fulfillment option succeeds a minimum of 1 out of ten times.
+  @minimum 0.1
+
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec(_) do
     %{
@@ -194,29 +197,38 @@ defmodule Andy.Experience do
   # Returns the index of a fulfillment option for a prediction, favoring the more successful ones,
   # or returns nil if no option is available
   defp choose_fulfillment_index(
-         %{ validator_name: validator_name } = _prediction_error,
+         %{
+           validator_name: validator_name,
+           fulfillment_count: fulfillment_count
+         } = _prediction_error,
          %{ fulfillment_stats: fulfillment_stats } = _state
        ) do
-    ratings = for { successes, failures } <- Map.get(fulfillment_stats, validator_name, []) do
-      # A fulfillment has a 10% minimum probability of being selected
-      if successes == 0, do: 0.1, else: max(successes / (successes + failures), 0.1)
-    end
-    #    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")
-    if Enum.count(ratings) == 0 do
+    if fulfillment_count == 0 do
       nil
     else
-      ratings_sum = Enum.reduce(ratings, 0.0, fn (r, acc) -> r + acc end)
-      spreads = Enum.map(ratings, &(&1 / ratings_sum))
-      { ranges_reversed, _ } = Enum.reduce(
-        spreads,
-        { [], 0 },
-        fn (spread, { ranges_acc, top_acc }) ->
-          { [top_acc + spread | ranges_acc], top_acc + spread }
-        end
-      )
-      ranges = Enum.reverse(ranges_reversed)
-      random = Enum.random(1..1000) / 1000
-      Enum.find(0..Enum.count(ranges) - 1, &(random < Enum.at(ranges, &1)))
+      # A fulfillment option is always given a minimum, non-zero probability of being selected
+      # It corresponds to considering any option as succeeding at least some percent of the time
+      # no matter what the stats say
+      ratings = for { successes, failures } <- Map.get(fulfillment_stats, validator_name, []) do
+        if successes == 0, do: @minimum, else: max(successes / (successes + failures), @minimum)
+      end
+      #    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")
+      if Enum.count(ratings) == 0 do
+        nil
+      else
+        ratings_sum = Enum.reduce(ratings, 0.0, fn (r, acc) -> r + acc end)
+        spreads = Enum.map(ratings, &(&1 / ratings_sum))
+        { ranges_reversed, _ } = Enum.reduce(
+          spreads,
+          { [], 0 },
+          fn (spread, { ranges_acc, top_acc }) ->
+            { [top_acc + spread | ranges_acc], top_acc + spread }
+          end
+        )
+        ranges = Enum.reverse(ranges_reversed)
+        random = Enum.random(1..1000) / 1000
+        Enum.find(0..Enum.count(ranges) - 1, &(random < Enum.at(ranges, &1)))
+      end
     end
   end
 

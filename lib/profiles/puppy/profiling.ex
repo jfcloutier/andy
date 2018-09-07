@@ -10,9 +10,7 @@ defmodule Andy.Puppy.Profiling do
 
   def conjectures() do
     [
-      # Hyper-prior
-
-      #THRIVING
+      # THRIVING
 
       conjecture(
         name: :thriving,
@@ -143,6 +141,7 @@ defmodule Andy.Puppy.Profiling do
         ],
         priority: :high
       ),
+
       # About to bump
       conjecture(
         name: :about_to_bump,
@@ -272,7 +271,9 @@ defmodule Andy.Puppy.Profiling do
         ],
         priority: :low
       ),
-      # Recently got bumped
+
+      # Just bumped into something
+
       conjecture(
         name: :bumped,
         hypothesis: "The puppy bumped into something",
