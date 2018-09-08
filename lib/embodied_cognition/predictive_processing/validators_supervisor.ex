@@ -33,6 +33,7 @@ defmodule Andy.ValidatorsSupervisor do
       { :ok, _pid } ->
         :ok
       { :error, { :already_started, _pid } } ->
+        Logger.info("Validator #{validator_name} is already started")
         Validator.reset(validator_name)
         :ok
       other ->

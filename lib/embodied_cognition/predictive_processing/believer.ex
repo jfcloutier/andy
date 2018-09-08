@@ -3,7 +3,8 @@ defmodule Andy.Believer do
   @moduledoc "Track belief in a conjecture from prediction errors and fulfillments."
 
   require Logger
-  alias Andy.{ PubSub, Belief, Prediction, Validator, BelieversSupervisor, ValidatorsSupervisor }
+  alias Andy.{ PubSub, Belief, Prediction, Validator, BelieversSupervisor, ValidatorsSupervisor,
+               PredictionFulfilled, PredictionError }
   import Andy.Utils, only: [listen_to_events: 2]
 
   @behaviour Andy.EmbodiedCognitionAgent
@@ -121,7 +122,7 @@ defmodule Andy.Believer do
       fn (%{ validator_names: validator_names } = state) ->
         for validator_name <- validator_names do
           Validator.reset(validator_name)
-        end
+         end
         state
       end
     )
@@ -140,7 +141,10 @@ defmodule Andy.Believer do
   ### Cognition Agent Behaviour
 
   def handle_event(
-        { :prediction_error, %{ conjecture_name: conjecture_name } = prediction_error },
+        {
+          :prediction_error,
+          %PredictionError{ conjecture_name: conjecture_name } = prediction_error
+        },
         %{
           conjecture: conjecture
         } = state
@@ -153,7 +157,12 @@ defmodule Andy.Believer do
   end
 
   def handle_event(
-        { :prediction_fulfilled, %{ conjecture_name: conjecture_name } = prediction_fulfilled },
+        {
+          :prediction_fulfilled,
+          %PredictionFulfilled{
+            conjecture_name: conjecture_name
+          } = prediction_fulfilled
+        },
         %{
           conjecture: conjecture
         } = state
@@ -193,76 +202,71 @@ defmodule Andy.Believer do
   end
 
   # Process a prediction error about the believer's conjecture
-  defp process_prediction_error(prediction_error, %{ validations: validations } = state) do
+  defp process_prediction_error(
+         %PredictionError{ prediction_name: prediction_name },
+         %{ validations: validations } = state
+       ) do
     PubSub.notify_believed(Belief.new(state.conjecture.name, false))
-    updated_state = %{ state | validations: Map.put(validations, prediction_error.prediction_name, false) }
-    activate_or_terminate_dependent_validators(updated_state)
+    updated_state = %{ state | validations: Map.put(validations, prediction_name, false) }
+    enable_or_disable_dependent_validators(prediction_name, updated_state)
+    updated_state
   end
 
   # Process the fulfillment of a prediction about the believer's conjecture. Perhaps activate/terminate dependent validators.
   defp process_prediction_fulfilled(
-         prediction_fulfilled,
+         %PredictionFulfilled{ prediction_name: prediction_name },
          %{
            validations: validations
          } = state
        ) do
-    updated_validations = Map.put(validations, prediction_fulfilled.prediction_name, true)
+    updated_validations = Map.put(validations, prediction_name, true)
     was_already_believed? = all_predictions_validated?(validations)
     if not was_already_believed? and all_predictions_validated?(updated_validations) do
       PubSub.notify_believed(Belief.new(state.conjecture.name, true))
     end
     updated_state = %{ state | validations: updated_validations }
-    activate_or_terminate_dependent_validators(updated_state)
+    enable_or_disable_dependent_validators(prediction_name, updated_state)
+    updated_state
   end
 
   # Activate or terminate validators that need a prediction to first be true before they are activated
-  defp activate_or_terminate_dependent_validators(
+  defp enable_or_disable_dependent_validators(
+         # prediction fulfilled or in error
+         name_of_prediction_fulfilled_or_in_error,
          %{
-           believer_name: believer_name,
            validations: validations,
            conjecture: conjecture
-         } = state
+         } = _state
        ) do
-    Enum.reduce(
+    Enum.each(
       conjecture.predictions,
-      state,
-      fn (prediction, acc) ->
-        case prediction.fulfill_when do
-          [] ->
-            # corresponding validator not dependent on siblings
-            acc
-          fulfill_when ->
-            if predictions_validated?(fulfill_when, validations) do
-              # All pre-requisite predictions for a prediction are validated, activate a validator for it
-              Logger.info(
-                "Starting validator for #{prediction.name} because all pre-requisites #{
-                  inspect fulfill_when
-                } are now valid"
-              )
-              validator_name = ValidatorsSupervisor.start_validator(
-                prediction,
-                believer_name,
-                conjecture.name
-              )
-              %{
-                acc |
-                validator_names: (
-                  [validator_name | acc.validator_names]
-                  |> Enum.uniq())
-              }
-            else
-              # Not all pre-requisite validators are validated for a prediction, terminate the validator for it
+      fn (prediction) ->
+        if name_of_prediction_fulfilled_or_in_error in prediction.fulfill_when do
+          case prediction.fulfill_when do
+            [] ->
+              # corresponding validator not dependent on siblings
+              :ok
+            fulfill_when ->
               validator_name = Validator.validator_name(prediction, conjecture.name)
-              Logger.info(
-                "Terminating validator for #{prediction.name} because some pre-requisites #{
-                  inspect fulfill_when
-                } are no longer valid"
-              )
-              ValidatorsSupervisor.terminate_validator(
-                validator_name
-              )
-              %{ acc | validator_names: List.delete(acc.validator_names, validator_name) }
-            end
+              if predictions_validated?(fulfill_when, validations) do
+                # All pre-requisite predictions for a prediction are validated, enable a validator
+                Logger.info(
+                  "Enabling validator for #{prediction.name} because all pre-requisites #{
+                    inspect fulfill_when
+                  } are now valid"
+                )
+                Validator.enable(validator_name)
+              else
+                # Not all pre-requisite validators are validated for a prediction, disable the validator
+                validator_name = Validator.validator_name(prediction, conjecture.name)
+                Logger.info(
+                  "Disabling validator for #{prediction.name} because some pre-requisites #{
+                    inspect fulfill_when
+                  } are no longer valid"
+                )
+                Validator.disable(validator_name)
+              end
+          end
         end
       end
     )

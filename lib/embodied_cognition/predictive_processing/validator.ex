@@ -36,7 +36,9 @@ defmodule Andy.Validator do
                # Is is currently fulfilled? For starters, yes
                fulfilled?: true,
                # index of the fulfillment currently being tried. Nil if none.
-               fulfillment_index: nil
+               fulfillment_index: nil,
+               # whether disabled because of prerequisite prediction validation
+               disabled: false
              }
            end,
            [name: validator_name]
@@ -67,6 +69,7 @@ defmodule Andy.Validator do
     Logger.info("Resetting validator #{validator_name}")
     Agent.update(
       validator_name,
+      # Also enable? TODO
       fn (state) ->
         %{ state | fulfilled?: false }
       end
@@ -85,6 +88,38 @@ defmodule Andy.Validator do
         state
         |> release_believer_from_validator()
         |> deactivate_fulfillment()
+      end
+    )
+  end
+
+  @doc "Enable a validator (because all prerequisite predictions are validated)"
+  def enable(validator_name) do
+    Agent.update(
+      validator_name,
+      fn (%{ disabled: disabled? } = state) ->
+        if disabled? do
+          Logger.info("Enabling validator #{validator_name}")
+          redirect_attention(state)
+        else
+          Logger.info("Validator #{validator_name} already enabled")
+        end
+        %{ state | disabled: false }
+      end
+    )
+  end
+
+  @doc "Disable a validator (because a prerequisite prediction is invalidated)"
+  def disable(validator_name) do
+    Agent.update(
+      validator_name,
+      fn (%{ disabled: disabled? } = state) ->
+        if not disabled? do
+          Logger.info("Disabling validator #{validator_name}")
+          PubSub.notify_attention_off(validator_name)
+        else
+          Logger.info("Validator #{validator_name} already disabled")
+        end
+        %{ state | disabled: true }
       end
     )
   end
@@ -238,7 +273,7 @@ defmodule Andy.Validator do
     |> Enum.each(&(PubSub.notify_attention_on(&1, validator_name, precision)))
   end
 
-  # Redirect attention after a deprioritization or reprioritization
+  # Redirect attention after a deprioritization, reprioritization or enabling
   defp redirect_attention(
          %{
            validator_name: validator_name,
@@ -306,25 +341,33 @@ defmodule Andy.Validator do
   defp review_prediction(
          %{
            validator_name: validator_name,
-           deprioritization: deprioritization
+           deprioritization: deprioritization,
+           disabled: disabled?
          } = state
        ) do
     #    random = Enum.random(1..100)
-    review_prediction? = case deprioritization do
-      :none -> true
-      _other -> false
-      #      :high -> false
-      #      # don't review
-      #      :medium -> random in 1..10
-      #      # review 10% of the time
-      #      :low -> random == 1..5 # review 5% of the time
-    end
+    review_prediction? = not disabled?
+    and case deprioritization do
+                           :none -> true
+                           _other -> false
+                           #      :high -> false
+                           #      # don't review
+                           #      :medium -> random in 1..10
+                           #      # review 10% of the time
+                           #      :low -> random == 1..5 # review 5% of the time
+                         end
     if review_prediction? do
       do_review_prediction(state)
     else
+    if disabled? do
+      Logger.info(
+        "Not reviewing prediction this time: Validator #{validator_name} is disabled"
+      )
+      else
       Logger.info(
         "Not reviewing prediction this time: Validator #{validator_name} has #{deprioritization} deprioritization."
       )
+      end
       state
     end
   end
