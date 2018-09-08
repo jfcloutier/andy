@@ -3,50 +3,35 @@ defmodule Andy.Action do
 
   alias __MODULE__
 
-  alias Andy.{ Intent, PubSub }
+  alias Andy.{ Intent, PubSub, Memory }
   require Logger
 
   @type t :: %__MODULE__{
                intent_name: :atom,
                intent_value: any,
-               once?: boolean
+               once?: boolean,
+               allow_repeating?: boolean
              }
 
   defstruct intent_name: nil,
               # e.g. :forward
             intent_value: nil,
               # %{speed: 10, duration: 3}
-            once?: false
+            once?: false,
+            allow_repeating?: true
 
-  def new(
-        intent_name: intent_name,
-        intent_value: intent_value,
-        once?: once?
-      ) do
-    %Action{
-      intent_name: intent_name,
-      intent_value: intent_value,
-      once?: once?
-    }
-  end
+  @keys [:intent_name, :intent_value, :once?, :allow_repeating?]
 
-  def new(
-        intent_name: intent_name,
-        intent_value: intent_value
-      ) do
-    %Action{
-      intent_name: intent_name,
-      intent_value: intent_value
-    }
-  end
-
-  def new(
-        intent_name: intent_name
-      ) do
-    %Action{
-      intent_name: intent_name,
-      intent_value: nil
-    }
+  def new(keywords) do
+    Enum.reduce(
+      Keyword.keys(keywords),
+      %Action{ },
+      fn (key, acc) ->
+        if not key in @keys, do: raise "Invalid action property #{key}"
+        value = Keyword.get(keywords, key)
+        Map.put(acc, key, value)
+      end
+    )
   end
 
 
@@ -70,13 +55,23 @@ defmodule Andy.Action do
   end
 
   @doc "Execute an action by publishing the intent it defines"
-  def execute(action) do
-    PubSub.notify_intended(
-      Intent.new(
-        about: action.intent_name,
-        value: action.intent_value
+  def execute(
+        %Action{
+          intent_name: intent_name,
+          intent_value: intent_value,
+          allow_repeating?: allow_repeating?
+        } = action
+      ) do
+    if allow_repeating? or Memory.recall_value_of_latest_intent(intent_name) != intent_value do
+      PubSub.notify_intended(
+        Intent.new(
+          about: action.intent_name,
+          value: action.intent_value
+        )
       )
-    )
+    else
+      Logger.info("Not repeating action #{inspect action}")
+    end
   end
 
 end

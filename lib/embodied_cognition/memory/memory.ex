@@ -74,16 +74,35 @@ defmodule Andy.Memory do
       [] ->
         nil
     end
-
   end
 
-  @doc "Recall latest unexpired, matching percept, if any"
+  @doc "Recall the value of the latest unexpired, matching percept, if any"
   def recall_value_of_latest_percept(about) do
     case recall_latest_percept(about) do
       nil ->
         nil
       percept ->
         percept.value
+    end
+  end
+
+  @doc "Recall the value of the latest unexpired, matching intent, if any"
+  def recall_value_of_latest_intent(intent_name) do
+    case recall_latest_intent(intent_name) do
+      nil ->
+        nil
+      intent ->
+        intent.value
+    end
+  end
+
+  @doc "Recall latest matching intent"
+  def recall_latest_intent(intent_name) do
+    case recall_intents_since(intent_name, { :past_secs, @max_recall }) do
+      [intent | _] ->
+        intent
+      [] ->
+        nil
     end
   end
 
@@ -96,6 +115,7 @@ defmodule Andy.Memory do
       end
     )
   end
+
 
   @doc "Recall whether a conjecture is currently believed in"
   def recall_believed?(conjecture_name) do

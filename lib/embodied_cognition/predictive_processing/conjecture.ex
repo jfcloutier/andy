@@ -1,6 +1,6 @@
 defmodule Andy.Conjecture do
 
-  @moduledoc "A generative conjecture, with priority and predictions. Could be a hyper-prior (always active)."
+  @moduledoc "A conjecture, with priority and predictions. Could be a hyper-prior (always active)."
 
   alias __MODULE__
 
@@ -31,7 +31,7 @@ defmodule Andy.Conjecture do
       Keyword.keys(keywords),
       %Conjecture{ },
       fn (key, acc) ->
-        if not key in @keys, do: raise "Invalid generative conjecture property #{key}"
+        if not key in @keys, do: raise "Invalid conjecture property #{key}"
         value = Keyword.get(keywords, key)
         Map.put(acc, key, value)
       end

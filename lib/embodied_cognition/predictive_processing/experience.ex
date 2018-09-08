@@ -167,23 +167,48 @@ defmodule Andy.Experience do
       nil ->
         initial_validator_stats = List.duplicate({ 0, 0 }, fulfillment_count)
         Logger.info("New validator stats = #{inspect initial_validator_stats}")
-        capture_success_or_failure(initial_validator_stats, fulfillment_index, success_or_failure)
+        capture_success_or_failure(
+          initial_validator_stats,
+          fulfillment_index,
+          success_or_failure,
+          validator_name
+        )
       validator_stats ->
-        Logger.info("Prior validator stats = #{inspect validator_stats}")
-        capture_success_or_failure(validator_stats, fulfillment_index, success_or_failure)
+        capture_success_or_failure(
+          validator_stats,
+          fulfillment_index,
+          success_or_failure,
+          validator_name
+        )
     end
     updated_fulfillment_stats = Map.put(fulfillment_stats, validator_name, new_validator_stats)
     %{ state | fulfillment_stats: updated_fulfillment_stats }
   end
 
-  defp capture_success_or_failure(validator_stats, nil, _success_or_failure) do
+  defp capture_success_or_failure(
+         validator_stats,
+         nil,
+         _success_or_failure,
+         _validator_name
+       ) do
     validator_stats
   end
 
   # Update success/failure stats
-  defp capture_success_or_failure(validator_stats, fulfillment_index, success_or_failure) do
+  defp capture_success_or_failure(
+         validator_stats,
+         fulfillment_index,
+         success_or_failure,
+         validator_name
+       ) do
     stats = Enum.at(validator_stats, fulfillment_index)
-    List.replace_at(validator_stats, fulfillment_index, increment(stats, success_or_failure))
+    updated_validator_stats = List.replace_at(
+      validator_stats,
+      fulfillment_index,
+      increment(stats, success_or_failure)
+    )
+    Logger.info("Validator stats for #{validator_name}: #{inspect updated_validator_stats}")
+    updated_validator_stats
   end
 
   defp increment({ successes, failures }, :success) do
@@ -235,22 +260,22 @@ defmodule Andy.Experience do
   defp increment_prediction_error_count(
          %{ prediction_error_stats: stats } = state,
          %PredictionError{
-           conjecture_name: conjecture_name
+           prediction_name: prediction_name
          } = _prediction_error
        ) do
-    count = Map.get(stats, conjecture_name, 0)
-    updated_stats = Map.put(stats, conjecture_name, count + 1)
+    count = Map.get(stats, prediction_name, 0)
+    updated_stats = Map.put(stats, prediction_name, count + 1)
     %{ state | prediction_error_stats: updated_stats }
   end
 
   defp increment_prediction_fulfilled_count(
          %{ prediction_fulfilled_stats: stats } = state,
          %PredictionFulfilled{
-           conjecture_name: conjecture_name
+           prediction_name: prediction_name
          } = _prediction_fulfilled
        ) do
-    count = Map.get(stats, conjecture_name, 0)
-    updated_stats = Map.put(stats, conjecture_name, count + 1)
+    count = Map.get(stats, prediction_name, 0)
+    updated_stats = Map.put(stats, prediction_name, count + 1)
     %{ state | prediction_fulfilled_stats: updated_stats }
   end
 

@@ -16,30 +16,27 @@ defmodule Andy.Puppy.Profiling do
         name: :thriving,
         hypothesis: "The puppy is safe, has eaten recently, and can move about",
         predictions: [
-          # safe, sated and free are sibling conjectures
           prediction(
             name: :puppy_is_safe,
             believed: { :is, :safe },
             precision: :high,
             fulfill_by: { :doing, [say_once("I am scared")] },
-            when_fulfilled: [say("I am ok now")]
+            when_fulfilled: [say_without_repeating("I am ok now")]
           ),
           prediction(
             name: :puppy_is_sated,
             believed: { :is, :sated },
             precision: :medium,
             fulfill_by: { :doing, [say_once("I am hungry")] },
-            when_fulfilled: [say("I am full"), backoff()]
+            when_fulfilled: [say_without_repeating("I am full"), backoff()]
           ),
           prediction(
             name: :puppy_is_free,
             believed: { :is, :free },
             precision: :low,
-            fulfill_by: { :doing, [say_once("I'm stuck")] },
-            when_fulfilled: [say("I'm free")]
+            when_fulfilled: [say_without_repeating("I'm free")]
           )
         ],
-        # Let activated sub-conjectures dictate priority
         priority: :high,
         hyper_prior?: true
       ),
@@ -125,23 +122,6 @@ defmodule Andy.Puppy.Profiling do
         priority: :medium
       ),
 
-      # Recently got bumped while in the dark
-      conjecture(
-        name: :bumped_in_the_dark,
-        hypothesis: "The puppy bumped into something in the dark",
-        predictions: [
-          prediction(
-            name: :puppy_touched_in_low_light,
-            perceived: [
-              { { :sensor, :touch, :touch }, { :eq, :pressed }, :now },
-              { { :sensor, :color, :ambient }, { :lt, @low_light }, :now }
-            ],
-            precision: :high
-          )
-        ],
-        priority: :high
-      ),
-
       # About to bump
       conjecture(
         name: :about_to_bump,
@@ -210,7 +190,7 @@ defmodule Andy.Puppy.Profiling do
                 from: [backoff(), turn(), forward()],
                 allow_duplicates: true
               } },
-            when_fulfilled: [say_once("I smell food")]
+            when_fulfilled: [say_without_repeating("I smell food")]
           ),
           prediction(
             name: :puppy_faces_food,
@@ -438,6 +418,19 @@ defmodule Andy.Puppy.Profiling do
       )
     end
   end
+
+  defp say_without_repeating(words) do
+    fn ->
+      Logger.info("Action say_once #{words}")
+      Action.new(
+        intent_name: :say,
+        intent_value: words,
+        once?: true,
+        allow_repeating?: false
+      )
+    end
+  end
+
 
   defp say(words) do
     fn ->
