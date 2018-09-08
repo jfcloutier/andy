@@ -359,14 +359,14 @@ defmodule Andy.Validator do
     if review_prediction? do
       do_review_prediction(state)
     else
-    if disabled? do
-      Logger.info(
-        "Not reviewing prediction this time: Validator #{validator_name} is disabled"
-      )
+      if disabled? do
+        Logger.info(
+          "Not reviewing prediction this time: Validator #{validator_name} is disabled"
+        )
       else
-      Logger.info(
-        "Not reviewing prediction this time: Validator #{validator_name} has #{deprioritization} deprioritization."
-      )
+        Logger.info(
+          "Not reviewing prediction this time: Validator #{validator_name} has #{deprioritization} deprioritization."
+        )
       end
       state
     end
@@ -496,7 +496,8 @@ defmodule Andy.Validator do
       conjecture_name: state.predicted_conjecture_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index,
-      fulfillment_count: Prediction.count_fulfillment_options(state.prediction)
+      fulfillment_count: Prediction.count_fulfillment_options(state.prediction),
+      fulfillment_summary: Prediction.fulfillment_summary_at(state.prediction, state.fulfillment_index)
     )
   end
 
@@ -507,7 +508,8 @@ defmodule Andy.Validator do
       conjecture_name: state.predicted_conjecture_name,
       prediction_name: state.prediction.name,
       fulfillment_index: state.fulfillment_index,
-      fulfillment_count: Prediction.count_fulfillment_options(state.prediction)
+      fulfillment_count: Prediction.count_fulfillment_options(state.prediction),
+      fulfillment_summary: Prediction.fulfillment_summary_at(state.prediction, state.fulfillment_index)
     )
   end
 

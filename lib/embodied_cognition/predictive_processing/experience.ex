@@ -31,7 +31,7 @@ defmodule Andy.Experience do
     { :ok, pid } = Agent.start_link(
       fn ->
         # %{
-        #    fulfillment_stats: %{} - %{validator_name: [{successes, failures}, nil, nil]} -- index in list == fulfillment index
+        #    fulfillment_stats: %{} - %{validator_name: [{successes, failures, fulfillment_summary}, nil, nil]} -- index in list == fulfillment index
         #    prediction_error_stats: %{} - %{conjecture_name: number of prediction errors}
         #  prediction_fulfilled_stats: %{} - %{conjecture_name: number of prediction fulfilled}
         #  }
@@ -119,7 +119,8 @@ defmodule Andy.Experience do
          %PredictionError{
            validator_name: validator_name,
            fulfillment_index: fulfillment_index,
-           fulfillment_count: fulfillment_count
+           fulfillment_count: fulfillment_count,
+           fulfillment_summary: fulfillment_summary
          },
          state
        ) do
@@ -127,6 +128,7 @@ defmodule Andy.Experience do
       validator_name,
       fulfillment_index,
       fulfillment_count,
+      fulfillment_summary,
       :failure,
       state
     )
@@ -138,7 +140,8 @@ defmodule Andy.Experience do
          %PredictionFulfilled{
            validator_name: validator_name,
            fulfillment_index: fulfillment_index,
-           fulfillment_count: fulfillment_count
+           fulfillment_count: fulfillment_count,
+           fulfillment_summary: fulfillment_summary
          },
          state
        )  do
@@ -146,6 +149,7 @@ defmodule Andy.Experience do
       validator_name,
       fulfillment_index,
       fulfillment_count,
+      fulfillment_summary,
       :success,
       state
     )
@@ -156,6 +160,7 @@ defmodule Andy.Experience do
          validator_name,
          fulfillment_index,
          fulfillment_count,
+         fulfillment_summary,
          success_or_failure,
          %{ fulfillment_stats: fulfillment_stats } = state
        ) do
@@ -165,11 +170,12 @@ defmodule Andy.Experience do
     # The validator has an active fulfillment we are learning about
     new_validator_stats = case Map.get(fulfillment_stats, validator_name) do
       nil ->
-        initial_validator_stats = List.duplicate({ 0, 0 }, fulfillment_count)
+        initial_validator_stats = List.duplicate({ 0, 0, nil }, fulfillment_count)
         Logger.info("New validator stats = #{inspect initial_validator_stats}")
         capture_success_or_failure(
           initial_validator_stats,
           fulfillment_index,
+          fulfillment_summary,
           success_or_failure,
           validator_name
         )
@@ -177,6 +183,7 @@ defmodule Andy.Experience do
         capture_success_or_failure(
           validator_stats,
           fulfillment_index,
+          fulfillment_summary,
           success_or_failure,
           validator_name
         )
@@ -188,6 +195,7 @@ defmodule Andy.Experience do
   defp capture_success_or_failure(
          validator_stats,
          nil,
+         _fulfillment_summary,
          _success_or_failure,
          _validator_name
        ) do
@@ -198,6 +206,7 @@ defmodule Andy.Experience do
   defp capture_success_or_failure(
          validator_stats,
          fulfillment_index,
+         fulfillment_summary,
          success_or_failure,
          validator_name
        ) do
@@ -205,18 +214,18 @@ defmodule Andy.Experience do
     updated_validator_stats = List.replace_at(
       validator_stats,
       fulfillment_index,
-      increment(stats, success_or_failure)
+      increment(stats, success_or_failure, fulfillment_summary)
     )
     Logger.info("Validator stats for #{validator_name}: #{inspect updated_validator_stats}")
     updated_validator_stats
   end
 
-  defp increment({ successes, failures }, :success) do
-    { successes + 1, failures }
+  defp increment({ successes, failures, _ }, :success, fulfillment_summary) do
+    { successes + 1, failures, fulfillment_summary }
   end
 
-  defp increment({ successes, failures }, :failure) do
-    { successes, failures + 1 }
+  defp increment({ successes, failures, _ }, :failure, fulfillment_summary) do
+    { successes, failures + 1, fulfillment_summary }
   end
 
   # Returns the index of a fulfillment option for a prediction, favoring the more successful ones,
@@ -234,7 +243,7 @@ defmodule Andy.Experience do
       # A fulfillment option is always given a minimum, non-zero probability of being selected
       # It corresponds to considering any option as succeeding at least some percent of the time
       # no matter what the stats say
-      ratings = for { successes, failures } <- Map.get(fulfillment_stats, validator_name, []) do
+      ratings = for { successes, failures, _ } <- Map.get(fulfillment_stats, validator_name, []) do
         if successes == 0, do: @minimum, else: max(successes / (successes + failures), @minimum)
       end
       #    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")

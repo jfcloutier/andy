@@ -29,9 +29,9 @@ defmodule Andy.Fulfillment do
         action_specs
       ) when is_list(action_specs) do
     if Enum.all?(action_specs, &(is_list(&1))) do
-    %Fulfillment{
-      actions: action_specs
-    }
+      %Fulfillment{
+        actions: action_specs
+      }
     else
       # a single sequence of actions
       %Fulfillment{
@@ -83,6 +83,22 @@ defmodule Andy.Fulfillment do
     Enum.at(actions, index)
   end
 
+  def summary_at(_fulfillment, nil) do
+    nil
+  end
+
+  def summary_at(fulfillment, index) do
+    if by_believing?(fulfillment) do
+      "By believing in #{fulfillment.conjecture_name}"
+    else
+      "By doing #{
+        get_actions_at(fulfillment, index)
+        |> Enum.map(&(summarize_action(&1)))
+        |> Enum.join(",")
+      }"
+    end
+  end
+
   ### PRIVATE
 
   defp actions_generated?(%Fulfillment{ actions: %ActionsGenerator{ } }) do
@@ -91,6 +107,16 @@ defmodule Andy.Fulfillment do
 
   defp actions_generated?(_fulfillment) do
     false
+  end
+
+  # Function<6.88857842/0 in Andy.Puppy.Profiling.say_once/1>
+  defp summarize_action(action) do
+    case Regex.named_captures(~r{.*\.(?<name>\w+)/\d>}, inspect(action)) do
+      %{ "name" => name } ->
+        name
+      nil ->
+        inspect(action)
+    end
   end
 
 end

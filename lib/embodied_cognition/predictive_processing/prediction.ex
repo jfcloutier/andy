@@ -138,6 +138,10 @@ defmodule Andy.Prediction do
     fulfillment != nil and Fulfillment.by_doing?(fulfillment)
   end
 
+  def fulfillment_summary_at(%Prediction{ fulfill_by: fulfillment }, fulfillment_index) do
+    Fulfillment.summary_at(fulfillment, fulfillment_index)
+  end
+
   ### PRIVATE
 
   defp format_perceived(nil) do

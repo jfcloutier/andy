@@ -243,7 +243,7 @@ defmodule Andy.Puppy.Profiling do
               { :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()],
+                from: [turn(), forward()],
                 allow_duplicates: true
               } },
             time_sensitive?: true
@@ -276,7 +276,7 @@ defmodule Andy.Puppy.Profiling do
           prediction(
             name: :puppy_approaching_obstacle,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, 20 }, :now },
+              { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, :now },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
             precision: :high,
