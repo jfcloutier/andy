@@ -56,8 +56,7 @@ defmodule Andy.Puppy.Profiling do
               :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()],
-                allow_duplicates: true
+                from: [backoff(), turn(), forward()]
               }
             }
           ),
@@ -69,8 +68,7 @@ defmodule Andy.Puppy.Profiling do
               { :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()],
-                allow_duplicates: true
+                from: [backoff(), turn(), forward()]
               } }
           ),
           prediction(
@@ -129,8 +127,7 @@ defmodule Andy.Puppy.Profiling do
             fulfill_by: { :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()],
-                allow_duplicates: true
+                from: [backoff(), turn(), forward()]
               } },
             when_fulfilled: [forward()]
           )
@@ -195,7 +192,7 @@ defmodule Andy.Puppy.Profiling do
           prediction(
             name: :puppy_smells_food,
             perceived: [
-              { { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, 90 }, :now },
+              { { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, 90 }, { :past_secs, 2 } },
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 20 }, { :past_secs, 2 } }
             ],
             precision: :medium, # because not entirely reliable (sometimes fails to see beacon heading when right in front)
@@ -203,8 +200,7 @@ defmodule Andy.Puppy.Profiling do
               :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()],
-                allow_duplicates: true
+                from: [backoff(), turn(), forward()]
               }
             },
             when_fulfilled: [say_without_repeating("I smell food")]
@@ -243,8 +239,7 @@ defmodule Andy.Puppy.Profiling do
               { :doing,
               %{
                 pick: 2,
-                from: [turn(), forward(), backoff()],
-                allow_duplicates: true
+                from: [turn(), forward(), backoff()]
               } },
             time_sensitive?: true
           ),
@@ -304,11 +299,11 @@ defmodule Andy.Puppy.Profiling do
         abs(heading) == 25 -> # don't really know where it is, so don't bother
           0
         abs(heading) > 20 ->
-          1.0
+          0.5
         abs(heading) > 15 ->
-          0.25
+          0.2
         true ->
-          0.1
+          0.05
       end
       Logger.info("Action turn_toward heading #{heading}, direction #{direction} for #{how_much} secs")
       Action.new(

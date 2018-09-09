@@ -43,15 +43,13 @@ defmodule Andy.Fulfillment do
   def from_doing(
         %{
           pick: how_many,
-          from: actions,
-          allow_duplicates: allow_duplicates?
+          from: actions
         } = _action_specs
       )  do
     %Fulfillment{
       actions: ActionsGenerator.new(
         pick: how_many,
-        from: actions,
-        allow_duplicates: allow_duplicates?
+        from: actions
       )
     }
   end

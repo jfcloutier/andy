@@ -8,25 +8,21 @@ defmodule Andy.ActionsGenerator do
 
   @type t :: %__MODULE__{
                pick: non_neg_integer,
-               from: [[Action.t] | fun()],
-               allow_duplicates: boolean
+               from: [[Action.t] | fun()]
              }
 
 
   defstruct pick: 1,
-            from: [],
-            allow_duplicates: false
+            from: []
 
   @doc "Make an actions generator"
   def new(
         pick: how_many,
-        from: actions,
-        allow_duplicates: allow_duplicates?
+        from: actions
       ) do
     %ActionsGenerator{
       pick: how_many,
-      from: actions,
-      allow_duplicates: allow_duplicates?
+      from: actions
     }
   end
 
@@ -34,12 +30,10 @@ defmodule Andy.ActionsGenerator do
   def count_domain(
         %ActionsGenerator{
           pick: pick,
-          from: actions,
-          allow_duplicates: allow_duplicates?
+          from: actions
         }
       ) do
-    factor = if allow_duplicates?, do: pick, else: 1
-    n = Enum.count(actions) * factor
+    n = Enum.count(actions)
     div(fac(n), fac(n - pick))
   end
 
@@ -62,20 +56,14 @@ defmodule Andy.ActionsGenerator do
 
   defp permutee_indices(
          %ActionsGenerator{
-           pick: pick,
-           from: actions,
-           allow_duplicates: allow_duplicates?
+           from: actions
          }
        ) do
     Enum.reduce(
       1..Enum.count(actions),
       [],
       fn (i, acc) ->
-        if allow_duplicates? do
-          List.duplicate(i - 1, pick) ++ acc
-        else
-          [i - 1 | acc]
-        end
+        [i - 1 | acc]
       end
     )
     |> List.flatten()
