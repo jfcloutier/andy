@@ -82,7 +82,7 @@ defmodule Andy.Focus do
         deprioritize(competing_conjecture_name, conjecture, prediction_name, acc)
       end
     )
-    Logger.info("Focused on conjecture #{conjecture_name}with prediction #{prediction_name}: #{inspect updated_deprioritizations}")
+    Logger.info("Focused on conjecture #{conjecture_name} with prediction #{prediction_name}: #{inspect updated_deprioritizations}")
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
