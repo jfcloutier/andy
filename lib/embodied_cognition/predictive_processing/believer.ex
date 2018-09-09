@@ -220,8 +220,7 @@ defmodule Andy.Believer do
          } = state
        ) do
     updated_validations = Map.put(validations, prediction_name, true)
-    was_already_believed? = all_predictions_validated?(validations)
-    if not was_already_believed? and all_predictions_validated?(updated_validations) do
+    if all_predictions_validated?(updated_validations) do
       PubSub.notify_believed(Belief.new(state.conjecture.name, true))
     end
     updated_state = %{ state | validations: updated_validations }

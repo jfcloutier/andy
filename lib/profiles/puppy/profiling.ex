@@ -91,7 +91,7 @@ defmodule Andy.Puppy.Profiling do
         hypothesis: "The puppy bumped into something",
         predictions: [
           prediction(
-            name: :puppy_recently_touched,
+            name: :puppy_bumped,
             perceived: [{ { :sensor, :touch, :touch }, { :eq, :pressed }, :now }],
             precision: :high,
             when_fulfilled: [say("Ouch!")]
@@ -123,7 +123,7 @@ defmodule Andy.Puppy.Profiling do
         hypothesis: "The puppy is in a better-lit area",
         predictions: [
           prediction(
-            name: :puppy_in_increasingly_lit_area,
+            name: :puppy_in_better_lit_area,
             perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 5 } }],
             precision: :medium,
             fulfill_by: { :doing,
