@@ -220,6 +220,7 @@ defmodule Andy.PubSub do
         )
       end
     )
+    :ok
   end
 
   defp set_paused(paused?) do
