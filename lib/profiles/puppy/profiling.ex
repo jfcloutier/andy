@@ -6,7 +6,7 @@ defmodule Andy.Puppy.Profiling do
   require Logger
 
   @low_light 1
-  @us_near 15 # 15 cm
+  @us_near 20 # cm
 
   def conjectures() do
     [
@@ -133,7 +133,7 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, { :past_secs, 2 } },
               { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
             ],
-            precision: :high
+            precision: :medium
           )
         ],
         priority: :high

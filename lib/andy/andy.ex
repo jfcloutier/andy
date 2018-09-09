@@ -136,11 +136,11 @@ defmodule Andy do
   def in_probable_range?(probability, precision) do
     case precision  do
       :high ->
-        probability >= 0.9
+        probability >= 0.8
       :medium ->
-        probability >= 0.7
+        probability >= 0.6
       :low ->
-        probability >= 0.5
+        probability >= 0.3
       :none ->
         true
     end

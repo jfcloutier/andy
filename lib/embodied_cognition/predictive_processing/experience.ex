@@ -10,7 +10,7 @@ defmodule Andy.Experience do
 
   @name __MODULE__
   @experience_dir "experience"
-  @experience_file "state.exs"
+  @experience_file "state.json"
 
   @behaviour Andy.EmbodiedCognitionAgent
 
@@ -31,7 +31,7 @@ defmodule Andy.Experience do
     { :ok, pid } = Agent.start_link(
       fn ->
         # %{
-        #    fulfillment_stats: %{} - %{validator_name: [{successes, failures, fulfillment_summary}, nil, nil]} -- index in list == fulfillment index
+        #    fulfillment_stats: %{} - %{validator_name: [[successes, failures, fulfillment_summary], nil, nil]} -- index in list == fulfillment index
         #    prediction_error_stats: %{} - %{conjecture_name: number of prediction errors}
         #  prediction_fulfilled_stats: %{} - %{conjecture_name: number of prediction fulfilled}
         #  }
@@ -47,8 +47,9 @@ defmodule Andy.Experience do
     path = experience_path()
     if File.exists?(path) do
       Logger.info("Experience loading saved state")
-      { state, [] } = Code.eval_file(path)
-      state
+      File.read!(path)
+      |> Poison.decode!()
+      |> keys_to_atoms()
     else
       %{
         fulfillment_stats: %{ },
@@ -67,7 +68,7 @@ defmodule Andy.Experience do
            |> String.replace(" ", "T")
       File.cp(path, "#{path}_#{ts}")
     end
-    File.write(experience_path(), inspect(state))
+    File.write(experience_path(), Poison.encode!(state))
     state
   end
 
@@ -170,7 +171,7 @@ defmodule Andy.Experience do
     # The validator has an active fulfillment we are learning about
     new_validator_stats = case Map.get(fulfillment_stats, validator_name) do
       nil ->
-        initial_validator_stats = List.duplicate({ 0, 0, nil }, fulfillment_count)
+        initial_validator_stats = List.duplicate([0, 0, nil], fulfillment_count)
         Logger.info("New validator stats = #{inspect initial_validator_stats}")
         capture_success_or_failure(
           initial_validator_stats,
@@ -220,12 +221,12 @@ defmodule Andy.Experience do
     updated_validator_stats
   end
 
-  defp increment({ successes, failures, _ }, :success, fulfillment_summary) do
-    { successes + 1, failures, fulfillment_summary }
+  defp increment([successes, failures, _], :success, fulfillment_summary) do
+    [successes + 1, failures, fulfillment_summary]
   end
 
-  defp increment({ successes, failures, _ }, :failure, fulfillment_summary) do
-    { successes, failures + 1, fulfillment_summary }
+  defp increment([successes, failures, _], :failure, fulfillment_summary) do
+    [successes, failures + 1, fulfillment_summary]
   end
 
   # Returns the index of a fulfillment option for a prediction, favoring the more successful ones,
@@ -243,10 +244,14 @@ defmodule Andy.Experience do
       # A fulfillment option is always given a minimum, non-zero probability of being selected
       # It corresponds to considering any option as succeeding at least some percent of the time
       # no matter what the stats say
-      ratings = for { successes, failures, _ } <- Map.get(fulfillment_stats, validator_name, []) do
+      ratings = for [successes, failures, _] <- Map.get(fulfillment_stats, validator_name, []) do
         if successes == 0, do: @minimum, else: max(successes / (successes + failures), @minimum)
       end
-      #    Logger.info("Ratings = #{inspect ratings} given stats #{inspect fulfillment_stats} for validator #{validator_name}")
+#      Logger.info(
+#        "Ratings = #{inspect ratings} given stats #{
+#          inspect Map.get(fulfillment_stats, validator_name, [])
+#        } for validator #{validator_name}"
+#      )
       if Enum.count(ratings) == 0 do
         nil
       else
@@ -260,8 +265,13 @@ defmodule Andy.Experience do
           end
         )
         ranges = Enum.reverse(ranges_reversed)
-        random = Enum.random(1..1000) / 1000
-        Enum.find(0..Enum.count(ranges) - 1, &(random < Enum.at(ranges, &1)))
+#        Logger.info("Ranges = #{inspect ranges} for validator #{validator_name}")
+        random = Enum.random(0..999) / 1000
+        fulfillment_index = Enum.find(0..(Enum.count(ranges) - 1), &(random < Enum.at(ranges, &1)))
+#        Logger.info(
+#          "Fulfillment index = #{inspect fulfillment_index} from random #{random} for validator #{validator_name}"
+#        )
+        fulfillment_index
       end
     end
   end
@@ -286,6 +296,20 @@ defmodule Andy.Experience do
     count = Map.get(stats, prediction_name, 0)
     updated_stats = Map.put(stats, prediction_name, count + 1)
     %{ state | prediction_fulfilled_stats: updated_stats }
+  end
+
+  defp keys_to_atoms(map) when is_map(map) do
+    Enum.reduce(
+      map,
+      %{ },
+      fn ({ key, val }, acc) ->
+        Map.put(acc, String.to_atom(key), keys_to_atoms(val))
+      end
+    )
+  end
+
+  defp keys_to_atoms(any) do
+    any
   end
 
 end
