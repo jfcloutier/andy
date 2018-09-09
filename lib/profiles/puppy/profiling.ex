@@ -163,7 +163,7 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_recently_ate,
-            actuated: [{ :eat, { :sum, 8 }, { :past_secs, 30 } }],
+            actuated: [{ :eat, { :times, 2 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfill_by: { :believing_in, :feeding },
             true_by_default?: false,
