@@ -182,7 +182,7 @@ defmodule Andy.Puppy.Profiling do
             perceived: [{ { :sensor, :color, :color }, { :eq, :blue }, { :past_secs, 3 } }],
             precision: :high,
             fulfill_by: { :believing_in, :getting_closer_to_food },
-            when_fulfilled: [eat({ :sensor, :color, :ambient }), say("nom de nom de nom")]
+            when_fulfilled: [say("nom de nom de nom"), eat({ :sensor, :color, :ambient })]
           )
         ],
         priority: :medium
@@ -243,7 +243,7 @@ defmodule Andy.Puppy.Profiling do
               { :doing,
               %{
                 pick: 2,
-                from: [turn(), forward()],
+                from: [turn(), forward(), backoff()],
                 allow_duplicates: true
               } },
             time_sensitive?: true

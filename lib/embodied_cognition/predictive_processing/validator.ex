@@ -75,7 +75,7 @@ defmodule Andy.Validator do
           state |
           fulfilled?: false,
           fulfillment_index: nil,
-          # Also enable? TODO
+          # Also enable
           disabled: false
         }
       end
