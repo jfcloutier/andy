@@ -71,7 +71,7 @@ defmodule Andy.Focus do
   # (i.e. altering precision weighing), on behalf of a prediction that needs to be fulfilled about that conjecture
   defp focus_on(conjecture_name, prediction_name, %{ deprioritizations: deprioritizations } = state) do
     Logger.info(
-      "Focus: Focusing on conjecture #{conjecture_name} because belief prediction #{prediction_name} was invalidated"
+      "Focus: Focus on conjecture #{conjecture_name} because belief prediction #{prediction_name} was invalidated: #{inspect deprioritizations}"
     )
     conjecture = Conjectures.fetch!(conjecture_name)
     competing_conjecture_names = Conjectures.competing_conjecture_names(conjecture)
@@ -82,6 +82,7 @@ defmodule Andy.Focus do
         deprioritize(competing_conjecture_name, conjecture, prediction_name, acc)
       end
     )
+    Logger.info("Focused on conjecture #{conjecture_name}: #{inspect updated_deprioritizations}")
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
@@ -171,9 +172,9 @@ defmodule Andy.Focus do
   # Lose focus on a conjecture on behalf of a prediction about that conjecture because the prediction was validated
   defp focus_off(conjecture_name, prediction_name, %{ deprioritizations: deprioritizations } = state) do
     Logger.info(
-      "Focus: Maybe losing focus on conjecture #{conjecture_name} because belief prediction #{
+      "Focus: Focus off conjecture #{conjecture_name} because belief prediction #{
         prediction_name
-      } was validated"
+      } was validated: #{inspect deprioritizations}"
     )
     updated_deprioritizations = Enum.reduce(
       deprioritizations,
@@ -204,6 +205,7 @@ defmodule Andy.Focus do
         end
       end
     )
+    Logger.info("Focused off conjecture #{conjecture_name}: #{inspect updated_deprioritizations}")
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
@@ -230,7 +232,7 @@ defmodule Andy.Focus do
 
   # Lose focus on a conjecture because its' believer was terminated
   defp focus_off_unconditionally(conjecture_name, %{ deprioritizations: deprioritizations } = state) do
-    Logger.info("Focus: Losing any focus on conjecture #{conjecture_name} because believer was terminated")
+    Logger.info("Focus: Focus off conjecture #{conjecture_name} unconditionally because believer was terminated")
     { updated_deprioritizations, to_reprioritize } = Enum.reduce(
       deprioritizations,
       { [], [] },
@@ -249,6 +251,7 @@ defmodule Andy.Focus do
     for competing_conjecture_name <- to_reprioritize do
       reprioritize(competing_conjecture_name, updated_deprioritizations)
     end
+    Logger.info("Focused off conjecture #{conjecture_name} unconditionally: #{inspect updated_deprioritizations}")
     %{ state | deprioritizations: updated_deprioritizations }
   end
 

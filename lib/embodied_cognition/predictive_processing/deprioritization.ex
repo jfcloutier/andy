@@ -3,8 +3,6 @@ defmodule Andy.Deprioritization do
 
   defstruct conjecture_name: nil,
             prediction_names: [],
-            competing_conjecture_name: nil,
-            from_priority: nil,
-            to_priority: nil
+            competing_conjecture_name: nil
 
 end
