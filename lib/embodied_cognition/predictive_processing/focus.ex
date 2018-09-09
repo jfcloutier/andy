@@ -71,7 +71,9 @@ defmodule Andy.Focus do
   # (i.e. altering precision weighing), on behalf of a prediction that needs to be fulfilled about that conjecture
   defp focus_on(conjecture_name, prediction_name, %{ deprioritizations: deprioritizations } = state) do
     Logger.info(
-      "Focus: Focus on conjecture #{conjecture_name} because belief prediction #{prediction_name} was invalidated: #{inspect deprioritizations}"
+      "Focus: Focus on conjecture #{conjecture_name} because belief prediction #{prediction_name} was invalidated: #{
+        inspect deprioritizations
+      }"
     )
     conjecture = Conjectures.fetch!(conjecture_name)
     competing_conjecture_names = Conjectures.competing_conjecture_names(conjecture)
@@ -82,7 +84,11 @@ defmodule Andy.Focus do
         deprioritize(competing_conjecture_name, conjecture, prediction_name, acc)
       end
     )
-    Logger.info("Focused on conjecture #{conjecture_name} with prediction #{prediction_name}: #{inspect updated_deprioritizations}")
+    Logger.info(
+      "Focused on conjecture #{conjecture_name} with prediction #{prediction_name}: #{
+        inspect updated_deprioritizations
+      }"
+    )
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
@@ -183,8 +189,7 @@ defmodule Andy.Focus do
         if deprioritization.conjecture_name == conjecture_name and prediction_name in prediction_names do
           updated_prediction_names = List.delete(prediction_names, prediction_name)
           if updated_prediction_names == [] do
-            reduced_deprioritizations = remove_deprioritization(deprioritizations, deprioritization)
- #           true == Enum.count(reduced_deprioritizations) < Enum.count(deprioritizations)
+            reduced_deprioritizations = remove_deprioritization(acc, deprioritization)
             :ok = reprioritize(
               deprioritization.competing_conjecture_name,
               reduced_deprioritizations
@@ -197,7 +202,7 @@ defmodule Andy.Focus do
               }"
             )
             update_deprioritizations(
-              deprioritizations,
+              acc,
               %Deprioritization{ deprioritization | prediction_names: updated_prediction_names }
             )
           end
@@ -206,7 +211,9 @@ defmodule Andy.Focus do
         end
       end
     )
-    Logger.info("Focused off conjecture #{conjecture_name} on prediction #{prediction_name}: #{inspect updated_deprioritizations}")
+    Logger.info(
+      "Focused off conjecture #{conjecture_name} on prediction #{prediction_name}: #{inspect updated_deprioritizations}"
+    )
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
