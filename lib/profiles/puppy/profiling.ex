@@ -304,9 +304,9 @@ defmodule Andy.Puppy.Profiling do
         abs(heading) == 25 -> # don't really know where it is, so don't bother
           0
         abs(heading) > 20 ->
-          0.5
+          1.0
         abs(heading) > 15 ->
-          0.2
+          0.25
         true ->
           0.1
       end
