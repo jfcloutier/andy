@@ -82,7 +82,7 @@ defmodule Andy.Focus do
         deprioritize(competing_conjecture_name, conjecture, prediction_name, acc)
       end
     )
-    Logger.info("Focused on conjecture #{conjecture_name}: #{inspect updated_deprioritizations}")
+    Logger.info("Focused on conjecture #{conjecture_name}with prediction #{prediction_name}: #{inspect updated_deprioritizations}")
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
@@ -184,6 +184,7 @@ defmodule Andy.Focus do
           updated_prediction_names = List.delete(prediction_names, prediction_name)
           if updated_prediction_names == [] do
             reduced_deprioritizations = remove_deprioritization(deprioritizations, deprioritization)
+ #           true == Enum.count(reduced_deprioritizations) < Enum.count(deprioritizations)
             :ok = reprioritize(
               deprioritization.competing_conjecture_name,
               reduced_deprioritizations
@@ -205,7 +206,7 @@ defmodule Andy.Focus do
         end
       end
     )
-    Logger.info("Focused off conjecture #{conjecture_name}: #{inspect updated_deprioritizations}")
+    Logger.info("Focused off conjecture #{conjecture_name} on prediction #{prediction_name}: #{inspect updated_deprioritizations}")
     %{ state | deprioritizations: updated_deprioritizations }
   end
 
@@ -216,7 +217,7 @@ defmodule Andy.Focus do
       "Focus: Reprioritizing conjecture #{conjecture_name} by reducing its base priority by #{effective_reduction}"
     )
     PubSub.notify_conjecture_deprioritized(conjecture_name, effective_reduction)
-    # Reprioritize all competing conjectures that had been deprioritized by the now reprioritized conjecture
+    # Reprioritize all competing conjectures that had been deprioritized by the reprioritized conjecture
     Enum.each(
       deprioritizations,
       fn (%Deprioritization{
