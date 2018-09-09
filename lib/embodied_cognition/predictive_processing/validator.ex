@@ -69,9 +69,15 @@ defmodule Andy.Validator do
     Logger.info("Resetting validator #{validator_name}")
     Agent.update(
       validator_name,
-      # Also enable? TODO
       fn (state) ->
-        %{ state | fulfilled?: false }
+        redirect_attention(state)
+        %{
+          state |
+          fulfilled?: false,
+          fulfillment_index: nil,
+          # Also enable? TODO
+          disabled: false
+        }
       end
     )
   end
