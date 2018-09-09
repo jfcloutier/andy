@@ -112,7 +112,7 @@ defmodule Andy.Focus do
           competing_effective_priority = effective_priority(competing_conjecture, deprioritizations)
           if Andy.lower_level?(reduced_priority, competing_effective_priority) do
             # Competing conjecture gets deprioritized
-            Logger.info("Focus: Deprioritizing #{competing_conjecture_name} by #{reducing_priority}")
+            Logger.info("Focus: Deprioritizing conjecture #{competing_conjecture_name} by #{reducing_priority}")
             PubSub.notify_conjecture_deprioritized(competing_conjecture_name, reducing_priority)
           end
           [
@@ -207,13 +207,13 @@ defmodule Andy.Focus do
   # Update the priority of a conjecture given new deprioritizations
   defp reprioritize(conjecture_name, deprioritizations) do
     effective_reduction = effective_reduction(conjecture_name, deprioritizations)
-    Logger.info("Focus: Reprioritizing #{conjecture_name} by reducing its base priority by #{effective_reduction}")
+    Logger.info("Focus: Reprioritizing conjecture #{conjecture_name} by reducing its base priority by #{effective_reduction}")
     PubSub.notify_conjecture_deprioritized(conjecture_name, effective_reduction)
   end
 
   # Lose focus on a conjecture because its' believer was terminated
   defp focus_off_unconditionally(conjecture_name, %{ deprioritizations: deprioritizations } = state) do
-    Logger.info("Focus: Losing any focus on #{conjecture_name} because believer was terminated")
+    Logger.info("Focus: Losing any focus on conjecture #{conjecture_name} because believer was terminated")
     { updated_deprioritizations, to_reprioritize } = Enum.reduce(
       deprioritizations,
       { [], [] },

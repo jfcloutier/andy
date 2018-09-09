@@ -84,6 +84,22 @@ defmodule Andy.Puppy.Profiling do
         priority: :high
       ),
 
+      # Just bumped into something
+
+      conjecture(
+        name: :bumped,
+        hypothesis: "The puppy bumped into something",
+        predictions: [
+          prediction(
+            name: :puppy_recently_touched,
+            perceived: [{ { :sensor, :touch, :touch }, { :eq, :pressed }, :now }],
+            precision: :high,
+            when_fulfilled: [say("Ouch!")]
+          )
+        ],
+        priority: :high
+      ),
+
       # In a well-light area
 
       conjecture(
@@ -147,8 +163,7 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_recently_ate,
-            #            perceived: [{ { :sensor, :timer, :time_elapsed }, { :gt, :count, 30 }, :now }],
-            actuated: [{ :eat, { :sum, 4 }, { :past_secs, 30 } }],
+            actuated: [{ :eat, { :sum, 8 }, { :past_secs, 30 } }],
             precision: :medium,
             fulfill_by: { :believing_in, :feeding },
             true_by_default?: false,
@@ -184,18 +199,21 @@ defmodule Andy.Puppy.Profiling do
               { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 20 }, { :past_secs, 2 } }
             ],
             precision: :medium, # because not entirely reliable (sometimes fails to see beacon heading when right in front)
-            fulfill_by: { :doing,
+            fulfill_by: {
+              :doing,
               %{
                 pick: 2,
                 from: [backoff(), turn(), forward()],
                 allow_duplicates: true
-              } },
+              }
+            },
             when_fulfilled: [say_without_repeating("I smell food")]
           ),
           prediction(
             name: :puppy_faces_food,
             perceived: [
-              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }],
+              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }
+            ],
             precision: :medium,
             fulfill_when: [:puppy_smells_food],
             fulfill_by: { :doing, [turn_toward({ :sensor, :infrared, { :beacon_heading, 1 } })] }
@@ -214,26 +232,8 @@ defmodule Andy.Puppy.Profiling do
       # FREE
       conjecture(
         name: :free,
-        hypothesis: "The puppy is free to move about",
+        hypothesis: "The puppy is moving about",
         predictions: [
-          prediction(
-            name: :puppy_unobstructed,
-            believed: { :not, :bumped },
-            precision: :high,
-            fulfill_by: { :doing,
-              %{
-                pick: 2,
-                from: [backoff(), turn(), forward()],
-                allow_duplicates: true
-              } }
-          ),
-          prediction(
-            name: :puppy_has_clear_path,
-            believed: { :not, :approaching_obstacle },
-            precision: :medium,
-            fulfill_when: [:puppy_unobstructed],
-            fulfill_by: { :doing, [avoid({ :sensor, :ultrasonic, :distance })] }
-          ),
           prediction(
             name: :puppy_is_moving,
             actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 10 } }],
@@ -250,43 +250,9 @@ defmodule Andy.Puppy.Profiling do
           ),
         ],
         priority: :low
-      ),
-
-      # Just bumped into something
-
-      conjecture(
-        name: :bumped,
-        hypothesis: "The puppy bumped into something",
-        predictions: [
-          prediction(
-            name: :puppy_recently_touched,
-            perceived: [{ { :sensor, :touch, :touch }, { :eq, :pressed }, :now }],
-            precision: :high,
-            when_fulfilled: [say("Ouch!")]
-          )
-        ],
-        priority: :high
-      ),
-
-      # Approaching an obstacle
-      conjecture(
-        name: :approaching_obstacle,
-        hypothesis: "The puppy is approaching an obstacle",
-        predictions: [
-          prediction(
-            name: :puppy_approaching_obstacle,
-            perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, :now },
-              { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
-            ],
-            precision: :high,
-            when_fulfilled: [say("Uh oh!")]
-          )
-        ],
-        priority: :high
-      ),
-
+      )
     ]
+
   end
 
   ### PRIVATE
@@ -385,29 +351,6 @@ defmodule Andy.Puppy.Profiling do
     end
   end
 
-  defp avoid(distance_percept_specs) do
-    fn ->
-      distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
-      Logger.info("Action avoid from distance #{distance}")
-      seconds = cond do
-        distance < 5 ->
-          3
-        distance < 10 ->
-          2
-        distance < 20 ->
-          1
-        distance < 30 ->
-          0.5
-        true ->
-          0
-      end
-      Action.new(
-        intent_name: choose_one([:turn_right, :turn_left]),
-        intent_value: seconds
-      )
-    end
-  end
-
   defp say_once(words) do
     fn ->
       Logger.info("Action say_once #{words}")
@@ -443,7 +386,6 @@ defmodule Andy.Puppy.Profiling do
     end
   end
 
-
   defp eat(ambient_percept_specs) do
     fn ->
       ambient_level = Memory.recall_value_of_latest_percept(as_percept_about(ambient_percept_specs)) || 0
@@ -471,6 +413,29 @@ defmodule Andy.Puppy.Profiling do
   #      Action.new(
   #        intent_name: :blue_lights,
   #        intent_value: on_or_off
+  #      )
+  #    end
+  #  end
+
+  #  defp avoid(distance_percept_specs) do
+  #    fn ->
+  #      distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
+  #      Logger.info("Action avoid from distance #{distance}")
+  #      seconds = cond do
+  #        distance < 5 ->
+  #          3
+  #        distance < 10 ->
+  #          2
+  #        distance < 20 ->
+  #          1
+  #        distance < 30 ->
+  #          0.5
+  #        true ->
+  #          0
+  #      end
+  #      Action.new(
+  #        intent_name: choose_one([:turn_right, :turn_left]),
+  #        intent_value: seconds
   #      )
   #    end
   #  end

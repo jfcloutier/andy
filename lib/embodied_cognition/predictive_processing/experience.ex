@@ -10,7 +10,7 @@ defmodule Andy.Experience do
 
   @name __MODULE__
   @experience_dir "experience"
-  @experience_file "state.json"
+  @experience_file "state"
 
   @behaviour Andy.EmbodiedCognitionAgent
 
@@ -44,7 +44,7 @@ defmodule Andy.Experience do
   end
 
   def load_experience_state() do
-    path = experience_path()
+    path = experience_state_path()
     if File.exists?(path) do
       Logger.info("Experience loading saved state")
       File.read!(path)
@@ -61,20 +61,20 @@ defmodule Andy.Experience do
 
   def save_experience_state(state) do
     Logger.info("Experience is saving its state")
-    path = experience_path()
+    path = experience_state_path()
     if File.exists?(path) do
       ts = DateTime.utc_now
            |> to_string
            |> String.replace(" ", "T")
-      File.cp(path, "#{path}_#{ts}")
+      File.cp(path, "#{@experience_dir}/#{@experience_file}_#{ts}.json")
     end
-    File.write(experience_path(), Poison.encode!(state))
+    File.write(path, Poison.encode!(state))
     state
   end
 
-  defp experience_path() do
+  defp experience_state_path() do
     File.mkdir_p(@experience_dir)
-    "#{@experience_dir}/#{@experience_file}"
+    "#{@experience_dir}/#{@experience_file}.json"
   end
 
   ### Cognition Agent Behaviour
