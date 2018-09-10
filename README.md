@@ -1,6 +1,6 @@
 # Andy
 
-Prediction Processing for Lego BrickPi3 robots
+Predictive Processing for Lego BrickPi3 robots
 
 Setup:
 
