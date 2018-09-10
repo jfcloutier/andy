@@ -2,7 +2,7 @@ defmodule Andy.Puppy.Profiling do
   @moduledoc "The conjectures for a puppy profile"
 
   alias Andy.{ Conjecture, Prediction, Action, Memory }
-  import Andy.Utils, only: [choose_one: 1, as_percept_about: 1]
+  import Andy.Utils, only: [as_percept_about: 1]
   require Logger
 
   @low_light 1
@@ -56,7 +56,7 @@ defmodule Andy.Puppy.Profiling do
               :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()]
+                from: [backoff(), turn_right(), turn_left(), forward()]
               }
             }
           ),
@@ -68,7 +68,7 @@ defmodule Andy.Puppy.Profiling do
               { :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()]
+                from: [backoff(), turn_right(), turn_left(), forward()]
               } }
           ),
           prediction(
@@ -127,7 +127,7 @@ defmodule Andy.Puppy.Profiling do
             fulfill_by: { :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()]
+                from: [backoff(), turn_right(), turn_left(), forward()]
               } },
             when_fulfilled: [forward()]
           )
@@ -200,7 +200,7 @@ defmodule Andy.Puppy.Profiling do
               :doing,
               %{
                 pick: 2,
-                from: [backoff(), turn(), forward()]
+                from: [backoff(), turn_right(), turn_left(), forward()]
               }
             },
             when_fulfilled: [say_without_repeating("I smell food")]
@@ -239,7 +239,7 @@ defmodule Andy.Puppy.Profiling do
               { :doing,
               %{
                 pick: 2,
-                from: [turn(), forward(), backoff()]
+                from: [turn_right(), turn_left(), forward(), backoff()]
               } },
             time_sensitive?: true
           ),
@@ -278,16 +278,28 @@ defmodule Andy.Puppy.Profiling do
     end
   end
 
-  defp turn() do
+  defp turn_right() do
     fn ->
       Logger.info("Action turn")
       Action.new(
-        intent_name: choose_one([:turn_right, :turn_left]),
+        intent_name: :turn_right,
         intent_value: 1
         # turn for 1 sec
       )
     end
   end
+
+  defp turn_left() do
+    fn ->
+      Logger.info("Action turn")
+      Action.new(
+        intent_name: :turn_left,
+        intent_value: 1
+        # turn for 1 sec
+      )
+    end
+  end
+
 
   defp turn_toward(heading_percept_specs) do
     fn ->
@@ -408,6 +420,17 @@ defmodule Andy.Puppy.Profiling do
   #      Action.new(
   #        intent_name: :blue_lights,
   #        intent_value: on_or_off
+  #      )
+  #    end
+  #  end
+
+#  defp turn() do
+  #    fn ->
+  #      Logger.info("Action turn")
+  #      Action.new(
+  #        intent_name: choose_one([:turn_right, :turn_left]),
+  #        intent_value: 1
+  #        # turn for 1 sec
   #      )
   #    end
   #  end
