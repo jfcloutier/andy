@@ -30,10 +30,14 @@ To get the source code:
 
     > git clone https://github.com/jfcloutier/andy.git
     
-To update th source code:
+To update the source code:
 
     > git checkout master
     > git pull
+    
+To reset the robot (erase its accumulated experience)
+
+    > rm experience/*
 
 To launch on the robot:
 
