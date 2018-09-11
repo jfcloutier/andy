@@ -234,7 +234,7 @@ defmodule Andy.Puppy.Profiling do
             name: :puppy_is_moving,
             actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 10 } }],
             precision: :medium,
-            fulfill_when: [:puppy_has_clear_path],
+            fulfill_when: [],
             fulfill_by:
               { :doing,
               %{
