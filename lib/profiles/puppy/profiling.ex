@@ -136,6 +136,7 @@ defmodule Andy.Puppy.Profiling do
       ),
 
       # About to bump
+
       conjecture(
         name: :about_to_bump,
         hypothesis: "The puppy is about to bump",

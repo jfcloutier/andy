@@ -28,6 +28,8 @@ defmodule Andy.DetectorsSupervisor do
     { :ok, _pid } = DynamicSupervisor.start_child(@name, spec)
   end
 
+  # TODO - Do this via events
+  @doc "Change the polling priority of all detectors that match the given specs"
   def set_polling_priority(detector_specs, priority) do
     # Find all detectors that match and set their polling priority
     # and call Detector.set_polling_priority(detector_pid, priority)
