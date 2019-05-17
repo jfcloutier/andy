@@ -9,6 +9,7 @@ Setup:
     http://docs.ev3dev.org/projects/lego-linux-drivers/en/ev3dev-stretch/brickpi3.html#input-ports
     http://docs.ev3dev.org/en/ev3dev-stretch/platforms/brickpi3.html
     Enable sound by editing config.txt in EV3DEV_BOOT on the sd card
+    https://www.ev3dev.org/docs/tutorials/connecting-to-ev3dev-with-ssh/
     https://www.ev3dev.org/docs/tutorials/setting-up-wifi-using-the-command-line/
     
     Before installing erlang via apt-get install erlang
