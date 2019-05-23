@@ -7,13 +7,14 @@ Setup:
     https://www.ev3dev.org/downloads/
     https://github.com/resin-io/etcher#debian-and-ubuntu-based-package-repository-gnulinux-x86x64
     http://docs.ev3dev.org/projects/lego-linux-drivers/en/ev3dev-stretch/brickpi3.html#input-ports
+
     http://docs.ev3dev.org/en/ev3dev-stretch/platforms/brickpi3.html
 
-    Enable BrickPi
-    Uncomment: dtoverlay=brickpi3
+        Enable BrickPi
+        Uncomment: dtoverlay=brickpi3
 
-    Enable sound by editing config.txt in EV3DEV_BOOT on the sd card
-    Uncomment: dtparam=audio=on
+        Enable sound by editing config.txt in EV3DEV_BOOT on the sd card
+        Uncomment: dtparam=audio=on
 
     https://www.ev3dev.org/docs/tutorials/connecting-to-ev3dev-with-ssh/
     https://www.ev3dev.org/docs/tutorials/setting-up-wifi-using-the-command-line/
@@ -38,6 +39,7 @@ If you use asdf to install erlang and elixir, first do:
     > sudo apt-get install libncurses5-dev
 
 To install Erlang and Elixir via asdf:
+
     Install asdf -- See https://asdf-vm.com/#/core-manage-asdf-vm
 
     > echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bash_profile
