@@ -1,0 +1,16 @@
+Moving to Generative Models
+===========================
+
+Keepers:
+
+    systems/brickpi/*
+
+    perception
+        Detector
+        DetectorSupervisor
+        InternalClock
+
+    Device
+
+    platforms/*
+
