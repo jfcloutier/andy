@@ -27,4 +27,10 @@ defmodule Andy.GM.GenerativeModelsSupervisor do
     DynamicSupervisor.start_child(@name, {GenerativeModel, [generative_model_def]})
   end
 
+  ### Callbacks
+
+  def init(_) do
+    DynamicSupervisor.init(strategy: :one_for_one)
+  end
+
 end

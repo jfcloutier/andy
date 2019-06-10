@@ -27,7 +27,7 @@ defmodule Andy.Action do
       Keyword.keys(keywords),
       %Action{ },
       fn (key, acc) ->
-        if not key in @keys, do: raise "Invalid action property #{key}"
+        if key not in @keys, do: raise "Invalid action property #{key}"
         value = Keyword.get(keywords, key)
         Map.put(acc, key, value)
       end

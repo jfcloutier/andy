@@ -385,8 +385,7 @@ defmodule Andy.Validator do
   defp do_review_prediction(
          %{
            prediction: prediction,
-           fulfilled?: was_fulfilled?,
-           prediction: prediction
+           fulfilled?: was_fulfilled?
          } = state
        ) do
     Logger.info("Reviewing prediction #{prediction.name} by validator #{state.validator_name}")

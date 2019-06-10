@@ -57,7 +57,7 @@ defmodule Andy.Prediction do
       Keyword.keys(keywords),
       %Prediction{ },
       fn (key, acc) ->
-        if not key in @keys, do: raise "Invalid prediction property #{key}"
+        if key not in @keys, do: raise "Invalid prediction property #{key}"
         value = Keyword.get(keywords, key)
         case key do
           :perceived ->

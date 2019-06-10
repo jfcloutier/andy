@@ -89,7 +89,7 @@ defmodule Andy.MockRover.InfraredSensor do
   defp nudge_heading(_channel, value, previous_value) do
     if previous_value == nil do
       double_max_heading = 2 * @max_heading
-      value = 25 - Enum.random(0..double_max_heading)
+      25 - Enum.random(0..double_max_heading)
     else
       direction = if value - previous_value >= 0, do: 1, else: -1
       nudge = Enum.random(0..@nudge_heading)

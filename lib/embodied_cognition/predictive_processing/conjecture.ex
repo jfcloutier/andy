@@ -31,7 +31,7 @@ defmodule Andy.Conjecture do
       Keyword.keys(keywords),
       %Conjecture{ },
       fn (key, acc) ->
-        if not key in @keys, do: raise "Invalid conjecture property #{key}"
+        if key not in @keys, do: raise "Invalid conjecture property #{key}"
         value = Keyword.get(keywords, key)
         Map.put(acc, key, value)
       end
