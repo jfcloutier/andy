@@ -39,6 +39,11 @@ defmodule Andy do
     platform_dispatch(:ready?)
   end
 
+  # GM
+  def cognition_def() do
+    platform_dispatch(:cognition_def)
+  end
+
   def display(words) do
     platform_dispatch(:display, [words])
   end
