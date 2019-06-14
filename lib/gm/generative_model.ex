@@ -31,17 +31,31 @@ defmodule Andy.GM.GenerativeModel do
     defstruct round_timestamp: nil,
                 # timestamp for the round
               predictions: [],
-                # [belief, ...] beliefs that were expected from sub-believers
+                # [prediction, ...] predictions about the parameter values of beliefs expected from sub-believers
               perceptions: %{},
                 # sub_believer => [belief, ...] beliefs received from sub-believers
               beliefs: %{},
-                # beliefs in GM conjectures - conjecture_name => Belief
-              courses_of_action: %{}
-    # conjecture_name => [action, ...] - courses of action taken
+                # beliefs in GM conjectures given prediction successes and errors - conjecture_name => Belief
+              courses_of_action: %{} # conjecture_name => [action, ...] - courses of action taken
+  end
+
+  defmodule Prediction do
+    @moduledoc """
+    A prediction about a belief expected from some sub-believer in a round, should the owning conjecture be valid.
+    Predictions, when compared to actual beliefs, can raise prediction errors which cause changes in the next round as to
+    which conjectures are valid and which act as goals, as well as shifts in attention (adjusting the gain on sub-believers).
+    Predictions "flow" to sub-believers, causing them, potentially, to shift their winning conjectures to ones
+    that would generate the predicted beliefs (when there is no clear winner between competing conjectures).
+    """
+
+    defstruct belief_name: nil,
+                # the name of a sub_believer's belief (same as name of the validated conjecture)
+              parameter_sub_domains: %{
+              } # parameter_name => domain - the expected range of values for the predicted belief
   end
 
   defmodule Efficacy do
-    @moduledoc "The cumulated efficacy of a course of action to achive a goal conjecture"
+    @moduledoc "The historical efficacy of a course of action to validate a conjecture as a goal"
 
     defstruct level: 0,
                 # level of efficacy, float from 0 to 1
@@ -136,7 +150,7 @@ defmodule Andy.GM.GenerativeModel do
     # Re-assess efficacies of courses of action
     # also: update the attention paid to each sub-believer (based on prediction errors?)
     #       update which conjectures are current goals
-    # Determine, record and execute a course of actions for each non-achieved goal
+    # Determine, record and execute a course of actions for each non-achieved goal, or to better validate a non-goal conjecture
     # Restart the round timer
     state
   end

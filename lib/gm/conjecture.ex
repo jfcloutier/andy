@@ -1,18 +1,12 @@
 defmodule Andy.GM.Conjecture do
   @moduledoc "An assertion about reality supported, or not, by predictions"
 
-  defmodule Predictor do
-    @moduledoc "A generator of expected beliefs assuming the conjecture is valid"
-
-    defstruct belief_name: nil,
-                # the name of a sub_believer's conjecture
-              predicting: nil # A function on a gm's state returning parameter sub-domains for the predicted belief
-  end
-
   defmodule Action do
     @moduledoc "An intent generator"
 
-    defstruct actuator_name: nil,
+    defstruct name: nil,
+                # the name of the action
+              actuator_name: nil,
                 # e.g. :locomotion
               intent: nil,
                 # e.g. :go_forward
@@ -20,16 +14,14 @@ defmodule Andy.GM.Conjecture do
   end
 
   defstruct name: nil,
-              # A unique name in the context of a generative model
+              # A unique name
             parameter_domains: %{},
-              # parameter_name => domain
+              # parameter_name => domain - a domain is an enumerable of values
             predictors: [],
-              # functions on a GM's beliefs (current and priors) that
-              # 1- produces a next-round beliefs expected from sub-believers(s)
-              # 2- that would support belief in the conjecture
-              # 3- in terms of specified parameter sub-domains
+              # functions on a GM's rounds (a GM's memory) that
+              # 1- produces next-round predictions about next-round beliefs from sub-believers(s) given belief in the conjecture
             motivator: nil,
-              # A function on the state of a GM that determines whether the conjecture is a transient goal
-            action_domain: [] # candidate actions that, when executed individually or in sequences,
-  # should validate the conjecture
+              # A function on a GM's rounds that determines whether the conjecture becomes a transient goal in the next round
+            action_domain: [
+            ] # candidate actions that, when executed individually or in sequences, could validate the conjecture, whether it's a goal or not
 end
