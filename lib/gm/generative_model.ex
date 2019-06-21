@@ -3,7 +3,7 @@ defmodule Andy.GM.GenerativeModel do
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 2]
-  alias Andy.GM.{CognitionDef, Belief}
+  alias Andy.GM.{Belief}
   @behaviour Andy.GM.Believer
 
   @forget_after 10_000 # for how long perception is retained
@@ -12,13 +12,13 @@ defmodule Andy.GM.GenerativeModel do
     defstruct definition: nil,
                 # a GenerativeModelDef - static
               sub_believers: [],
-                # Believers that feed into this GM
+                # Specs of Believers that feed into this GM according to the GM graph
               round_timer: nil,
                 # pid of round timer
               rounds: [],
-                # rounds of beliefs received from sub-gms
+                # latest rounds of activation of the generative model
               attention: %{},
-                # attention given to sub-believers - believer_name => float
+                # attention currently given to sub-believers - believer_name => float
               goals: [],
                 # names of conjectures that are currently goals to be achieved
               efficacies: %{
@@ -31,7 +31,7 @@ defmodule Andy.GM.GenerativeModel do
     defstruct round_timestamp: nil,
                 # timestamp for the round
               predictions: [],
-                # [prediction, ...] predictions about the parameter values of beliefs expected from sub-believers
+                # [prediction, ...] predictions about the parameter values of beliefs expected from sub-believers in this round
               perceptions: %{},
                 # sub_believer => [belief, ...] beliefs received from sub-believers
               beliefs: %{},
@@ -39,23 +39,12 @@ defmodule Andy.GM.GenerativeModel do
               courses_of_action: %{} # conjecture_name => [action, ...] - courses of action taken
   end
 
-  defmodule Prediction do
-    @moduledoc """
-    A prediction about a belief expected from some sub-believer in a round, should the owning conjecture be valid.
-    Predictions, when compared to actual beliefs, can raise prediction errors which cause changes in the next round as to
-    which conjectures are valid and which act as goals, as well as shifts in attention (adjusting the gain on sub-believers).
-    Predictions "flow" to sub-believers, causing them, potentially, to shift their winning conjectures to ones
-    that would generate the predicted beliefs (when there is no clear winner between competing conjectures).
-    """
-
-    defstruct belief_name: nil,
-                # the name of a sub_believer's belief (same as name of the validated conjecture)
-              parameter_sub_domains: %{
-              } # parameter_name => domain - the expected range of values for the predicted belief
-  end
-
   defmodule Efficacy do
-    @moduledoc "The historical efficacy of a course of action to validate a conjecture as a goal"
+    @moduledoc """
+    The historical efficacy of a course of action to validate a conjecture as a goal.
+    Efficacy is gauged by the proximity of the CoA to a future round that achieves the goal,
+    tempered by any prior efficacy measurement.
+    """
 
     defstruct level: 0,
                 # level of efficacy, float from 0 to 1
@@ -63,22 +52,22 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   @doc "Child spec as supervised worker"
-  def child_spec(generative_model_def) do
+  def child_spec(generative_model_def, sub_believers) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [generative_model_def]}
+      start: {__MODULE__, :start_link, [generative_model_def, sub_believers]}
     }
   end
 
   @doc "Start the memory server"
-  def start_link(generative_model_def) do
+  def start_link(generative_model_def, sub_believer_specs) do
     name = generative_model_def.name
     Logger.info("Starting Generative Model #{name}")
     {:ok, pid} = Agent.start_link(
       fn () ->
         %State{
           definition: generative_model_def,
-          sub_believers: [], # TODO
+          sub_believers: sub_believer_specs,
           rounds: [initial_round(generative_model_def)],
           round_timer: spawn_link(fn -> complete_round(generative_model_def) end)
         }

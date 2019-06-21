@@ -5,7 +5,8 @@ defmodule Andy.GM.CognitionDef do
 
   defstruct generative_model_defs: [],
               # list of all defined generative models
-            gm_graph: %{} # structural relationships between generative model defs -
+            gm_graph: %{}
+  # structural relationships between generative model defs -
   # gm_def_name => [believer_spec]
   # believer_spec :: {:gm, <name>}
   #               :: {:detector, %{class: ..., -- e.g. :sensor
@@ -15,4 +16,19 @@ defmodule Andy.GM.CognitionDef do
   #                               }
   #                  }
 
+  def generative_model_defs_with_sub_believers(
+        %CognitionDef{
+          generative_model_defs: generative_model_defs,
+          gm_graph: gm_graph
+        }
+      ) do
+    # [{gm_model_def, [believer_spec,...]},...]
+    Enum.reduce(
+      generative_model_defs,
+      [],
+      fn (gm_def, acc) ->
+      [{gm_def, Map.get(gm_graph, gm_def.name, [])} | acc]
+      end
+    )
+  end
 end

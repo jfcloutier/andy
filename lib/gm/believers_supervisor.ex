@@ -23,8 +23,8 @@ defmodule Andy.GM.BelieversSupervisor do
   end
 
   @doc "Start a generative model"
-  def start_generative_model(%GenerativeModelDef{} = generative_model_def) do
-    DynamicSupervisor.start_child(@name, {GenerativeModel, [generative_model_def]})
+  def start_generative_model({%GenerativeModelDef{} = generative_model_def, sub_believers_specs}) do
+    DynamicSupervisor.start_child(@name, {GenerativeModel, [generative_model_def, sub_believers_specs]})
   end
 
   @doc "Start a detector"

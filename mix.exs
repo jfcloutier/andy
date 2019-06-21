@@ -6,8 +6,8 @@ defmodule Andy.MixProject do
   def project do
     [
       app: :andy,
-      version: "0.1.0",
-      elixir: "~> 1.6",
+      version: "0.2.0",
+      elixir: "~> 1.8",
       target: @target,
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
@@ -19,7 +19,7 @@ defmodule Andy.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      mod: { Andy.Application, [] },
+      mod: { Andy.GM.Application, [] },
       extra_applications: extra_applications()
     ]
   end
@@ -28,20 +28,21 @@ defmodule Andy.MixProject do
     [:logger, :logger_file_backend]
   end
 
+  # TODO - update to the latest Phoenix and add LiveView
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       { :logger_file_backend, "~> 0.0.10" },
-      { :phoenix, "~> 1.3.0" },
+      { :phoenix, "~> 1.4" },
+      { :phoenix_live_reload, "~> 1.2", only: :dev },
+      { :httpoison, "~> 1.5" },
+      { :poison, "~> 4.0" },
+      { :elixir_uuid, "~> 1.2" },
+      { :gettext, "~> 0.11" },
       { :phoenix_pubsub, "~> 1.0" },
       { :phoenix_html, "~> 2.10" },
-      { :phoenix_live_reload, "~> 1.0", only: :dev },
-      { :httpoison, "~> 0.11" },
-      { :poison, "~> 3.1.0" },
-      { :gettext, "~> 0.11" },
-      { :cowboy, "~> 1.0" },
-      { :elixir_uuid, "~> 1.2" }
+      { :cowboy, "~> 1.0" }
     ]
   end
 
