@@ -14,7 +14,7 @@ defmodule Andy.GM.PubSub do
   def child_spec(_) do
     %{
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [] }
+      start: {__MODULE__, :start_link, []}
     }
   end
 
@@ -34,6 +34,16 @@ defmodule Andy.GM.PubSub do
     Registry.register(@registry_name, @topic, module)
   end
 
+  @doc "Notify after a delay"
+  def notify_after(event, delay) do
+    spawn(
+      fn ->
+        Process.sleep(delay)
+        notify(event)
+      end
+    )
+  end
+
   @doc "Notify of a shutdown request"
   def notify_shutdown() do
     notify(:shutdown)
@@ -47,17 +57,17 @@ defmodule Andy.GM.PubSub do
 
   @doc "Notify of a new intent"
   def notify_intended(intent) do
-    notify({ :intended, intent })
+    notify({:intended, intent})
   end
 
   @doc "Notify of an intent actuated"
   def notify_actuated(intent) do
-    notify({ :actuated, intent })
+    notify({:actuated, intent})
   end
 
   @doc "Notify of a belief"
   def notify_believed(belief) do
-    notify({ :believed, belief })
+    notify({:believed, belief})
   end
 
 
@@ -68,7 +78,7 @@ defmodule Andy.GM.PubSub do
 
   @doc "Is the robot paused?"
   def paused?() do
-    { :ok, paused? } = Registry.meta(@registry_name, :paused)
+    {:ok, paused?} = Registry.meta(@registry_name, :paused)
     paused? == true
   end
 
@@ -83,7 +93,7 @@ defmodule Andy.GM.PubSub do
           @registry_name,
           @topic,
           fn (subscribers) ->
-            for { pid, module } <- subscribers,
+            for {pid, module} <- subscribers,
                 do: Agent.cast(
                   pid,
                   fn (state) ->

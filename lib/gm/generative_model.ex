@@ -3,7 +3,7 @@ defmodule Andy.GM.GenerativeModel do
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 2]
-  alias Andy.GM.{Belief}
+  alias Andy.GM.{PubSub, GenerativeModelDef, Belief}
   @behaviour Andy.GM.Believer
 
   @forget_after 10_000 # for how long perception is retained
@@ -13,8 +13,6 @@ defmodule Andy.GM.GenerativeModel do
                 # a GenerativeModelDef - static
               sub_believers: [],
                 # Specs of Believers that feed into this GM according to the GM graph
-              round_timer: nil,
-                # pid of round timer
               rounds: [],
                 # latest rounds of activation of the generative model
               attention: %{},
@@ -69,20 +67,46 @@ defmodule Andy.GM.GenerativeModel do
           definition: generative_model_def,
           sub_believers: sub_believer_specs,
           rounds: [initial_round(generative_model_def)],
-          round_timer: spawn_link(fn -> complete_round(generative_model_def) end)
         }
       end,
       [name: name]
     )
     listen_to_events(pid, __MODULE__)
+    PubSub.notify_after(
+      {:round_timed_out, name},
+      generative_model_def.max_round_duration
+    )
     {:ok, pid}
+  end
+
+  def handle_event(
+        {:round_timed_out, name},
+        %State{definition: generative_model_def} = state
+      ) do
+    if name == generative_model_def.name do
+      new_state = execute_round(state)
+      PubSub.notify_after(
+        {:round_timed_out, name},
+        generative_model_def.max_round_duration
+      )
+      new_state
+    else
+      state
+    end
   end
 
   ### Event handling by the agent
 
-  def handle_event({:believed, belief}, state) do
+  def handle_event(
+        {
+          :believed,
+          belief
+        },
+        %State{rounds: [round | previous_rounds]} = state
+      ) do
     if belief_relevant?(belief, state) do
-      process_received_belief(belief, state)
+      updated_round = add_perception_to_round(round, belief)
+      %State{state | rounds: [updated_round | previous_rounds]}
     else
       state
     end
@@ -102,20 +126,27 @@ defmodule Andy.GM.GenerativeModel do
   ### PRIVATE
 
   defp initial_round(gm_def) do
-    # TODO
-    %Round{}
+    %Round{beliefs: GenerativeModelDef.initial_beliefs(gm_def)}
   end
 
-  defp belief_relevant?(%Belief{conjecture_name: conjecture_name}, %State{definition: gm_def}) do
-    # TODO
-    false
+  defp belief_relevant?(%Belief{source: source}, %State{sub_believers: sub_believers}) do
+    source in sub_believers
   end
 
-  defp process_received_belief(belief, state) do
-    # TODO
-    # Add to perception
-    # If all sub-believers contributed their full range of beliefs, immediately complete the round
-    state
+  defp add_perception_to_round(
+         %Round{perceptions: perceptions} = round,
+         %Belief{
+           source: source,
+           about: about
+         } = belief
+       ) do
+    source_perceptions = Map.get(perceptions, source, [])
+    updated_perceptions = Map.put(
+      perceptions,
+      source,
+      [belief | Enum.reject(source_perceptions, &(&1.about == about))]
+    )
+    %Round{round | perceptions: updated_perceptions}
   end
 
   defp complete_round(generative_model_def) do
@@ -123,11 +154,6 @@ defmodule Andy.GM.GenerativeModel do
     Logger.info("Completing round for GM #{generative_model_def.name}")
     :ok = Agent.update(generative_model_def.name, fn (state) -> execute_round(state) end)
     complete_round(generative_model_def)
-  end
-
-  defp initial_beliefs(_generative_model_def) do
-    # TODO
-    %{}
   end
 
   defp execute_round(state) do

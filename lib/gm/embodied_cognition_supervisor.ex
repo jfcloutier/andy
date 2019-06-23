@@ -6,7 +6,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.GM.{PubSub, CognitionDef, BelieversSupervisor}
+  alias Andy.GM.{PubSub, BelieversGraph, BelieversSupervisor}
   alias Andy.{ ActuatorsSupervisor, InternalClock, Device }
 
   @name __MODULE__
@@ -69,7 +69,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   defp start_generative_models() do
     Logger.info("Starting generative models")
     Andy.cognition_def()
-    |> CognitionDef.generative_model_defs_with_sub_believers()
+    |> BelieversGraph.generative_model_defs_with_sub_believers()
     |> Enum.each(&(BelieversSupervisor.start_generative_model(&1)))
   end
 
