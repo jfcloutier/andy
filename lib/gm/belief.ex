@@ -8,5 +8,6 @@ defmodule Andy.GM.Belief do
               #                                                   }
               #                                      }
             about: nil, # conjecture name or detector name
-            parameter_values: %{} # conjecture_parameter_name => value
+            parameter_values: %{}, # conjecture_parameter_name => value
+            prediction_error: 0 # 1 is maximally off-prediction
 end

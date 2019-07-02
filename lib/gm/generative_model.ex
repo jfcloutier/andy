@@ -6,7 +6,7 @@ defmodule Andy.GM.GenerativeModel do
   alias Andy.GM.{PubSub, GenerativeModelDef, Belief}
   @behaviour Andy.GM.Believer
 
-  @forget_after 10_000 # for how long perception is retained
+  @forget_round_after_secs 60 # for how long rounds are remembered
 
   defmodule State do
     defstruct definition: nil,
@@ -31,6 +31,8 @@ defmodule Andy.GM.GenerativeModel do
               completed_on: nil,
                 # timestamp of round completion
               reported_in: [],
+                # names of active conjectures
+              active_conjectures: [],
                 # names of sub-gm that reported a completed round
               predictions: [],
                 # [prediction, ...] predictions about the parameter values of beliefs expected from sub-believers in this round
@@ -39,6 +41,18 @@ defmodule Andy.GM.GenerativeModel do
               beliefs: %{},
                 # beliefs in GM conjectures given prediction successes and errors - conjecture_name => Belief
               courses_of_action: %{} # conjecture_name => [action, ...] - courses of action taken
+
+    def new() do
+      %Round{stated_on: now()}
+    end
+
+    def initial_round(gm_def) do
+      %Round{
+        beliefs: GenerativeModelDef.initial_beliefs(gm_def),
+        started_on: now()
+      }
+    end
+
   end
 
   defmodule Efficacy do
@@ -70,8 +84,12 @@ defmodule Andy.GM.GenerativeModel do
         %State{
           definition: generative_model_def,
           sub_believers: sub_believer_specs,
-          rounds: [initial_round(generative_model_def)]
+          rounds: [Round.initial_round(generative_model_def)]
         }
+        # Set which conjectures are goals
+        |> set_goals()
+        # Activate conjectures
+        |> activate_conjectures()
       end,
       [name: name]
     )
@@ -110,7 +128,8 @@ defmodule Andy.GM.GenerativeModel do
         %State{rounds: [%Round{reported_in: reported_in} = round | previous_rounds]} = state
       ) do
     if sub_generative_model?(name, state) do
-      updated_round = [name | reported_in]
+      updated_reported_in = [name | reported_in]
+      updated_round = %Round{round | reported_in: updated_reported_in}
       %State{rounds: [updated_round | previous_rounds]}
     else
       state
@@ -137,6 +156,18 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
+  def handle_event(
+        {:prediction, prediction, target_gms},
+        %State{definition: gm_def, rounds: [round | previous_rounds]} = state
+      ) do
+    if gm_def.name in target_gms do
+      updated_round = %Round{round | predictions: [prediction | round.predictions]}
+      %State{state | rounds: [updated_round | previous_rounds]}
+    else
+      state
+    end
+  end
+
   def handle_event(_event, state) do
     state
   end
@@ -149,13 +180,6 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   ### PRIVATE
-
-  defp initial_round(gm_def) do
-    %Round{
-      beliefs: GenerativeModelDef.initial_beliefs(gm_def),
-      started_on: now()
-    }
-  end
 
   defp current_round(%State{rounds: [round | _]}) do
     round
@@ -230,25 +254,206 @@ defmodule Andy.GM.GenerativeModel do
   defp complete_round(generative_model_def) do
     Logger.info("Completing round for GM #{generative_model_def.name}")
     :ok = Agent.update(generative_model_def.name, fn (state) -> execute_round(state) end)
-  end
-
-  defp execute_round(%State{definition: generative_model_def, rounds: [round | previous_rounds]} = state) do
-    # TODO
-    round_ts = now()
-
-    # Make predictions for each conjecture for the next round
-    # Compute beliefs, using prior beliefs as defaults - add beliefs to current round. Raise "predicted" or "new belief" events.
-    # Drop obsolete rounds
-    # Re-assess efficacies of courses of action
-    # also: update the attention paid to each sub-believer (based on prediction errors?)
-    #       update which conjectures are current goals
-    # Determine, record and execute a course of actions for each non-achieved goal, or to better validate a non-goal conjecture
-    # Set the round ts
     PubSub.notify_after(
-      {:round_timed_out, name},
+      {:round_timed_out, generative_model_def.name},
       generative_model_def.max_round_duration
     )
-    %State{state | round_ts: round_ts}
   end
 
+  defp execute_round(%State{definition: generative_model_def, rounds: [round | previous_rounds] = rounds} = state) do
+    state
+    # Carry over missing perceptions from prior round to current round
+    |> fill_out_perceptions()
+      # Compute beliefs of current round and publish them for super-gms
+    |> compute_beliefs()
+      # Compute the prediction errors for the new beliefs
+    |> compute_prediction_errors()
+      # Make predictions from each conjecture for the sub-believers (about what beliefs are expected from them in their current rounds)
+    |> make_predictions()
+      # Re-assess efficacies of courses of action
+    |> update_efficacies()
+      # Update the attention paid to each sub-believer (based on prediction errors?)
+    |> update_attention()
+      # Determine, record and execute a course of actions for each non-achieved goal, or to better validate a non-goal conjecture
+    |> set_courses_of_action()
+      # Terminate current round (set completed_on, publish round_completed)
+    |> mark_round_completed()
+      # Drop obsolete rounds
+    |> drop_obsolete_rounds()
+      # Add new round
+    |> add_new_round()
+      # Set which conjectures are goals
+    |> set_goals()
+      # Set active conjectures
+    |> activate_conjectures()
+  end
+
+  defp fill_out_perceptions(%State{rounds: [round]} = state) do
+    state
+  end
+
+  defp fill_out_perceptions(
+         %State{
+           sub_believers: sub_believers,
+           rounds: [
+             %Round{perceptions: perceptions} = round,
+             %Round{perceptions: previous_perceptions} | previous_rounds
+           ]
+         } = state
+       ) do
+    filled_out_perceptions = Enum.reduce(
+      sub_believers,
+      perceptions,
+      fn (sub_believer, acc) ->
+        if Map.get(perceptions, sub_believer) == nil do
+          Map.put(acc, sub_believer, Map.get(previous_perceptions, sub_believer, []))
+        else
+          acc
+        end
+      end
+    )
+    %State{
+      state |
+      rounds: [
+        %Round{round | perceptions: filled_out_perceptions},
+        %Round{perceptions: previous_perceptions} | previous_rounds
+      ]
+    }
+  end
+
+  defp compute_beliefs(state) do
+    beliefs = active_conjectures(state)
+              |> Enum.map(&(&1.validator.(state)))
+    %State{state | beliefs: beliefs}
+  end
+
+  defp compute_prediction_errors(
+         %State{rounds: [%Round{predictions: predictions, perceptions: perceptions} | previous_rounds]} = state
+       ) do
+    updated_perceptions = Enum.map(perceptions, &(compute_prediction_error(&1, predictions)))
+    updated_round = %Round{round | perceptions: updated_perceptions}
+    %State{state | rounds: [updated_round | previous_rounds]}
+  end
+
+  # Take the average prediction error
+  defp compute_prediction_error(%Belief{about: about, parameter_values: parameter_values} = belief, predictions) do
+    errors = Enum.filter(predictions, &(&1.about == about))
+             |> Enum.map(&(do_compute_prediction_error(parameter_values, &1.parameter_sub_domains)))
+    prediction_error = case errors do
+      [] ->
+        0
+      _ ->
+        Enum.reduce(errors, 0, &(&1 + &2)) / Enum.count(errors)
+    end
+    %Belief{belief | prediction_error: prediction_error}
+  end
+
+  defp do_compute_prediction_error(parameter_values, parameter_sub_domains) do
+    value_errors = Enum.reduce(
+      Map.keys(parameter_values),
+      [],
+      fn (param_name, acc) ->
+        param_value = Map.get(parameter_values, param_name)
+        param_sub_domain = Map.get(parameter_sub_domains, param_name)
+        value_error = compute_value_error(param_value, param_sub_domain)
+        [value_error | acc]
+      end
+    )
+    # Retain the maximum value error
+    Enum.reduce(value_errors, 0, &(max(&1, &2)))
+  end
+
+  defp compute_value_error(value, sub_domain) when sub_domain in [nil, []] do
+    0
+  end
+
+  defp compute_value_error(value, low..high = range) when is_number(value) do
+    mean = (low + high) / 2
+    std = (high - low) / 4
+    delta = abs(mean - value)
+    cond do
+      delta <= std ->
+        0
+      delta <= std * 1.5 ->
+        0.25
+      delta <= std * 2 ->
+        0.5
+      delta <= std * 3 ->
+        0.75
+      true -> 1.0
+    end
+  end
+
+  defp compute_value_error(value, list) when is_list(value) do
+    if value in list do
+      0
+    else
+      1
+    end
+  end
+
+  defp make_predictions(%State{definition: gm_def, sub_believers: sub_believers} = state) do
+    active_conjectures(state)
+    |> Enum.map(&(make_conjecture_predictions(&1, state)))
+    |> List.flatten()
+    |> Enum.each(PubSub.notify({:prediction, &1, sub_believers}))
+    state
+  end
+
+  defp active_conjectures(%State{definition: gm_def}) do
+    %Round{active_conjectures: active_conjectures} = current_round(state)
+    Enum.filter(gm_def.conjectures, &(&1.name in active_conjectures))
+  end
+
+  defp make_conjecture_predictions(%Conjecture{predictors: predictors}, state) do
+    Enum.map(predictors, &(&1.(state)))
+  end
+
+  defp update_efficacies(state) do
+    # TODO
+    state
+  end
+
+  defp update_attention(state) do
+    # TODO
+    state
+  end
+
+  defp set_courses_of_action(state) do
+    # TODO
+    state
+  end
+
+  defp mark_round_completed(%State{definition: gm_def, rounds: [round | previous_rounds]} = state) do
+    PubSub.notify({:round_completed, gm_def.name})
+    %State{state | rounds: [%Round{round | completed_on: now()} | previous_rounds]}
+  end
+
+  defp drop_obsolete_rounds(%State{rounds: rounds} = state) do
+    updated_rounds = do_drop_obsolete_rounds(rounds)
+    %State{state | rounds: updated_rounds}
+  end
+
+  defp do_drop_obsolete_rounds([round | older_rounds] = rounds) do
+    cutoff = now() - (@forget_round_after_secs * 1000)
+    if round.completed_on > cutoff do
+      [rounds | drop_obsolete_rounds(older_rounds)]
+    else
+      []
+    end
+  end
+
+  defp add_new_round(%State{rounds: rounds} = state) do
+    %State{state | rounds: [Round.new() | rounds]}
+  end
+
+  defp activate_conjectures(state) do
+    # TODO
+    state
+  end
+
+  defp set_goals(state) do
+    # TODO
+    state
+  end
 end

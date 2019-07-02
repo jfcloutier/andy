@@ -28,6 +28,7 @@ defmodule Andy.GM.Conjecture do
               # While a conjecture is a goal, it can not be silenced by a mutually exclusive conjecture, even if not (yet) believed.
             action_domain: [
             ] # Candidate actions that, when executed individually or in sequences, could validate the conjecture.
-              # Actions are taken either to achieve a goal (to believe in a goal conjecture)
-              # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
+  # Actions are taken either to achieve a goal (to believe in a goal conjecture)
+  # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
+
 end

@@ -7,7 +7,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   use Supervisor
   require Logger
   alias Andy.GM.{PubSub, BelieversGraph, BelieversSupervisor}
-  alias Andy.{ ActuatorsSupervisor, InternalClock, Device }
+  alias Andy.{ ActuatorsSupervisor, Device }
 
   @name __MODULE__
 
@@ -41,7 +41,6 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
         start_detectors()
         start_actuators()
         start_generative_models()
-        InternalClock.resume()
       end
     )
   end
