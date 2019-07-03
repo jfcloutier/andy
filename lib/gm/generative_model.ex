@@ -260,6 +260,7 @@ defmodule Andy.GM.GenerativeModel do
     )
   end
 
+  # Complete execution of the current round and set up the next round
   defp execute_round(%State{definition: generative_model_def, rounds: [round | previous_rounds] = rounds} = state) do
     state
     # Carry over missing perceptions from prior round to current round
@@ -268,8 +269,6 @@ defmodule Andy.GM.GenerativeModel do
     |> set_perception_belief_levels()
       # Compute beliefs in the GM's conjectures in the current round and publish them for super-gms
     |> compute_beliefs()
-      # Compute the prediction errors for this round's beliefs, given predictions from super-GM(s)
-    |> compute_prediction_errors()
       # Make predictions about what beliefs are expected from sub-believers in their next round
     |> make_predictions()
       # Update the attention paid to each sub-believer (based on prediction errors on perceptions from them etc.)
@@ -323,18 +322,11 @@ defmodule Andy.GM.GenerativeModel do
     }
   end
 
-  defp compute_beliefs(state) do
+  defp compute_beliefs(%State{rounds: [%Round{predictions: predictions} = round | previous_rounds]} = state) do
     beliefs = active_conjectures(state)
               |> Enum.map(&(&1.validator.(state)))
-    %State{state | beliefs: beliefs}
-  end
-
-  defp compute_prediction_errors(
-         %State{rounds: [%Round{predictions: predictions, perceptions: perceptions} | previous_rounds]} = state
-       ) do
-    updated_perceptions = Enum.map(perceptions, &(compute_prediction_error(&1, predictions)))
-    updated_round = %Round{round | perceptions: updated_perceptions}
-    %State{state | rounds: [updated_round | previous_rounds]}
+              |> Enum.map(&(compute_prediction_error(&1, predictions)))
+    %State{state | rounds: [%Round{round | beliefs: beliefs} | previous_rounds]}
   end
 
   # Take the average prediction error
