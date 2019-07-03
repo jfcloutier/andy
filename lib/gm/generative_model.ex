@@ -88,7 +88,7 @@ defmodule Andy.GM.GenerativeModel do
         }
         # Set which conjectures are goals
         |> set_goals()
-        # Activate conjectures
+          # Activate conjectures
         |> activate_conjectures()
       end,
       [name: name]
@@ -264,27 +264,29 @@ defmodule Andy.GM.GenerativeModel do
     state
     # Carry over missing perceptions from prior round to current round
     |> fill_out_perceptions()
-      # Compute beliefs of current round and publish them for super-gms
+      # Set the belief levels in perceptions from sub-GM(s), given prediction errors and attention to sources
+    |> set_perception_belief_levels()
+      # Compute beliefs in the GM's conjectures in the current round and publish them for super-gms
     |> compute_beliefs()
-      # Compute the prediction errors for the new beliefs
+      # Compute the prediction errors for this round's beliefs, given predictions from super-GM(s)
     |> compute_prediction_errors()
-      # Make predictions from each conjecture for the sub-believers (about what beliefs are expected from them in their current rounds)
+      # Make predictions about what beliefs are expected from sub-believers in their next round
     |> make_predictions()
-      # Re-assess efficacies of courses of action
-    |> update_efficacies()
-      # Update the attention paid to each sub-believer (based on prediction errors?)
+      # Update the attention paid to each sub-believer (based on prediction errors on perceptions from them etc.)
     |> update_attention()
+      # Re-assess efficacies of courses of action taken in this and previous rounds given current beliefs
+    |> update_efficacies()
       # Determine, record and execute a course of actions for each non-achieved goal, or to better validate a non-goal conjecture
     |> set_courses_of_action()
       # Terminate current round (set completed_on, publish round_completed)
     |> mark_round_completed()
       # Drop obsolete rounds
     |> drop_obsolete_rounds()
-      # Add new round
+      # Add next round
     |> add_new_round()
-      # Set which conjectures are goals
+      # Set which conjectures are goals in the next round
     |> set_goals()
-      # Set active conjectures
+      # Set active conjectures in the next round
     |> activate_conjectures()
   end
 
@@ -419,6 +421,11 @@ defmodule Andy.GM.GenerativeModel do
     state
   end
 
+  defp set_perception_belief_levels(state) do
+    # TODO
+    state
+  end
+
   defp set_courses_of_action(state) do
     # TODO
     state
@@ -447,13 +454,70 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [Round.new() | rounds]}
   end
 
-  defp activate_conjectures(state) do
-    # TODO
+  defp set_goals(%State{definition: gm_def, rounds: [round | previous_rounds]} = state) do
+    goals = Enum.filter(gm_def.conjectures, &(&1.motivator.(state)))
+            |> Enum.map(&(&1.name))
+    %State{state | rounds: [%Round{round | goals: goals} | previous_rounds]}
+  end
+
+  # Pick as many GM conjectures as possible that do not mutually exclude one another.
+  # When choosing which to exclude drop any active one that is not believed
+  defp activate_conjectures(
+         %State{
+           definition: gm_def,
+           rounds: [round | previous_rounds]
+         } = state
+       ) do
+    # Get previously active conjectures
+    previous_active_conjectures = case previous_rounds do
+      [] ->
+        []
+      [previous_round | _] ->
+        previous_round.active_conjectures
+    end
+    # Keep previously believed conjectures
+    believed_conjecture_names = Enum.reject(previous_active_conjectures, &(not conjecture_believed?(&1, state)))
+    # Add conjectures not mentioned and not mutually excluded (use randomness)
+    candidates = Enum.map(gm_def.conjectures, &(&1.name))
+                 |> Enum.reject(&(&1 in believed_conjecture_names))
+                 |> random_permutation()
+                 |> remove_excluded(believed_conjecture_names, gm_def.contradictions)
     state
   end
 
-  defp set_goals(state) do
-    # TODO
-    state
+  # Conjecture is believed by default in the initial round
+  defp conjecture_believed?(_conjecture_name, %State{rounds: [_round]}) do
+    true
   end
+
+  # Is conjecture believed in the previous round?
+  defp conjecture_believed?(conjecture_name, %State{rounds: [_round, previous_round | _]}) do
+    Enum.any?(previous_round.beliefs, &(&1.about == conjecture_name and &1.level >= 0.5))
+  end
+
+  defp remove_excluded([], _believed_conjecture_names, _contradictions) do
+    []
+  end
+
+  defp remove_excluded([candidate | other_candidates], believed_conjecture_names, contradictions) do
+    if mutually_excluded?(candidate, other_candidates ++ believed_conjecture_names, contradictions) do
+      remove_excluded(other_candidates, believed_conjecture_names, contradictions)
+    else
+      [candidate | remove_excluded(other_candidates, believed_conjecture_names, contradictions)]
+    end
+  end
+
+  defp mutually_excluded?(candidate, conjecture_names, contradictions) do
+    Enum.any?(conjecture_names, &(&1 in contradictions and candidate in contradictions))
+  end
+
+  defp random_permutation([]) do
+    []
+  end
+
+  defp random_permutation(list) do
+    chosen = Enum.random(list)
+    [chosen | random_permutation(List.delete(list, chosen))]
+  end
+
 end
