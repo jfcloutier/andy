@@ -3,7 +3,7 @@ defmodule Andy.GM.BelieversGraph do
 
   alias __MODULE__
 
-  defstruct generative_model_defs: [],
+  defstruct gm_defs: [],
               # list of all defined generative models
             children: %{}
   # structural relationships between generative model defs -
@@ -16,15 +16,15 @@ defmodule Andy.GM.BelieversGraph do
   #                               }
   #                  }
 
-  def generative_model_defs_with_sub_believers(
+  def gm_defs_with_sub_believers(
         %BelieversGraph{
-          generative_model_defs: generative_model_defs,
+          gm_defs: gm_defs,
           children: children
         }
       ) do
     # [{gm_model_def, [believer_spec,...]},...]
     Enum.reduce(
-      generative_model_defs,
+      gm_defs,
       [],
       fn (gm_def, acc) ->
       [{gm_def, Map.get(children, gm_def.name, [])} | acc]

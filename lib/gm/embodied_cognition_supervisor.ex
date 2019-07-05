@@ -68,7 +68,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   defp start_generative_models() do
     Logger.info("Starting generative models")
     Andy.cognition_def()
-    |> BelieversGraph.generative_model_defs_with_sub_believers()
+    |> BelieversGraph.gm_defs_with_sub_believers()
     |> Enum.each(&(BelieversSupervisor.start_generative_model(&1)))
   end
 
