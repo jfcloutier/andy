@@ -26,12 +26,12 @@ defmodule Andy.GM.GenerativeModelDef do
       [],
       fn (conjecture_name, acc) ->
         parameter_values = Map.get(gm_def.priors, conjecture_name)
-        %Belief{
+        [%Belief{
           level: 1,
           source: {:gm, gm_def.name},
           about: conjecture_name,
           parameter_values: parameter_values
-        }
+        } | acc]
       end
     )
   end

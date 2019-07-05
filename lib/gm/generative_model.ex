@@ -15,7 +15,7 @@ defmodule Andy.GM.GenerativeModel do
               sub_believers: [],
                 # latest rounds of activation of the generative model
               rounds: [],
-                # attention currently given to sub-believers - believer_spec => float
+                # attention currently given to sub-believers - believer_spec => float from 0 to 1 (complete attention)
               attention: %{},
                 # names of conjectures that are currently goals to be achieved
               goals: [],
@@ -32,12 +32,12 @@ defmodule Andy.GM.GenerativeModel do
               reported_in: [],
                 # names of active conjectures
               active_conjectures: [],
-                # sub_believer_spec => [belief, ...] - beliefs received from sub-believers
-              perceptions: %{},
+                # [belief, ...] - beliefs received from sub-believers
+              perceptions: [],
                 # [prediction, ...] predictions about the (parameter values of) beliefs expected by super-gms in this round
               predictions: [],
-                # beliefs in this GM conjectures given prediction successes and errors - conjecture_name => Belief
-              beliefs: %{},
+                # beliefs in this GM conjectures given prediction successes and errors
+              beliefs: [],
                 # conjecture_name => [action, ...] - courses of action taken
               courses_of_action: %{}
 
@@ -209,17 +209,9 @@ defmodule Andy.GM.GenerativeModel do
   defp add_perception_to_round(
          %Round{perceptions: perceptions} = round,
          %Belief{
-           source: source,
-           about: about
          } = belief
        ) do
-    source_perceptions = Map.get(perceptions, source, [])
-    updated_perceptions = Map.put(
-      perceptions,
-      source,
-      [belief | Enum.reject(source_perceptions, &(&1.about == about))]
-    )
-    %Round{round | perceptions: updated_perceptions}
+    %Round{round | perceptions: [belief | perceptions]}
   end
 
   # All attended-to detectors have provided the current round with a belief
@@ -255,20 +247,22 @@ defmodule Andy.GM.GenerativeModel do
     state
     # Carry over missing perceptions from prior round to current round
     |> fill_out_perceptions()
-      # Carry over missing, meaningful predictions by super-GMs from prior round to current round
-    |> fill_out_predictions()
-      # Set this GM's belief levels in the perceptions from sub-GM(s), given prediction errors and GM's attention to sources
-    |> set_perception_belief_levels()
-      # Compute beliefs in the GM's own conjectures, with prediction errors, and publish them for super-gms to accumulate them as perceptions
-    |> compute_beliefs()
-      # Make predictions about what beliefs are expected next from sub-believers
-    |> make_predictions()
       # Update the attention paid to each sub-believer (based on prediction errors on perceptions from them etc.)
     |> update_attention()
-      # Re-assess efficacies of courses of action taken in this and previous rounds given current beliefs
+      # Set this GM's belief levels in the perceptions from sub-GM(s), given prediction errors and GM's attention to sources
+    |> set_perception_belief_levels()
+      # Carry over missing, meaningful predictions by super-GMs from prior round to current round
+    |> fill_out_predictions()
+      # Compute beliefs in the GM's own conjectures, with prediction errors, and publish them for super-gms to accumulate them as perceptions
+    |> compute_beliefs()
+      # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
     |> update_efficacies()
-      # Determine, record and execute a course of actions for each non-achieved goal, or to better validate a non-goal conjecture
+      # Determine a course of actions for each non-achieved goal, or to better validate a non-goal conjecture
     |> set_courses_of_action()
+      # Make predictions about what beliefs are expected next from sub-believers
+    |> make_predictions()
+      # Execute courses of action
+    |> execute_course_of_actions()
       # Terminate current round (set completed_on, publish round_completed)
     |> mark_round_completed()
       # Drop obsolete rounds
@@ -298,10 +292,16 @@ defmodule Andy.GM.GenerativeModel do
       sub_believers,
       perceptions,
       fn (sub_believer, acc) ->
-        if Map.get(acc, sub_believer) == nil do
-          Map.put(acc, sub_believer, Map.get(previous_perceptions, sub_believer, []))
-        else
-          acc
+        case Enum.find(perceptions, &(&1.source == sub_believer)) do
+          nil ->
+            case Enum.find(previous_perceptions, &(&1.source == sub_believer)) do
+              nil ->
+                acc
+              previous_perception ->
+                [previous_perception | acc]
+            end
+          perception ->
+            acc
         end
       end
     )
@@ -427,22 +427,93 @@ defmodule Andy.GM.GenerativeModel do
     Enum.map(predictors, &(&1.(state)))
   end
 
+  # Give more/less attention to sub-GMs given how well competing beliefs (in this GM's perceptions) matched this GM's predictions.
+  # Temper by previous attention level.
+  defp update_attention(%State{attention: attention} = state) do
+    %Round{perceptions: perceptions} = current_round(state)
+    sub_conjectures_believed = Enum.map(perceptions, &(&1.about))
+                               |> Enum.uniq()
+    attention_levels_per_perception_sources = Enum.reduce(
+      sub_conjectures_believed,
+      %{},
+      fn (sub_conjecture_name, acc) ->
+        # Find competing perceptions for the same conjecture
+        competing_perceptions_for_conjecture = Enum.filter(
+          perceptions,
+          &(&1.about == sub_conjecture_name)
+        )
+        # Spread 1.0 worth of attention among competing sources for that conjecture
+        attention_spreads = spread_attention(competing_perceptions_for_conjecture, attention)
+        # Aggregate new attention levels across perceptions per source (sub-believer)
+        Enum.reduce(
+          attention_spreads,
+          acc,
+          fn ({believer_spec, attention_level}, acc1) ->
+            Map.put(acc1, believer_spec, [attention_level | Map.get(acc1, believer_spec, [])])
+          end
+        )
+      end
+    )
+    updated_attention = Enum.reduce(
+      attention_levels_per_perception_sources,
+      attention,
+      fn ({believer_spec, levels}, acc) ->
+        average = Enum.sum(levels) / Enum.count(levels)
+        Map.put(acc, believer_spec, average)
+      end
+    )
+    %State{state | attention: updated_attention}
+  end
+
+  defp spread_attention([%Belief{source: believer_spec} = _perception], _attention) do
+    {believer_spec, 1.0}
+  end
+
+  # Spread 1.0 worth of attention among competing sources for beliefs, based on prediction errors and prior attention
+  defp spread_attention(competing_beliefs, prior_attention) do
+    source_raw_levels = Enum.zip(
+      Enum.map(competing_beliefs, &(&1.source)),
+      Enum.map(
+        competing_beliefs,
+        &((1.0 - &1.prediction_error) + (Map.get(prior_attention, &1.source, 1.0) / 2.0))
+      )
+    )
+    levels_sum = Enum.sum(source_raw_levels)
+    Enum.map(
+      source_raw_levels,
+      fn ({believer_spec, raw_level}) ->
+        {believer_spec, raw_level / levels_sum}
+      end
+    )
+  end
+
   defp update_efficacies(state) do
     # TODO
     state
   end
 
-  defp update_attention(state) do
-    # TODO
-    state
-  end
-
-  defp set_perception_belief_levels(state) do
-    # TODO
-    state
+  defp set_perception_belief_levels(
+         %State{
+           attention: attention,
+           rounds: [%Round{perceptions: beliefs} = round | previous_rounds]
+         } = state
+       ) do
+    updated_beliefs = Enum.map(
+      beliefs,
+      fn (%Belief{source: believer_spec, prediction_error: prediction_error} = belief) ->
+        attention_level = Map.get(attention, believer_spec, 1.0)
+        %Belief{belief | level: attention_level * (1.0 - prediction_error)}
+      end
+    )
+    %State{state | rounds: [%Round{round | perception: updated_beliefs} | previous_rounds]}
   end
 
   defp set_courses_of_action(state) do
+    # TODO
+    state
+  end
+
+  defp execute_courses_of_action(state) do
     # TODO
     state
   end
@@ -453,8 +524,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp drop_obsolete_rounds(%State{rounds: rounds} = state) do
-    updated_rounds = do_drop_obsolete_rounds(rounds)
-    %State{state | rounds: updated_rounds}
+    %State{state | rounds: do_drop_obsolete_rounds(rounds)}
   end
 
   defp do_drop_obsolete_rounds([round | older_rounds] = rounds) do
@@ -462,6 +532,7 @@ defmodule Andy.GM.GenerativeModel do
     if round.completed_on > cutoff do
       [rounds | drop_obsolete_rounds(older_rounds)]
     else
+      # every other round is also necessarily obsolete
       []
     end
   end
@@ -492,7 +563,7 @@ defmodule Andy.GM.GenerativeModel do
         previous_round.active_conjectures
     end
     # Keep previously believed conjectures
-    believed_conjecture_names = Enum.reject(previous_active_conjectures, &(not conjecture_believed?(&1, state)))
+    believed_conjecture_names = Enum.reject(previous_active_conjectures, &(not conjecture_was_believed?(&1, state)))
     # Add conjectures not mentioned and not mutually excluded (use randomness)
     candidates = Enum.map(gm_def.conjectures, &(&1.name))
                  |> Enum.reject(&(&1 in believed_conjecture_names))
@@ -502,12 +573,12 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Conjecture is believed by default in the initial round
-  defp conjecture_believed?(_conjecture_name, %State{rounds: [_round]}) do
+  defp conjecture_was_believed?(_conjecture_name, %State{rounds: [_round]}) do
     true
   end
 
   # Is conjecture believed in the previous round?
-  defp conjecture_believed?(conjecture_name, %State{rounds: [_round, previous_round | _]}) do
+  defp conjecture_was_believed?(conjecture_name, %State{rounds: [_round, previous_round | _]}) do
     Enum.any?(previous_round.beliefs, &(&1.about == conjecture_name and &1.level >= 0.5))
   end
 
