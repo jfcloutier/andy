@@ -262,7 +262,7 @@ defmodule Andy.GM.GenerativeModel do
       # Make predictions about what beliefs are expected next from sub-believers
     |> make_predictions()
       # Execute courses of action
-    |> execute_course_of_actions()
+    |> execute_courses_of_action()
       # Terminate current round (set completed_on, publish round_completed)
     |> mark_round_completed()
       # Drop obsolete rounds
