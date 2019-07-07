@@ -20,7 +20,9 @@ defmodule Andy.GM.GenerativeModel do
                 # names of conjectures that are currently goals to be achieved
               goals: [],
                 # conjecture_name => [efficacy, ...] - the efficacies of tried courses of action to achieve a goal conjecture
-              efficacies: %{}
+              efficacies: %{},
+                # conjecture_name => course of action index
+              courses_of_action_indices: %{}
   end
 
   defmodule Round do
@@ -512,35 +514,82 @@ defmodule Andy.GM.GenerativeModel do
 
   # For each active conjecture, choose a CoA from the conjecture's CoA domain favoring effectiveness
   # and shortness, looking at longer CoAs only if effectiveness of shorter CoAs disappoints.
-  defp set_courses_of_action(%State{rounds: [round | previous_rounds]} = state) do
-    courses_of_action = Enum.map(active_conjectures(state), &(select_course_of_action(&1, state)))
-    |> Map.new()
+  defp set_courses_of_action(
+         %State{
+           rounds: [round | previous_rounds],
+           courses_of_action_indices: courses_of_action_indices
+         } = state
+       ) do
+    {courses_of_action, updated_indices} = Enum.map(active_conjectures(state), &(select_course_of_action(&1, state)))
+                                           |> Map.reduce(
+                                                {%{}, courses_of_action_indices},
+                                                fn ({conjecture_name, course_of_action, updated_coa_index},
+                                                   {coas,indices} = _acc) ->
+                                                  {
+                                                    Map.put(coas, conjecture_name, course_of_action),
+                                                    Map.put(indices, conjecture_name, updated_coa_index)
+                                                  }
+                                                end
+                                              )
     updated_round = %Round{round | courses_of_action: courses_of_action}
-    %State{state | rounds: [updated_round | previous_rounds]}
+    %State{
+      state |
+      course_of_action_indices: updated_indices,
+      rounds: [updated_round | previous_rounds]
+    }
   end
 
-  defp select_course_of_action(conjecture_name, %State{efficacies: efficacies} = state) do
-    %Conjecture{action_domain: action_domain} = conjecture(state, conjecture_name)
+  defp select_course_of_action(
+         conjecture_name,
+         %State{
+           gm_def: gm_def,
+           efficacies: efficacies,
+           courses_of_action_indices: courses_of_action_indices
+         } = state
+       ) do
+    conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
     # Collect all tried CoAs for the conjecture as candidates as [{CoA, efficacy}, ...]
     tried = Map.to_list(efficacies)
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
-    candidates = [create_untried_course_of_action(action_domain, tried) | tried]
+    coa_index = Map.get(courses_of_action_indices, conjecture.name, 0)
+    {coa, updated_stream} = course_of_action(
+      conjecture,
+      coa_index
+    )
+    average_efficacy = (
+      Enum.map(tried, &(elem(&1, 1)))
+      |> Enum.sum()) / Enum.count(tried)
+    candidates = [{coa, average_efficacy} | tried]
                  # Normalize efficacies (sum = 1.0)
                  |> normalize_efficacies()
-    course_of_action = select_course_of_action(candidates)
     # Pick a CoA randomly, favoring higher efficacy
-    {conjecture_name, course_of_action}
+    course_of_action = pick_course_of_action(candidates)
+    # Move the CoA index if we picked an untried CoA
+    updated_coa_index = if course_of_action == coa, do: coa_index, else: coa_index + 1
+    {conjecture_name, course_of_action, updated_coa_index}
   end
 
-  defp create_untried_course_of_action(action_domain, tried) do
-    #TODO
+  defp course_of_action(%Conjecture{action_domain: action_domain}, courses_of_action_index) do
+    # Convert the index into a list of indices e.g. 4 -> [1,1] , 5th CoA (0-based index) in an action domain of 3 actions
+    index_list = Integer.to_string(courses_of_action_index, Enum.count(action_domain))
+                 |> String.to_charlist()
+                 |> Enum.map(&(List.to_string([&1])))
+                 |> Enum.map(&(String.to_integer(&1)))
+    Enum.reduce(
+      index_list,
+      [],
+      fn (i, acc) ->
+        [Enum.at(action_domain, i) | acc]
+      end
+    )
+    |> List.reverse()
   end
 
   defp normalize_efficacies(candidate_courses_of_action) do
     # TODO
   end
 
-  defp select_course_of_action(candidate_courses_of_action) do
+  defp pick_course_of_action(candidate_courses_of_action) do
     # TODO
   end
 
