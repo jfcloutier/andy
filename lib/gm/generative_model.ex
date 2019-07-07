@@ -32,13 +32,13 @@ defmodule Andy.GM.GenerativeModel do
               reported_in: [],
                 # names of active conjectures
               active_conjectures: [],
-                # [belief, ...] - beliefs received from sub-believers
+                # [belief, ...] - perceptions are the communicated beliefs of sub-believers
               perceptions: [],
-                # [prediction, ...] predictions about the (parameter values of) beliefs expected by super-gms in this round
+                # [prediction, ...] predictions communicated by super-GMs about this GM's beliefs
               predictions: [],
-                # beliefs in this GM conjectures given prediction successes and errors
+                # beliefs in this GM conjectures given communicated perceptions
               beliefs: [],
-                # conjecture_name => [action, ...] - courses of action taken
+                # conjecture_name => [action_name, ...] - courses of action taken to achieve goals or shore up beliefs
               courses_of_action: %{}
 
     def new() do
@@ -247,13 +247,13 @@ defmodule Andy.GM.GenerativeModel do
     state
     # Carry over missing perceptions from prior round to current round
     |> fill_out_perceptions()
-      # Update the attention paid to each sub-believer (based on prediction errors on perceptions from them etc.)
+      # Update the attention paid to each sub-believer based on prediction errors on competing perceptions (their beliefs)
     |> update_attention()
-      # Set this GM's belief levels in the perceptions from sub-GM(s), given prediction errors and GM's attention to sources
+      # Set this GM's belief levels in the perceptions, given prediction errors and GM's attention to sources (the sub-GMs that communicated the perceptions/beliefs)
     |> set_perception_belief_levels()
-      # Carry over missing, meaningful predictions by super-GMs from prior round to current round
+      # Carry over missing, applicable predictions by super-GMs from prior round to current round
     |> fill_out_predictions()
-      # Compute beliefs in the GM's own conjectures, with prediction errors, and publish them for super-gms to accumulate them as perceptions
+      # Compute beliefs in the GM's own conjectures, assign prediction errors from super-GMs, and publish to super-GMs to become their perceptions
     |> compute_beliefs()
       # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
     |> update_efficacies()
@@ -487,6 +487,8 @@ defmodule Andy.GM.GenerativeModel do
     )
   end
 
+  # A CoA efficacy goes up when correlated to realized beliefs (levels > 0.5) from the same conjecture
+  # The more recent the belief, the higher the correlation
   defp update_efficacies(state) do
     # TODO
     state
@@ -508,9 +510,38 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [%Round{round | perception: updated_beliefs} | previous_rounds]}
   end
 
-  defp set_courses_of_action(state) do
+  # For each active conjecture, choose a CoA from the conjecture's CoA domain favoring effectiveness
+  # and shortness, looking at longer CoAs only if effectiveness of shorter CoAs disappoints.
+  defp set_courses_of_action(%State{rounds: [round | previous_rounds]} = state) do
+    courses_of_action = Enum.map(active_conjectures(state), &(select_course_of_action(&1, state)))
+    |> Map.new()
+    updated_round = %Round{round | courses_of_action: courses_of_action}
+    %State{state | rounds: [updated_round | previous_rounds]}
+  end
+
+  defp select_course_of_action(conjecture_name, %State{efficacies: efficacies} = state) do
+    %Conjecture{action_domain: action_domain} = conjecture(state, conjecture_name)
+    # Collect all tried CoAs for the conjecture as candidates as [{CoA, efficacy}, ...]
+    tried = Map.to_list(efficacies)
+    # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
+    candidates = [create_untried_course_of_action(action_domain, tried) | tried]
+                 # Normalize efficacies (sum = 1.0)
+                 |> normalize_efficacies()
+    course_of_action = select_course_of_action(candidates)
+    # Pick a CoA randomly, favoring higher efficacy
+    {conjecture_name, course_of_action}
+  end
+
+  defp create_untried_course_of_action(action_domain, tried) do
+    #TODO
+  end
+
+  defp normalize_efficacies(candidate_courses_of_action) do
     # TODO
-    state
+  end
+
+  defp select_course_of_action(candidate_courses_of_action) do
+    # TODO
   end
 
   defp execute_courses_of_action(state) do
