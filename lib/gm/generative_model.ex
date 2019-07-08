@@ -534,11 +534,12 @@ defmodule Andy.GM.GenerativeModel do
     updated_round = %Round{round | courses_of_action: courses_of_action}
     %State{
       state |
-      course_of_action_indices: updated_indices,
+      course_of_action_indices: Map.merge(courses_of_action_indices, updated_indices),
       rounds: [updated_round | previous_rounds]
     }
   end
 
+  # Select a course of action for a conjecture
   defp select_course_of_action(
          conjecture_name,
          %State{
@@ -552,24 +553,32 @@ defmodule Andy.GM.GenerativeModel do
     tried = Map.to_list(efficacies)
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
     coa_index = Map.get(courses_of_action_indices, conjecture.name, 0)
-    {coa, updated_stream} = course_of_action(
+    untried_coa = new_course_of_action(
       conjecture,
       coa_index
     )
-    average_efficacy = (
-      Enum.map(tried, &(elem(&1, 1)))
-      |> Enum.sum()) / Enum.count(tried)
-    candidates = [{coa, average_efficacy} | tried]
+    average_efficacy = average_efficacy(tried)
+    candidates = [{untried_coa, average_efficacy} | tried]
                  # Normalize efficacies (sum = 1.0)
                  |> normalize_efficacies()
     # Pick a CoA randomly, favoring higher efficacy
     course_of_action = pick_course_of_action(candidates)
     # Move the CoA index if we picked an untried CoA
-    updated_coa_index = if course_of_action == coa, do: coa_index, else: coa_index + 1
+    updated_coa_index = if course_of_action == untried_coa, do: coa_index, else: coa_index + 1
     {conjecture_name, course_of_action, updated_coa_index}
   end
 
-  defp course_of_action(%Conjecture{action_domain: action_domain}, courses_of_action_index) do
+  defp average_efficacy([]) do
+    1.0
+  end
+
+  defp average_efficacy(tried) do
+    (
+      Enum.map(tried, &(elem(&1, 1)))
+      |> Enum.sum()) / Enum.count(tried)
+  end
+
+  defp new_course_of_action(%Conjecture{action_domain: action_domain}, courses_of_action_index) do
     # Convert the index into a list of indices e.g. 4 -> [1,1] , 5th CoA (0-based index) in an action domain of 3 actions
     index_list = Integer.to_string(courses_of_action_index, Enum.count(action_domain))
                  |> String.to_charlist()
