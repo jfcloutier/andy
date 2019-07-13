@@ -21,7 +21,7 @@ defmodule Andy.GM.GenerativeModel do
               goals: [],
                 # conjecture_name => [efficacy, ...] - the efficacies of tried courses of action to achieve a goal conjecture
               efficacies: %{},
-                # conjecture_name => course of action index
+                # conjecture_name => index of next course of action to try
               courses_of_action_indices: %{}
   end
 
@@ -145,7 +145,7 @@ defmodule Andy.GM.GenerativeModel do
       if round_ready_to_complete?(updated_state) do
         completed_state = complete_round(updated_state)
         PubSub.notify_after(
-          {:round_timed_out, name},
+          {:round_timed_out, gm_def.name},
           gm_def.max_round_duration
         )
         completed_state
@@ -201,7 +201,7 @@ defmodule Andy.GM.GenerativeModel do
 
   defp round_timed_out?(%State{gm_def: gm_def} = state) do
     round = current_round(state)
-    (now() - round.timestamp) >= gm_def.max_round_duration
+    (now() - round.started_on) >= gm_def.max_round_duration
   end
 
   defp belief_relevant?(%Belief{source: source}, %State{sub_believers: sub_believers}) do
@@ -249,7 +249,7 @@ defmodule Andy.GM.GenerativeModel do
     state
     # Carry over missing perceptions from prior round to current round
     |> fill_out_perceptions()
-      # Update the attention paid to each sub-believer based on prediction errors on competing perceptions (their beliefs)
+      # Update the attention paid to each sub-believer based on prediction errors about competing perceptions (their beliefs)
     |> update_attention()
       # Set this GM's belief levels in the perceptions, given prediction errors and GM's attention to sources (the sub-GMs that communicated the perceptions/beliefs)
     |> set_perception_belief_levels()
@@ -302,7 +302,7 @@ defmodule Andy.GM.GenerativeModel do
               previous_perception ->
                 [previous_perception | acc]
             end
-          perception ->
+          _perception ->
             acc
         end
       end
@@ -387,6 +387,7 @@ defmodule Andy.GM.GenerativeModel do
     0
   end
 
+  # Assuming a normal distribution over the parameter domain
   defp compute_value_error(value, low..high = range) when is_number(value) do
     mean = (low + high) / 2
     std = (high - low) / 4
@@ -524,7 +525,7 @@ defmodule Andy.GM.GenerativeModel do
                                            |> Map.reduce(
                                                 {%{}, courses_of_action_indices},
                                                 fn ({conjecture_name, course_of_action, updated_coa_index},
-                                                   {coas,indices} = _acc) ->
+                                                   {coas, indices} = _acc) ->
                                                   {
                                                     Map.put(coas, conjecture_name, course_of_action),
                                                     Map.put(indices, conjecture_name, updated_coa_index)
@@ -549,14 +550,14 @@ defmodule Andy.GM.GenerativeModel do
          } = state
        ) do
     conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
-    # Collect all tried CoAs for the conjecture as candidates as [{CoA, efficacy}, ...]
-    tried = Map.to_list(efficacies)
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
     coa_index = Map.get(courses_of_action_indices, conjecture.name, 0)
     untried_coa = new_course_of_action(
       conjecture,
       coa_index
     )
+    # Collect all tried CoAs for the conjecture as candidates as [{CoA, efficacy}, ...]
+    tried = Map.to_list(efficacies)
     average_efficacy = average_efficacy(tried)
     candidates = [{untried_coa, average_efficacy} | tried]
                  # Normalize efficacies (sum = 1.0)
@@ -564,7 +565,7 @@ defmodule Andy.GM.GenerativeModel do
     # Pick a CoA randomly, favoring higher efficacy
     course_of_action = pick_course_of_action(candidates)
     # Move the CoA index if we picked an untried CoA
-    updated_coa_index = if course_of_action == untried_coa, do: coa_index, else: coa_index + 1
+    updated_coa_index = if course_of_action == untried_coa, do: coa_index + 1, else: coa_index
     {conjecture_name, course_of_action, updated_coa_index}
   end
 
@@ -594,14 +595,17 @@ defmodule Andy.GM.GenerativeModel do
     |> List.reverse()
   end
 
+  # Return [{coa, efficacy}, ...] such that the sum of all efficacies == 1.0
   defp normalize_efficacies(candidate_courses_of_action) do
     # TODO
   end
 
+  # Randomly pick a course of action with probability proportional to efficacy
   defp pick_course_of_action(candidate_courses_of_action) do
     # TODO
   end
 
+  # Generate the intents to run the course of action
   defp execute_courses_of_action(state) do
     # TODO
     state
