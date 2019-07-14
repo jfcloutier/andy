@@ -15,7 +15,7 @@ defmodule Andy.GM.Conjecture do
               # A function on a GM's rounds that determines whether the conjecture becomes a transient goal in the next round.
               # While a conjecture is a goal, it can not be silenced by a mutually exclusive conjecture, even if not (yet) believed.
             motivator: nil,
-              # Names of actions from the GM definition from which courses of action can be composed and executed to realize the conjecture
-            action_domain: []
+              # Names of intentions from the GM definition from which courses of action can be composed and executed to realize the conjecture
+            intention_domain: []
 
 end

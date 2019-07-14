@@ -40,7 +40,7 @@ defmodule Andy.GM.GenerativeModel do
               predictions: [],
                 # beliefs in this GM conjectures given communicated perceptions
               beliefs: [],
-                # conjecture_name => [action_name, ...] - courses of action taken to achieve goals or shore up beliefs
+                # conjecture_name => [intention_name, ...] - courses of action taken to achieve goals or shore up beliefs
               courses_of_action: %{}
 
     def new() do
@@ -60,9 +60,9 @@ defmodule Andy.GM.GenerativeModel do
     tempered by any prior efficacy measurement.
     """
 
-    defstruct level: 0,
-                # level of efficacy, float from 0 to 1
-              course_of_action: [] # [action, ...] a course of action
+    defstruct degree: 0,
+                # degree of efficacy, float from 0 to 1.0
+              course_of_action: [] # [intention.name, ...] a course of action
   end
 
   @doc "Child spec as supervised worker"
@@ -492,9 +492,64 @@ defmodule Andy.GM.GenerativeModel do
 
   # A CoA efficacy goes up when correlated to realized beliefs (levels > 0.5) from the same conjecture
   # The more recent the belief, the higher the correlation
-  defp update_efficacies(state) do
-    # TODO
-    state
+  defp update_efficacies(
+         %State{
+           efficacies: efficacies, # %{conjecture_name: [efficacy, ...]}
+           rounds: [round | previous_rounds] = rounds
+         } = state
+       ) do
+    updated_efficacies = Enum.reduce(
+      round.beliefs,
+      efficacies,
+      &(update_efficacies_from_belief(&1, efficacies, rounds))
+    )
+    %State{state | efficacies: updated_efficacies}
+  end
+
+  defp update_efficacies_from_belief(
+         %Belief{
+           about: about, # conjecture name
+           level: level
+         } = belief,
+         efficacies,
+         rounds
+       ) do
+    updated_conjecture_efficacies = Map.get(efficacies, about)
+                                    |> revise_conjecture_efficacies(level, rounds)
+    Map.put(efficacies, about, updated_conjecture_efficacies)
+  end
+
+  defp revise_conjecture_efficacies(conjecture_efficacies, belief_level, rounds) do
+    Enum.reduce(
+      conjecture_efficacies,
+      [],
+      fn (%Efficacy{course_of_action: course_of_action, degree: degree} = efficacy, acc) ->
+        updated_degree = update_efficacy_degree(course_of_action, belief_level, degree, rounds)
+        [%Efficacy{efficacy | degree: updated_degree} | acc]
+      end
+    )
+  end
+
+  defp update_efficacy_degree(course_of_action, belief_level, degree, rounds) do
+    number_of_rounds = Enum.count(rounds)
+    impacts_on_belief = Enum.reduce(
+      0..(Enum.count(rounds) - 1),
+      [],
+      fn (round_index, acc) ->
+        %Round{courses_of_action: courses_of_action} = Enum.at(round_index)
+        if course_of_action in courses_of_action do
+          round_factor = (number_of_rounds - round_index) / number_of_rounds # e.g. 4/4, 3/4, 2/4, 1/4
+          [round_factor | acc]
+        else
+          acc
+        end
+      end
+    )
+    # Use the maximum impact on belief by an CoA from this round or a previous round
+    max_impact = Enum.max(impacts_on_belief, fn -> 0 end)
+    current_degree = belief_level * max_impact
+    # Give equal weight to the latest and prior degrees of efficacy of a CoA on validating a belief
+    current_degree + degree / 2.0
   end
 
   defp set_perception_belief_levels(
@@ -532,6 +587,7 @@ defmodule Andy.GM.GenerativeModel do
                                                   }
                                                 end
                                               )
+    # one course of action per active conjecture name
     updated_round = %Round{round | courses_of_action: courses_of_action}
     %State{
       state |
@@ -557,7 +613,8 @@ defmodule Andy.GM.GenerativeModel do
       coa_index
     )
     # Collect all tried CoAs for the conjecture as candidates as [{CoA, efficacy}, ...]
-    tried = Map.to_list(efficacies)
+    tried = Map.get(efficacies, conjecture_name)
+            |> Enum.map(&({&1.course_of_action, &1.degree}))
     average_efficacy = average_efficacy(tried)
     candidates = [{untried_coa, average_efficacy} | tried]
                  # Normalize efficacies (sum = 1.0)
@@ -579,9 +636,9 @@ defmodule Andy.GM.GenerativeModel do
       |> Enum.sum()) / Enum.count(tried)
   end
 
-  defp new_course_of_action(%Conjecture{action_domain: action_domain}, courses_of_action_index) do
-    # Convert the index into a list of indices e.g. 4 -> [1,1] , 5th CoA (0-based index) in an action domain of 3 actions
-    index_list = Integer.to_string(courses_of_action_index, Enum.count(action_domain))
+  defp new_course_of_action(%Conjecture{intention_domain: intention_domain}, courses_of_action_index) do
+    # Convert the index into a list of indices e.g. 4 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
+    index_list = Integer.to_string(courses_of_action_index, Enum.count(intention_domain))
                  |> String.to_charlist()
                  |> Enum.map(&(List.to_string([&1])))
                  |> Enum.map(&(String.to_integer(&1)))
@@ -589,7 +646,7 @@ defmodule Andy.GM.GenerativeModel do
       index_list,
       [],
       fn (i, acc) ->
-        [Enum.at(action_domain, i) | acc]
+        [Enum.at(intention_domain, i) | acc]
       end
     )
     |> List.reverse()
@@ -597,17 +654,63 @@ defmodule Andy.GM.GenerativeModel do
 
   # Return [{coa, efficacy}, ...] such that the sum of all efficacies == 1.0
   defp normalize_efficacies(candidate_courses_of_action) do
-    # TODO
+    sum = Enum.reduce(
+      candidate_courses_of_action,
+      0,
+      fn ({_cao, efficacy}, acc) ->
+        efficacy + acc
+      end
+    )
+    Enum.reduce(
+      candidate_courses_of_action,
+      [],
+      fn ({cao, efficacy}, acc) ->
+        [{cao, efficacy / sum}, acc]
+      end
+    )
   end
 
-  # Randomly pick a course of action with probability proportional to efficacy
+  # Randomly pick a course of action with a probability proportional to its efficacy
+  defp pick_course_of_action([{coa, _efficacy}]) do
+    coa
+  end
+
   defp pick_course_of_action(candidate_courses_of_action) do
-    # TODO
+    {ranges_reversed, _} = Enum.reduce(
+      candidate_courses_of_action,
+      {[], 0},
+      fn ({_coa, efficacy}, {ranges_acc, top_acc}) ->
+        {[top_acc + efficacy | ranges_acc], top_acc + efficacy}
+      end
+    )
+    ranges = Enum.reverse(ranges_reversed)
+    Logger.info("Ranges = #{inspect ranges} for courses of action #{candidate_courses_of_action}")
+    random = Enum.random(0..999) / 1000
+    index = Enum.find(0..(Enum.count(ranges) - 1), &(random < Enum.at(ranges, &1)))
+    {coa, _efficacy} = Enum.at(candidate_courses_of_action, index)
+    coa
   end
 
-  # Generate the intents to run the course of action
+  # Generate the intents to run the course of action. Don't repeat the same intention.
   defp execute_courses_of_action(state) do
-    # TODO
+    %Round{courses_of_action: courses_of_action} = current_round(state)
+    Enum.reduce(
+      courses_of_action,
+      [],
+      fn ({_conjecture_name, intentions}, executed) ->
+        new_intentions = Enum.reject(intentions, &(&1.intent_name in executed))
+        Enum.each(
+          new_intentions,
+          &(PubSub.notify_intended(
+              Intent.new(
+                about: &1.intent_name,
+                value: &1.valuator.(state)
+              )
+            ))
+        )
+        Enum.map(new_intentions, &(&1.intent_name)) ++ executed
+      end
+    )
     state
   end
 

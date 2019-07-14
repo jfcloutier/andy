@@ -14,10 +14,10 @@ defmodule Andy.GM.GenerativeModelDef do
             contradictions: [],
               # conjecture_name => %{} parameter values of initially believed conjectures
             priors: %{},
-              # Candidate actions that, when executed individually or in sequences, could validate a conjecture.
-              # Actions are taken either to achieve a goal (to believe in a goal conjecture)
+              # Candidate intentions that, when executed individually or in sequences, could validate a conjecture.
+              # Intentions are taken either to achieve a goal (to believe in a goal conjecture)
               # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
-            actions: []
+            intentions: []
 
   # level: 0, # from 0 to 1, how much the GM believes its named conjecture
   #            generative_model_name: nil,
