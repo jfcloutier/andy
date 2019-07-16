@@ -3,7 +3,8 @@ defmodule Andy.GM.GenerativeModel do
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 2, now: 0]
-  alias Andy.GM.{PubSub, GenerativeModelDef, Belief}
+  alias Andy.Intent
+  alias Andy.GM.{PubSub, GenerativeModelDef, Belief, Conjecture}
   @behaviour Andy.GM.Believer
 
   @forget_round_after_secs 60 # for how long rounds are remembered
@@ -44,7 +45,7 @@ defmodule Andy.GM.GenerativeModel do
               courses_of_action: %{}
 
     def new() do
-      %Round{stated_on: now()}
+      %Round{started_on: now()}
     end
 
     def initial_round(gm_def) do
@@ -81,7 +82,8 @@ defmodule Andy.GM.GenerativeModel do
       fn () ->
         %State{
           gm_def: gm_def,
-          rounds: [Round.initial_round(gm_def)]
+          rounds: [Round.initial_round(gm_def)],
+          sub_believers: sub_believer_specs
         }
         # Set which conjectures are goals
         |> set_goals()
@@ -239,13 +241,13 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # The sub-GM has reported completing a round during the current round of this GM
-  defp believer_beliefs_received?({:gm, gm_name} = gm_spec, state) do
+  defp believer_beliefs_received?({:gm, gm_name} = _gm_spec, state) do
     round = current_round(state)
     gm_name in round.reported_in
   end
 
   # Complete execution of the current round and set up the next round
-  defp complete_round(%State{gm_def: gm_def, rounds: [round | previous_rounds] = rounds} = state) do
+  defp complete_round(state) do
     state
     # Carry over missing perceptions from prior round to current round
     |> fill_out_perceptions()
@@ -277,7 +279,7 @@ defmodule Andy.GM.GenerativeModel do
     |> activate_conjectures()
   end
 
-  defp fill_out_perceptions(%State{rounds: [round]} = state) do
+  defp fill_out_perceptions(%State{rounds: [_round]} = state) do
     state
   end
 
@@ -314,7 +316,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Grab from previous round any missing prediction about beliefs from active conjectures
-  defp fill_out_predictions(%State{rounds: [round]} = state) do
+  defp fill_out_predictions(%State{rounds: [_round]} = state) do
     state
   end
 
@@ -383,12 +385,12 @@ defmodule Andy.GM.GenerativeModel do
     Enum.reduce(value_errors, 0, &(max(&1, &2)))
   end
 
-  defp compute_value_error(value, sub_domain) when sub_domain in [nil, []] do
+  defp compute_value_error(_value, sub_domain) when sub_domain in [nil, []] do
     0
   end
 
   # Assuming a normal distribution over the parameter domain
-  defp compute_value_error(value, low..high = range) when is_number(value) do
+  defp compute_value_error(value, low..high = _range) when is_number(value) do
     mean = (low + high) / 2
     std = (high - low) / 4
     delta = abs(mean - value)
@@ -413,15 +415,15 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
-  defp make_predictions(%State{gm_def: gm_def, sub_believers: sub_believers} = state) do
+  defp make_predictions(%State{sub_believers: sub_believers} = state) do
     active_conjectures(state)
     |> Enum.map(&(make_conjecture_predictions(&1, state)))
     |> List.flatten()
-    |> Enum.each(PubSub.notify({:prediction, &1, sub_believers}))
+    |> Enum.each(&(PubSub.notify({:prediction, &1, sub_believers})))
     state
   end
 
-  defp active_conjectures(%State{gm_def: gm_def}) do
+  defp active_conjectures(%State{gm_def: gm_def} = state) do
     %Round{active_conjectures: active_conjectures} = current_round(state)
     Enum.filter(gm_def.conjectures, &(&1.name in active_conjectures))
   end
@@ -495,7 +497,7 @@ defmodule Andy.GM.GenerativeModel do
   defp update_efficacies(
          %State{
            efficacies: efficacies, # %{conjecture_name: [efficacy, ...]}
-           rounds: [round | previous_rounds] = rounds
+           rounds: [round | _previous_rounds] = rounds
          } = state
        ) do
     updated_efficacies = Enum.reduce(
@@ -510,7 +512,7 @@ defmodule Andy.GM.GenerativeModel do
          %Belief{
            about: about, # conjecture name
            level: level
-         } = belief,
+         },
          efficacies,
          rounds
        ) do
@@ -536,7 +538,7 @@ defmodule Andy.GM.GenerativeModel do
       0..(Enum.count(rounds) - 1),
       [],
       fn (round_index, acc) ->
-        %Round{courses_of_action: courses_of_action} = Enum.at(round_index)
+        %Round{courses_of_action: courses_of_action} = Enum.at(rounds, round_index)
         if course_of_action in courses_of_action do
           round_factor = (number_of_rounds - round_index) / number_of_rounds # e.g. 4/4, 3/4, 2/4, 1/4
           [round_factor | acc]
@@ -565,7 +567,7 @@ defmodule Andy.GM.GenerativeModel do
         %Belief{belief | level: attention_level * (1.0 - prediction_error)}
       end
     )
-    %State{state | rounds: [%Round{round | perception: updated_beliefs} | previous_rounds]}
+    %State{state | rounds: [%Round{round | perceptions: updated_beliefs} | previous_rounds]}
   end
 
   # For each active conjecture, choose a CoA from the conjecture's CoA domain favoring effectiveness
@@ -577,7 +579,7 @@ defmodule Andy.GM.GenerativeModel do
          } = state
        ) do
     {courses_of_action, updated_indices} = Enum.map(active_conjectures(state), &(select_course_of_action(&1, state)))
-                                           |> Map.reduce(
+                                           |> Enum.reduce(
                                                 {%{}, courses_of_action_indices},
                                                 fn ({conjecture_name, course_of_action, updated_coa_index},
                                                    {coas, indices} = _acc) ->
@@ -591,7 +593,7 @@ defmodule Andy.GM.GenerativeModel do
     updated_round = %Round{round | courses_of_action: courses_of_action}
     %State{
       state |
-      course_of_action_indices: Map.merge(courses_of_action_indices, updated_indices),
+      courses_of_action_indices: Map.merge(courses_of_action_indices, updated_indices),
       rounds: [updated_round | previous_rounds]
     }
   end
@@ -603,7 +605,7 @@ defmodule Andy.GM.GenerativeModel do
            gm_def: gm_def,
            efficacies: efficacies,
            courses_of_action_indices: courses_of_action_indices
-         } = state
+         }
        ) do
     conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
@@ -649,7 +651,7 @@ defmodule Andy.GM.GenerativeModel do
         [Enum.at(intention_domain, i) | acc]
       end
     )
-    |> List.reverse()
+    |> Enum.reverse()
   end
 
   # Return [{coa, efficacy}, ...] such that the sum of all efficacies == 1.0
@@ -737,10 +739,10 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [Round.new() | rounds]}
   end
 
-  defp set_goals(%State{gm_def: gm_def, rounds: [round | previous_rounds]} = state) do
+  defp set_goals(%State{gm_def: gm_def} = state) do
     goals = Enum.filter(gm_def.conjectures, &(&1.motivator.(state)))
             |> Enum.map(&(&1.name))
-    %State{state | rounds: [%Round{round | goals: goals} | previous_rounds]}
+    %State{state | goals: goals}
   end
 
   # Pick as many GM conjectures as possible that do not mutually exclude one another.
@@ -761,11 +763,12 @@ defmodule Andy.GM.GenerativeModel do
     # Keep previously believed conjectures
     believed_conjecture_names = Enum.reject(previous_active_conjectures, &(not conjecture_was_believed?(&1, state)))
     # Add conjectures not mentioned and not mutually excluded (use randomness)
-    candidates = Enum.map(gm_def.conjectures, &(&1.name))
-                 |> Enum.reject(&(&1 in believed_conjecture_names))
-                 |> random_permutation()
-                 |> remove_excluded(believed_conjecture_names, gm_def.contradictions)
-    state
+    updated_active_conjecture_names = Enum.map(gm_def.conjectures, &(&1.name))
+                                      |> Enum.reject(&(&1 in believed_conjecture_names))
+                                      |> random_permutation()
+                                      |> remove_excluded(believed_conjecture_names, gm_def.contradictions)
+    updated_round = %Round{round | active_conjectures: updated_active_conjecture_names}
+    %State{state | rounds: [updated_round | previous_rounds]}
   end
 
   # Conjecture is believed by default in the initial round
@@ -773,7 +776,7 @@ defmodule Andy.GM.GenerativeModel do
     true
   end
 
-  # Is conjecture believed in the previous round?
+  # Was the conjecture believed in the previous round?
   defp conjecture_was_believed?(conjecture_name, %State{rounds: [_round, previous_round | _]}) do
     Enum.any?(previous_round.beliefs, &(&1.about == conjecture_name and &1.level >= 0.5))
   end

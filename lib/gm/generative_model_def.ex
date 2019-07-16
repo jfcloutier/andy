@@ -3,6 +3,7 @@ defmodule Andy.GM.GenerativeModelDef do
 
   @default_max_round_duration 500 # half a second
 
+  alias __MODULE__
   alias Andy.GM.Belief
 
   defstruct name: nil,
@@ -24,7 +25,6 @@ defmodule Andy.GM.GenerativeModelDef do
   #            conjecture_name: nil,
   #            parameter_values: %{}
   def initial_beliefs(gm_def) do
-    prior_conjecture_names = Map.keys(gm_def.priors)
     Enum.reduce(
       gm_def.priors,
       [],

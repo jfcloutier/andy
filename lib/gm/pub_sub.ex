@@ -82,10 +82,8 @@ defmodule Andy.GM.PubSub do
     paused? == true
   end
 
-  ### Private
-
   # Dispatch the handling of an event to all subscribing embodied cognition agents
-  defp notify(event) do
+  def notify(event) do
     Logger.info("Notify #{inspect event}")
     spawn(
       fn ->
