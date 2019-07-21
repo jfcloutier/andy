@@ -7,6 +7,8 @@ defmodule Andy.GM.Detector do
   import Andy.Utils, only: [listen_to_events: 2]
   require Logger
 
+  # TODO - A detector receives predictions from GMs and only raises prediction errors (mis-predicted or unpredicted beliefs)
+
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([device, sense]) do
     %{
