@@ -20,8 +20,15 @@ defmodule Andy.GM.Belief do
               # How far the parameter values stray from predictions by super-GM(s)
             prediction_error: 0 # Is this belief contrary to prediction? 1 if maximally contrarian.
 
-  @doc "Whether a belief overrides another"
-  def overrides?(%Belief{name: name, about: about}, %Belief{name: name, about: about, source: :prediction}) do
+  @doc """
+    Whether a belief overrides another: when the subject is the same (name and about)
+    and 1- they from the same source or 2- when the other is a prediction (belief "from sub-believer"
+    wins over belief "from prediction")
+  """
+  def overrides?(
+        %Belief{name: name, about: about, source: source},
+        %Belief{name: name, about: about, source: other_source} = _another
+      ) when source == other_source or other_source == :prediction do
     true
   end
 
