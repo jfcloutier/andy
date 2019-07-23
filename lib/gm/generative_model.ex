@@ -225,7 +225,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   ### PRIVATE
-  
+
   # Start the current round
   defp start_round(%State{} = state) do
     PubSub.notify_after(
