@@ -1,5 +1,8 @@
 defmodule Andy.GM.Belief do
   @moduledoc "A belief from a detector or generative model"
+
+  alias __MODULE__
+
   defstruct level: 0,
               # from 0 to 1, how much the GM that receives them as perceptions believes the named conjecture
             source: nil,
@@ -11,12 +14,12 @@ defmodule Andy.GM.Belief do
               #                                port: ...   -- needed only if otherwise ambiguous
               #                                }
               #                  } if prediction error from a sub-believer detector
-            name: nil,
               # conjecture name if from a GM, else detector name is from a detector
+            name: nil,
+                # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
             about: nil,
-              # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
-            parameter_values: %{},
               # conjecture_parameter_name => value
+            parameter_values: %{},
               # How far the parameter values stray from predictions by super-GM(s)
             prediction_error: 0 # Is this belief contrary to prediction? 1 if maximally contrarian.
 
@@ -33,6 +36,15 @@ defmodule Andy.GM.Belief do
   end
 
   def overrides?(_belief, _other) do
+    false
+  end
+
+  @doc "Is this belief from a generative model?"
+  def from_generative_model?(%Belief{source: {:gm, _}}) do
+    true
+  end
+
+  def from_generative_model?(%Belief{}) do
     false
   end
 
