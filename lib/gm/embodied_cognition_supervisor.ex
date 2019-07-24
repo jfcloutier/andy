@@ -6,7 +6,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.GM.{PubSub, BelieversGraph, BelieversSupervisor}
+  alias Andy.GM.{PubSub, Cognition, GenerativeModelsSupervisor}
   alias Andy.{ ActuatorsSupervisor, Device }
 
   @name __MODULE__
@@ -22,9 +22,9 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   def init(_) do
     children = [
       PubSub,
-      InternalClock,
       ActuatorsSupervisor,
-      BelieversSupervisor
+      GenerativeModelsSupervisor,
+      DetectorsSupervisor,
     ]
     opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
@@ -52,7 +52,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
     Logger.info("Starting detectors")
     for sensor <- Andy.sensors() do
       for sense <- Device.senses(sensor) do
-        BelieversSupervisor.start_detector(sensor, sense)
+        DetectorsSupervisor.start_detector(sensor, sense)
       end
     end
   end
@@ -68,8 +68,8 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   defp start_generative_models() do
     Logger.info("Starting generative models")
     Andy.cognition_def()
-    |> BelieversGraph.gm_defs_with_sub_believers()
-    |> Enum.each(&(BelieversSupervisor.start_generative_model(&1)))
+    |> Cognition.gm_defs_with_family()
+    |> Enum.each(&(GenerativeModelsSupervisor.start_generative_model(&1)))
   end
 
 end

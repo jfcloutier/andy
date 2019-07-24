@@ -1,10 +1,10 @@
-defmodule Andy.GM.BelieversSupervisor do
-  @moduledoc "Supervisor of all generative models and detectors"
+defmodule Andy.GM.DetectorsSupervisor do
+  @moduledoc "Supervisor of all detectors"
 
   @name __MODULE__
   use DynamicSupervisor
 
-  alias Andy.GM.{GenerativeModel, GenerativeModelDef, Detector}
+  alias Andy.GM.{Detector}
   require Logger
 
   @doc "Child spec as supervised supervisor"
@@ -16,15 +16,10 @@ defmodule Andy.GM.BelieversSupervisor do
     }
   end
 
-  @doc "Start the believers supervisor"
+  @doc "Start the detectors supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
     DynamicSupervisor.start_link(@name, [], name: @name)
-  end
-
-  @doc "Start a generative model"
-  def start_generative_model({%GenerativeModelDef{} = gm_def, sub_believers_specs}) do
-    DynamicSupervisor.start_child(@name, {GenerativeModel, [gm_def, sub_believers_specs]})
   end
 
   @doc "Start a detector"

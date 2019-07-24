@@ -10,7 +10,7 @@ defmodule Andy.GM.Conjecture do
             activator: nil,
               # parameter_name => domain - a domain is an enumerable of all values parameters of conjecture activations could take
             parameter_domains: %{},
-              # Functions on a GM's state that produces next-round predictions about
+              # Functions fn(conjecture_activation, gm_state) :: prediction that produces next-round predictions about
               # perceptions (beliefs from sub-believers(s)) given belief in the (activated) conjecture.
             predictors: [],
               # Names of intentions from the GM definition from which courses of action can be composed and executed to realize the conjecture

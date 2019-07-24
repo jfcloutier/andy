@@ -1,8 +1,6 @@
 defmodule Andy.GM.Detector do
   @moduledoc "A detector as generator of beliefs"
 
-  @behaviour Andy.GM.Believer
-
   alias Andy.Device
   import Andy.Utils, only: [listen_to_events: 2]
   require Logger
@@ -44,13 +42,6 @@ defmodule Andy.GM.Detector do
   def handle_event(_something, state) do
     # TODO - return new state
     state
-  end
-
-  ### Believer
-
-  def something_or_other() do
-    # TODO
-    []
   end
 
   # TODO
