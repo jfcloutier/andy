@@ -1,12 +1,13 @@
 defmodule Andy.Puppy.Profiling do
   @moduledoc "The conjectures for a puppy profile"
 
-  alias Andy.{ Conjecture, Prediction, Action, Memory }
+  alias Andy.{Conjecture, Prediction, Action, Memory}
   import Andy.Utils, only: [as_percept_about: 1]
   require Logger
 
   @low_light 1
-  @us_near 20 # cm
+  # cm
+  @us_near 20
 
   def conjectures() do
     [
@@ -18,21 +19,21 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_is_safe,
-            believed: { :is, :safe },
+            believed: {:is, :safe},
             precision: :high,
-            fulfill_by: { :doing, [say_once("I am scared")] },
+            fulfill_by: {:doing, [say_once("I am scared")]},
             when_fulfilled: [say_without_repeating("I am ok now")]
           ),
           prediction(
             name: :puppy_is_sated,
-            believed: { :is, :sated },
+            believed: {:is, :sated},
             precision: :medium,
-            fulfill_by: { :doing, [say_once("I am hungry")] },
+            fulfill_by: {:doing, [say_once("I am hungry")]},
             when_fulfilled: [say_without_repeating("I am full"), backoff()]
           ),
           prediction(
             name: :puppy_is_free,
-            believed: { :is, :free },
+            believed: {:is, :free},
             precision: :low,
             when_fulfilled: [say_without_repeating("I'm free")]
           )
@@ -49,10 +50,9 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_not_bumping,
-            believed: { :not, :bumped },
+            believed: {:not, :bumped},
             precision: :high,
-            fulfill_by:
-              {
+            fulfill_by: {
               :doing,
               %{
                 pick: 2,
@@ -62,21 +62,21 @@ defmodule Andy.Puppy.Profiling do
           ),
           prediction(
             name: :puppy_not_about_to_bump,
-            believed: { :not, :about_to_bump },
+            believed: {:not, :about_to_bump},
             precision: :high,
             fulfill_by:
-              { :doing,
-              %{
-                pick: 2,
-                from: [backoff(), turn_right(), turn_left(), forward()]
-              } }
+              {:doing,
+               %{
+                 pick: 2,
+                 from: [backoff(), turn_right(), turn_left(), forward()]
+               }}
           ),
           prediction(
             name: :puppy_is_in_the_light,
-            believed: { :is, :in_the_light },
+            believed: {:is, :in_the_light},
             precision: :high,
             fulfill_when: [:puppy_not_bumping, :puppy_not_about_to_bump],
-            fulfill_by: { :doing, [say_once("It's too dark")] }
+            fulfill_by: {:doing, [say_once("It's too dark")]}
           )
         ],
         priority: :high
@@ -90,7 +90,7 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_bumped,
-            perceived: [{ { :sensor, :touch, :touch }, { :eq, :pressed }, :now }],
+            perceived: [{{:sensor, :touch, :touch}, {:eq, :pressed}, :now}],
             precision: :high,
             when_fulfilled: [say("Ouch!")]
           )
@@ -106,9 +106,9 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_in_high_ambient_light,
-            perceived: [{ { :sensor, :color, :ambient }, { :gt, @low_light }, { :past_secs, 3 } }],
+            perceived: [{{:sensor, :color, :ambient}, {:gt, @low_light}, {:past_secs, 3}}],
             precision: :medium,
-            fulfill_by: { :believing_in, :getting_lighter }
+            fulfill_by: {:believing_in, :getting_lighter}
           )
         ],
         priority: :medium
@@ -122,13 +122,14 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_in_better_lit_area,
-            perceived: [{ { :sensor, :color, :ambient }, :ascending, { :past_secs, 5 } }],
+            perceived: [{{:sensor, :color, :ambient}, :ascending, {:past_secs, 5}}],
             precision: :medium,
-            fulfill_by: { :doing,
-              %{
-                pick: 2,
-                from: [backoff(), turn_right(), turn_left(), forward()]
-              } },
+            fulfill_by:
+              {:doing,
+               %{
+                 pick: 2,
+                 from: [backoff(), turn_right(), turn_left(), forward()]
+               }},
             when_fulfilled: [forward()]
           )
         ],
@@ -144,8 +145,8 @@ defmodule Andy.Puppy.Profiling do
           prediction(
             name: :puppy_about_to_bump,
             perceived: [
-              { { :sensor, :ultrasonic, :distance }, { :lt, @us_near }, { :past_secs, 2 } },
-              { { :sensor, :ultrasonic, :distance }, :descending, { :past_secs, 5 } }
+              {{:sensor, :ultrasonic, :distance}, {:lt, @us_near}, {:past_secs, 2}},
+              {{:sensor, :ultrasonic, :distance}, :descending, {:past_secs, 5}}
             ],
             precision: :medium
           )
@@ -161,31 +162,29 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_recently_ate,
-            actuated: [{ :eat, { :times, 2 }, { :past_secs, 30 } }],
+            actuated: [{:eat, {:times, 2}, {:past_secs, 30}}],
             precision: :medium,
-            fulfill_by: { :believing_in, :feeding },
+            fulfill_by: {:believing_in, :feeding},
             true_by_default?: false,
             time_sensitive?: true
           )
         ],
         priority: :medium
       ),
-
       conjecture(
         name: :feeding,
         hypothesis: "The puppy is feeding",
         predictions: [
           prediction(
             name: :puppy_on_food,
-            perceived: [{ { :sensor, :color, :color }, { :eq, :blue }, { :past_secs, 3 } }],
+            perceived: [{{:sensor, :color, :color}, {:eq, :blue}, {:past_secs, 3}}],
             precision: :high,
-            fulfill_by: { :believing_in, :getting_closer_to_food },
-            when_fulfilled: [say("nom de nom de nom"), eat({ :sensor, :color, :ambient })]
+            fulfill_by: {:believing_in, :getting_closer_to_food},
+            when_fulfilled: [say("nom de nom de nom"), eat({:sensor, :color, :ambient})]
           )
         ],
         priority: :medium
       ),
-
       conjecture(
         name: :getting_closer_to_food,
         hypothesis: "The puppy detects food",
@@ -193,10 +192,11 @@ defmodule Andy.Puppy.Profiling do
           prediction(
             name: :puppy_smells_food,
             perceived: [
-              { { :sensor, :infrared, { :beacon_distance, 1 } }, { :lt, 90 }, { :past_secs, 2 } },
-              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 20 }, { :past_secs, 2 } }
+              {{:sensor, :infrared, {:beacon_distance, 1}}, {:lt, 90}, {:past_secs, 2}},
+              {{:sensor, :infrared, {:beacon_heading, 1}}, {:abs_lt, 20}, {:past_secs, 2}}
             ],
-            precision: :medium, # because not entirely reliable (sometimes fails to see beacon heading when right in front)
+            # because not entirely reliable (sometimes fails to see beacon heading when right in front)
+            precision: :medium,
             fulfill_by: {
               :doing,
               %{
@@ -209,18 +209,20 @@ defmodule Andy.Puppy.Profiling do
           prediction(
             name: :puppy_faces_food,
             perceived: [
-              { { :sensor, :infrared, { :beacon_heading, 1 } }, { :abs_lt, 5 }, :now }
+              {{:sensor, :infrared, {:beacon_heading, 1}}, {:abs_lt, 5}, :now}
             ],
             precision: :medium,
             fulfill_when: [:puppy_smells_food],
-            fulfill_by: { :doing, [turn_toward({ :sensor, :infrared, { :beacon_heading, 1 } })] }
+            fulfill_by: {:doing, [turn_toward({:sensor, :infrared, {:beacon_heading, 1}})]}
           ),
           prediction(
             name: :puppy_approaches_food,
-            perceived: [{ { :sensor, :infrared, { :beacon_distance, 1 } }, :descending, { :past_secs, 2 } }],
+            perceived: [
+              {{:sensor, :infrared, {:beacon_distance, 1}}, :descending, {:past_secs, 2}}
+            ],
             precision: :medium,
             fulfill_when: [:puppy_faces_food],
-            fulfill_by: { :doing, [approach({ :sensor, :infrared, { :beacon_distance, 1 } })] }
+            fulfill_by: {:doing, [approach({:sensor, :infrared, {:beacon_distance, 1}})]}
           )
         ],
         priority: :high
@@ -233,22 +235,21 @@ defmodule Andy.Puppy.Profiling do
         predictions: [
           prediction(
             name: :puppy_is_moving,
-            actuated: [{ :go_forward, { :times, 10 }, { :past_secs, 10 } }],
+            actuated: [{:go_forward, {:times, 10}, {:past_secs, 10}}],
             precision: :medium,
             fulfill_when: [],
             fulfill_by:
-              { :doing,
-              %{
-                pick: 2,
-                from: [turn_right(), turn_left(), forward(), backoff()]
-              } },
+              {:doing,
+               %{
+                 pick: 2,
+                 from: [turn_right(), turn_left(), forward(), backoff()]
+               }},
             time_sensitive?: true
-          ),
+          )
         ],
         priority: :low
       )
     ]
-
   end
 
   ### PRIVATE
@@ -256,6 +257,7 @@ defmodule Andy.Puppy.Profiling do
   defp forward(speed \\ :normal) do
     fn ->
       Logger.info("Action forward")
+
       Action.new(
         intent_name: :go_forward,
         intent_value: %{
@@ -269,6 +271,7 @@ defmodule Andy.Puppy.Profiling do
   defp backoff(speed \\ :normal) do
     fn ->
       Logger.info("Action backoff")
+
       Action.new(
         intent_name: :go_backward,
         intent_value: %{
@@ -282,6 +285,7 @@ defmodule Andy.Puppy.Profiling do
   defp turn_right() do
     fn ->
       Logger.info("Action turn")
+
       Action.new(
         intent_name: :turn_right,
         intent_value: 1
@@ -293,6 +297,7 @@ defmodule Andy.Puppy.Profiling do
   defp turn_left() do
     fn ->
       Logger.info("Action turn")
+
       Action.new(
         intent_name: :turn_left,
         intent_value: 1
@@ -301,24 +306,34 @@ defmodule Andy.Puppy.Profiling do
     end
   end
 
-
   defp turn_toward(heading_percept_specs) do
     fn ->
       heading = Memory.recall_value_of_latest_percept(heading_percept_specs) || 0
       direction = if heading < 0, do: :turn_left, else: :turn_right
-      how_much = cond do
-        heading == 0 ->
-          0
-        abs(heading) == 25 -> # don't really know where it is, so don't bother
-          0
-        abs(heading) > 20 ->
-          0.5
-        abs(heading) > 15 ->
-          0.2
-        true ->
-          0.05
-      end
-      Logger.info("Action turn_toward heading #{heading}, direction #{direction} for #{how_much} secs")
+
+      how_much =
+        cond do
+          heading == 0 ->
+            0
+
+          # don't really know where it is, so don't bother
+          abs(heading) == 25 ->
+            0
+
+          abs(heading) > 20 ->
+            0.5
+
+          abs(heading) > 15 ->
+            0.2
+
+          true ->
+            0.05
+        end
+
+      Logger.info(
+        "Action turn_toward heading #{heading}, direction #{direction} for #{how_much} secs"
+      )
+
       Action.new(
         intent_name: direction,
         intent_value: how_much
@@ -328,27 +343,38 @@ defmodule Andy.Puppy.Profiling do
 
   defp approach(distance_percept_specs) do
     fn ->
-      distance = Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
-      speed = cond do
-        # On top of it
-        distance == 0 ->
-          :zero
-        # Don't know how far the beacon is. There might be no beacon at all.
-        distance == 100 ->
-          :zero
-        # A meter or more
-        distance > 50 ->
-          :very_fast
-        distance > 30 ->
-          :fast
-        distance > 20 ->
-          :normal
-        distance > 10 ->
-          :slow
-        true ->
-          :very_slow
-      end
+      distance =
+        Memory.recall_value_of_latest_percept(as_percept_about(distance_percept_specs)) || 0
+
+      speed =
+        cond do
+          # On top of it
+          distance == 0 ->
+            :zero
+
+          # Don't know how far the beacon is. There might be no beacon at all.
+          distance == 100 ->
+            :zero
+
+          # A meter or more
+          distance > 50 ->
+            :very_fast
+
+          distance > 30 ->
+            :fast
+
+          distance > 20 ->
+            :normal
+
+          distance > 10 ->
+            :slow
+
+          true ->
+            :very_slow
+        end
+
       Logger.info("Action approach from distance #{distance} at speed #{speed} for 1 second")
+
       Action.new(
         intent_name: :go_forward,
         intent_value: %{
@@ -362,6 +388,7 @@ defmodule Andy.Puppy.Profiling do
   defp say_once(words) do
     fn ->
       Logger.info("Action say_once #{words}")
+
       Action.new(
         intent_name: :say,
         intent_value: words,
@@ -373,6 +400,7 @@ defmodule Andy.Puppy.Profiling do
   defp say_without_repeating(words) do
     fn ->
       Logger.info("Action say_once #{words}")
+
       Action.new(
         intent_name: :say,
         intent_value: words,
@@ -382,10 +410,10 @@ defmodule Andy.Puppy.Profiling do
     end
   end
 
-
   defp say(words) do
     fn ->
       Logger.info("Action say #{words}")
+
       Action.new(
         intent_name: :say,
         intent_value: words,
@@ -396,8 +424,11 @@ defmodule Andy.Puppy.Profiling do
 
   defp eat(ambient_percept_specs) do
     fn ->
-      ambient_level = Memory.recall_value_of_latest_percept(as_percept_about(ambient_percept_specs)) || 0
+      ambient_level =
+        Memory.recall_value_of_latest_percept(as_percept_about(ambient_percept_specs)) || 0
+
       Logger.info("Action eat in ambient light #{ambient_level}")
+
       Action.new(
         intent_name: :eat,
         intent_value: ambient_level
@@ -425,7 +456,7 @@ defmodule Andy.Puppy.Profiling do
   #    end
   #  end
 
-#  defp turn() do
+  #  defp turn() do
   #    fn ->
   #      Logger.info("Action turn")
   #      Action.new(
@@ -468,5 +499,4 @@ defmodule Andy.Puppy.Profiling do
   defp prediction(keywords) do
     Prediction.new(keywords)
   end
-
 end

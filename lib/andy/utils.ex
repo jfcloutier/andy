@@ -1,5 +1,4 @@
 defmodule Andy.Utils do
-
   @moduledoc "Utility functions"
 
   alias Andy.PubSub
@@ -9,18 +8,17 @@ defmodule Andy.Utils do
   @brickpi_port_pattern ~r/spi0.1:(.+)/
 
   def listen_to_events(pid, module) do
-    spawn(
-      fn ->
-        Process.sleep(1000)
-        Agent.cast(
-          pid,
-          fn (state) ->
-            PubSub.register(module)
-            state
-          end
-        )
-      end
-    )
+    spawn(fn ->
+      Process.sleep(1000)
+
+      Agent.cast(
+        pid,
+        fn state ->
+          PubSub.register(module)
+          state
+        end
+      )
+    end)
   end
 
   def timeout() do
@@ -84,7 +82,8 @@ defmodule Andy.Utils do
 
   @doc "Convert a duration to msecs"
   def convert_to_msecs(nil), do: nil
-  def convert_to_msecs({ count, unit }) do
+
+  def convert_to_msecs({count, unit}) do
     case unit do
       :msecs -> count
       :secs -> count * 1000
@@ -143,7 +142,7 @@ defmodule Andy.Utils do
     percept_specs
   end
 
-  def as_percept_about({ class, type, sense } = _percept_specs) do
+  def as_percept_about({class, type, sense} = _percept_specs) do
     %{
       class: class,
       port: :any,
@@ -152,7 +151,7 @@ defmodule Andy.Utils do
     }
   end
 
-  def as_percept_about({ class, port, type, sense } = _percept_specs) do
+  def as_percept_about({class, port, type, sense} = _percept_specs) do
     %{
       class: class,
       port: port,
@@ -167,6 +166,7 @@ defmodule Andy.Utils do
         case Regex.run(@brickpi_port_pattern, port_name) do
           nil ->
             port_name
+
           [_, name] ->
             case name do
               "MA" -> "outA"
@@ -179,6 +179,7 @@ defmodule Andy.Utils do
               "S4" -> "in4"
             end
         end
+
       _other ->
         port_name
     end
@@ -188,19 +189,19 @@ defmodule Andy.Utils do
 
   defp extract_plain_env_arguments() do
     :init.get_plain_arguments()
-    |> Enum.map(&("#{&1}"))
-    |> Enum.filter(&(Regex.match?(~r/\w+=\w+/, &1)))
+    |> Enum.map(&"#{&1}")
+    |> Enum.filter(&Regex.match?(~r/\w+=\w+/, &1))
     |> Enum.reduce(
-         %{ },
-         fn (arg, acc) ->
-           case Regex.named_captures(~r/(?<var>\w+)=(?<val>\w+)/, arg) do
-             %{ "var" => var, "val" => val } ->
-               Map.put(acc, var, val)
-             nil ->
-               acc
-           end
-         end
-       )
-  end
+      %{},
+      fn arg, acc ->
+        case Regex.named_captures(~r/(?<var>\w+)=(?<val>\w+)/, arg) do
+          %{"var" => var, "val" => val} ->
+            Map.put(acc, var, val)
 
+          nil ->
+            acc
+        end
+      end
+    )
+  end
 end

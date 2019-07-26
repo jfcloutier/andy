@@ -3,14 +3,10 @@ defmodule Andy.MockRover.GyroSensor do
 
   @behaviour Andy.Sensing
 
-	alias Andy.Device
+  alias Andy.Device
 
-	def new() do
-    %Device{mod: __MODULE__,
-						class: :sensor,
-						path: "/mock/gyro_sensor",
-						type: :gyro,
-						mock: true}
+  def new() do
+    %Device{mod: __MODULE__, class: :sensor, path: "/mock/gyro_sensor", type: :gyro, mock: true}
   end
 
   ### Sensing
@@ -25,14 +21,14 @@ defmodule Andy.MockRover.GyroSensor do
       :rotational_speed -> rotational_speed(sensor)
     end
   end
-  
-   def nudge(_sensor, sense, value, previous_value) do
+
+  def nudge(_sensor, sense, value, previous_value) do
     case sense do
       :angle -> nudge_angle(value, previous_value)
       :rotational_speed -> nudge_rotational_speed(value, previous_value)
     end
   end
-  
+
   def sensitivity(_sensor, _sense) do
     nil
   end
@@ -47,22 +43,19 @@ defmodule Andy.MockRover.GyroSensor do
   def nudge_angle(value, previous_value) do
     case previous_value do
       nil -> 32767 - :rand.uniform(32767 * 2)
-      _ -> value + previous_value |> max(-32767) |> min(32767)
+      _ -> (value + previous_value) |> max(-32767) |> min(32767)
     end
   end
 
   def rotational_speed(sensor) do
-   value = 20 - :rand.uniform(40)
+    value = 20 - :rand.uniform(40)
     {value, sensor}
   end
 
   def nudge_rotational_speed(value, previous_value) do
     case previous_value do
       nil -> 440 - :rand.uniform(440 * 2)
-      _ -> value + previous_value |> max(-440) |> min(440)
+      _ -> (value + previous_value) |> max(-440) |> min(440)
     end
   end
-
 end
-
-  

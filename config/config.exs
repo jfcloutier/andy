@@ -5,7 +5,6 @@
 # is restricted to this project.
 use Mix.Config
 
-
 # Replace the default Elixir logger
 # config :logger, backends: [RingLogger]
 config :logger,
@@ -35,33 +34,30 @@ config :andy,
          adapter: Phoenix.PubSub.PG2
        ]
 
-config :andy, :ttl,
-       percept: 10_000
-
+config :andy, :ttl, percept: 10_000
 
 config :andy,
-       platforms: %{
-         "mock_rover" => Andy.MockRover.Platform,
-         "rover" => Andy.Rover.Platform,
-         "hub" => Andy.Hub.Platform
-       },
-       profiles: %{
-         "puppy" => Andy.Puppy.Profile,
-         "mommy" => Andy.Mommy.Profile
-       },
-       tick_interval: 1500,
-       max_percept_age: 1500,
-       max_intent_age: 1500,
-       strong_intent_factor: 3,
-       max_beacon_channels: 3,
-#       very_fast_rps: 3,
-#       fast_rps: 2,
-#       normal_rps: 1,
-#       slow_rps: 0.5,
-#       very_slow_rps: 0.3
-       very_fast_rps: 1.5,
-       fast_rps: 1,
-       normal_rps: 0.5,
-       slow_rps: 0.25,
-       very_slow_rps: 0.15
-
+  platforms: %{
+    "mock_rover" => Andy.MockRover.Platform,
+    "rover" => Andy.Rover.Platform,
+    "hub" => Andy.Hub.Platform
+  },
+  profiles: %{
+    "puppy" => Andy.Puppy.Profile,
+    "mommy" => Andy.Mommy.Profile
+  },
+  tick_interval: 1500,
+  max_percept_age: 1500,
+  max_intent_age: 1500,
+  strong_intent_factor: 3,
+  max_beacon_channels: 3,
+  #       very_fast_rps: 3,
+  #       fast_rps: 2,
+  #       normal_rps: 1,
+  #       slow_rps: 0.5,
+  #       very_slow_rps: 0.3
+  very_fast_rps: 1.5,
+  fast_rps: 1,
+  normal_rps: 0.5,
+  slow_rps: 0.25,
+  very_slow_rps: 0.15

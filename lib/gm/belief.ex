@@ -3,28 +3,40 @@ defmodule Andy.GM.Belief do
 
   alias __MODULE__
 
-  defstruct level: 0, # from 0 to 1, how much the GM that receives them as perceptions believes the named conjecture
-              # either :prediction if prediction, :detection if detection, or the name of a GM
+  defstruct id: nil,
+            # either :prediction, :detection or :assertion
+            type: nil,
+            # GM name or detector name
             source: nil,
-              # conjecture name if from a GM, else detector name is from a detector
+            # conjecture name if from a GM, else detector name is from a detector
             name: nil,
-                # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
+            # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
             about: nil,
-              # conjecture_parameter_name => value
+            # conjecture_parameter_name => value
             parameter_values: %{},
-              # How far the parameter values stray from predictions by super-GM(s)
-            prediction_error: 0 # Is this belief contrary to prediction? 1 if maximally contrarian.
+            # How far the parameter values stray from predictions by super-GM(s)
+            # Is this belief contrary to prediction? 1 if maximally contrarian.
+            # TODO - make PredictionError a struct with size and predictor
+            prediction_error: nil
+
+  def new(
+        type: type,
+        source: source,
+        name: name,
+        about: about,
+        parameter_value: parameter_values
+      ) do
+    %Belief{id: UUID.uuid4()}
+  end
 
   @doc """
-    Whether a belief overrides another: when the subject is the same (name and about)
-    and 1- they from the same source or 2- when the other is a prediction (belief "from sub-believer"
-    wins over belief "from prediction")
+    Whether a belief overrides prediction
   """
-  def overrides?(
-        %Belief{source: source} = belief,
-        %Belief{source: other_source} = other_belief
-      ) when source == other_source or other_source == :prediction do
-    about_same_thing?(belief, other_belief)
+  def overrides_prediction?(
+        %Belief{type: type} = belief,
+        %Belief{type: :prediction} = other_belief
+      ) when type in [:detection, :assertion] do
+      about_same_thing?(belief, other_belief)
   end
 
   def overrides?(_belief, _other) do
@@ -45,10 +57,8 @@ defmodule Andy.GM.Belief do
     false
   end
 
-
   @doc "Is this belief from a generative model?"
   def from_generative_model?(%Belief{source: source}) do
     source not in [:detector, :prediction]
   end
-
 end

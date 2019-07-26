@@ -1,5 +1,4 @@
 defmodule Andy.Fulfill do
-
   @moduledoc "A fullfilment option to attempt by a validator"
 
   import Andy.Utils, only: [time_secs: 0]
@@ -17,5 +16,4 @@ defmodule Andy.Fulfill do
       as_of: time_secs()
     }
   end
-
 end

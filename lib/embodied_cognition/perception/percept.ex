@@ -4,26 +4,27 @@ defmodule Andy.Percept do
   import Andy.Utils
 
   defstruct id: nil,
-              # What is being perceived - %{class: class, port: port, type: type, sense: sense}
+            # What is being perceived - %{class: class, port: port, type: type, sense: sense}
             about: nil,
-              # The measurement/value of the perception (a number, atom etc.)
+            # The measurement/value of the perception (a number, atom etc.)
             value: nil,
-              # When the perception happened
+            # When the perception happened
             since: nil,
-              # Time at which the perception is still unchanged
+            # Time at which the perception is still unchanged
             until: nil,
-              # The source of the perception (a detector)
+            # The source of the perception (a detector)
             source: nil,
-              # How long the percept is to be retained in memory
+            # How long the percept is to be retained in memory
             ttl: nil,
-              # The precision of the detector or perceptor. Nil if perfect resolution.
+            # The precision of the detector or perceptor. Nil if perfect resolution.
             resolution: nil,
-              # If true, the percept will not be memorized
+            # If true, the percept will not be memorized
             transient: false
 
   @doc "Create a new percept with sense and value set"
   def new(about: about, value: value) do
     msecs = now()
+
     %Andy.Percept{
       id: UUID.uuid4(),
       about: about,
@@ -36,6 +37,7 @@ defmodule Andy.Percept do
   @doc "Create a new percept with sense, value and source set"
   def new(about: about, value: value, source: source) do
     msecs = now()
+
     %Andy.Percept{
       id: UUID.uuid4(),
       about: about,
@@ -49,6 +51,7 @@ defmodule Andy.Percept do
   @doc "Create a new percept with sense, value and source set"
   def new(about: about, value: value, source: source, ttl: ttl) do
     msecs = now()
+
     %Andy.Percept{
       id: UUID.uuid4(),
       about: about,
@@ -63,6 +66,7 @@ defmodule Andy.Percept do
   @doc "Create a new transient percept with sense, value set"
   def new_transient(about: about, value: value) do
     msecs = now()
+
     %Andy.Percept{
       id: UUID.uuid4(),
       about: about,
@@ -75,14 +79,14 @@ defmodule Andy.Percept do
 
   @doc "Set the source"
   def source(percept, source) do
-    %Andy.Percept{ percept | source: source }
+    %Andy.Percept{percept | source: source}
   end
 
   @doc "Are two percepts essentially the same (same sense, value and source)?"
   def same?(percept1, percept2) do
-    percept1.about == percept2.about
-    and percept1.value == percept2.value
-    and same_source?(percept1.source, percept2.source)
+    percept1.about == percept2.about and
+      percept1.value == percept2.value and
+      same_source?(percept1.source, percept2.source)
   end
 
   @doc "The age of the percept"
@@ -108,13 +112,16 @@ defmodule Andy.Percept do
   def about_match?(about1, about2) do
     # Both have the same keys
     keys = Map.keys(about1)
+
     Enum.all?(
       keys,
-      fn (key) -> val1 = Map.fetch!(about1, key)
-                  val2 = Map.fetch!(about2, key)
-                  val1 in [:any, nil]
-                  or val2 in [:any, nil]
-                  or val1 == val2
+      fn key ->
+        val1 = Map.fetch!(about1, key)
+        val2 = Map.fetch!(about2, key)
+
+        val1 in [:any, nil] or
+          val2 in [:any, nil] or
+          val1 == val2
       end
     )
   end
@@ -130,5 +137,4 @@ defmodule Andy.Percept do
   end
 
   # about, since and value are required for the percept to be memorable
-
 end

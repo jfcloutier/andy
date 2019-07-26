@@ -5,7 +5,8 @@ defmodule Andy.MockRover.UltrasonicSensor do
 
   alias Andy.Device
 
-  @max_distance 100 # actual max is 2550 cms
+  # actual max is 2550 cms
+  @max_distance 100
   @nudge_distance 10
 
   def new() do
@@ -40,7 +41,7 @@ defmodule Andy.MockRover.UltrasonicSensor do
 
   defp distance_cm(sensor) do
     value = Enum.random(0..@max_distance)
-    { value, sensor }
+    {value, sensor}
   end
 
   defp nudge_distance_cm(value, previous_value) do
@@ -49,10 +50,10 @@ defmodule Andy.MockRover.UltrasonicSensor do
     else
       direction = if value - previous_value >= 0, do: 1, else: -1
       nudge = Enum.random(0..@nudge_distance)
-      previous_value + direction * nudge
+
+      (previous_value + direction * nudge)
       |> max(0)
       |> min(@max_distance)
     end
   end
-
 end

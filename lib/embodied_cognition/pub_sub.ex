@@ -8,20 +8,22 @@ defmodule Andy.PubSub do
   import Andy.Utils
 
   @registry_name :registry
-  @topic :pp # single topic for all subscribers
+  # single topic for all subscribers
+  @topic :pp
   @faint_duration 2500
 
   @doc "Child spec as supervised worker"
   def child_spec(_) do
     %{
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [] }
+      start: {__MODULE__, :start_link, []}
     }
   end
 
   @doc "Start the registry"
   def start_link() do
     Logger.info("Starting #{__MODULE__}")
+
     Registry.start_link(
       keys: :duplicate,
       name: @registry_name,
@@ -36,7 +38,7 @@ defmodule Andy.PubSub do
 
   @doc "Register a subscriber"
   def register(module) do
-    Logger.info("Registering process #{inspect self()} on module #{module} to pubsub")
+    Logger.info("Registering process #{inspect(self())} on module #{module} to pubsub")
     Registry.register(@registry_name, @topic, module)
   end
 
@@ -53,93 +55,94 @@ defmodule Andy.PubSub do
 
   @doc "Notify of a new percept"
   def notify_perceived(percept) do
-    notify({ :perceived, percept })
+    notify({:perceived, percept})
   end
 
   @doc "Notify of a new intent"
   def notify_intended(intent) do
-    notify({ :intended, intent })
+    notify({:intended, intent})
   end
 
   @doc "Notify of an intent actuated"
   def notify_actuated(intent) do
-    notify({ :actuated, intent })
+    notify({:actuated, intent})
   end
 
   @doc "Notify of a belief"
   def notify_believed(belief) do
-    notify({ :believed, belief })
+    notify({:believed, belief})
   end
 
   @doc "Notify of a percept memorized"
   def notify_percept_memorized(percept) do
-    notify({ :percept_memorized, percept })
+    notify({:percept_memorized, percept})
   end
 
   @doc "Notify of an intent memorized"
   def notify_intent_memorized(intent) do
-    notify({ :intent_memorized, intent })
+    notify({:intent_memorized, intent})
   end
 
   @doc "Notify of a belief memorized"
   def notify_belief_memorized(belief) do
-    notify({ :belief_memorized, belief })
+    notify({:belief_memorized, belief})
   end
 
   @doc "Notify of a prediction error"
   def notify_prediction_error(prediction_error) do
-    notify({ :prediction_error, prediction_error })
+    notify({:prediction_error, prediction_error})
   end
 
   @doc "Notify of a prediction fulfilled"
   def notify_prediction_fulfilled(prediction_fulfilled) do
-    notify({ :prediction_fulfilled, prediction_fulfilled })
+    notify({:prediction_fulfilled, prediction_fulfilled})
   end
 
   @doc "Notify that a validator is paying attention to some detection"
   def notify_attention_on(detector_specs, validator_name, precision) do
-    notify({ :attention_on, detector_specs, validator_name, precision })
+    notify({:attention_on, detector_specs, validator_name, precision})
   end
 
   @doc "Notify that a validator is no longer paying attention"
   def notify_attention_off(validator_pid) do
-    notify({ :attention_off, validator_pid })
+    notify({:attention_off, validator_pid})
   end
 
   @doc "Notify that a validator is to use a given fulfillment"
   def notify_fulfill(fulfill) do
-    notify({ :fulfill, fulfill })
+    notify({:fulfill, fulfill})
   end
 
   @doc "Notify that a conjecture was believed or not as predicted"
   def notify_believed_as_predicted(conjecture_name, prediction_name, believed?) do
-    notify({ :believed_as_predicted, conjecture_name, prediction_name, believed? })
+    notify({:believed_as_predicted, conjecture_name, prediction_name, believed?})
   end
 
   @doc "Notify that a believer started on a conjecture"
   def notify_believer_started(conjecture_name) do
-    notify({ :believer_started, conjecture_name })
+    notify({:believer_started, conjecture_name})
   end
 
   @doc "Notify that a believer terminated on a conjecture"
   def notify_believer_terminated(conjecture_name) do
-    notify({ :believer_terminated, conjecture_name })
+    notify({:believer_terminated, conjecture_name})
   end
 
   @doc "Notify that a conjecture has been deprioritized"
   def notify_conjecture_deprioritized(conjecture_name, priority) do
-    notify({ :conjecture_deprioritized, conjecture_name, priority })
+    notify({:conjecture_deprioritized, conjecture_name, priority})
   end
 
   @doc "Found the id channel of another member of the community"
   def notify_id_channel(id_channel, community_name) do
-    notify({ :id_channel, id_channel, community_name })
+    notify({:id_channel, id_channel, community_name})
   end
 
   @doc "A component is overwhelmed"
   def notify_overwhelmed(component_type, name) do
     Logger.warn("OVERWHELMED - #{component_type}")
-    notify({ :overwhelmed, component_type, name })
+    notify({:overwhelmed, component_type, name})
+
     if not overwhelmed?() and not paused?() do
       Logger.warn("FAINTING")
       notify(:faint)
@@ -148,7 +151,8 @@ defmodule Andy.PubSub do
     else
       :ok
     end
-    notify({ :notify_overwhelmed, component_type, name })
+
+    notify({:notify_overwhelmed, component_type, name})
   end
 
   def notify_revive() do
@@ -157,15 +161,14 @@ defmodule Andy.PubSub do
     set_overwhelmed(false)
   end
 
-
   @doc "Notified of new runtime stats"
   def notify_runtime_stats(stats) do
-    notify({ :notify_runtime_stats, stats })
+    notify({:notify_runtime_stats, stats})
   end
 
   @doc "Notified of a sense polling request"
   def notify_poll(sensing_device, sense) do
-    notify({ :poll, sensing_device, sense })
+    notify({:poll, sensing_device, sense})
   end
 
   @doc "The registry name"
@@ -175,13 +178,13 @@ defmodule Andy.PubSub do
 
   @doc "Is the robot paused?"
   def paused?() do
-    { :ok, paused? } = Registry.meta(@registry_name, :paused)
+    {:ok, paused?} = Registry.meta(@registry_name, :paused)
     paused? == true
   end
 
   @doc "Is the robot overwhelmed?"
   def overwhelmed?() do
-    { :ok, overwhelmed? } = Registry.meta(@registry_name, :overwhelmed)
+    {:ok, overwhelmed?} = Registry.meta(@registry_name, :overwhelmed)
     overwhelmed? == true
   end
 
@@ -201,25 +204,26 @@ defmodule Andy.PubSub do
 
   # Dispatch the handling of an event to all subscribing embodied cognition agents
   defp notify(event) do
-    Logger.info("Notify #{inspect event}")
-    spawn(
-      fn ->
-        Registry.dispatch(
-          @registry_name,
-          @topic,
-          fn (subscribers) ->
-            for { pid, module } <- subscribers,
-                do: Agent.cast(
+    Logger.info("Notify #{inspect(event)}")
+
+    spawn(fn ->
+      Registry.dispatch(
+        @registry_name,
+        @topic,
+        fn subscribers ->
+          for {pid, module} <- subscribers,
+              do:
+                Agent.cast(
                   pid,
-                  fn (state) ->
+                  fn state ->
                     # Logger.debug("SENDING event #{inspect event} to #{module} at #{inspect pid}")
                     apply(module, :handle_event, [event, state])
                   end
                 )
-          end
-        )
-      end
-    )
+        end
+      )
+    end)
+
     :ok
   end
 
@@ -233,11 +237,11 @@ defmodule Andy.PubSub do
 
   defp set_alarm_clock(msecs) do
     spawn(
-      fn () -> # make sure to revive
+      # make sure to revive
+      fn ->
         :timer.sleep(msecs)
         notify_revive()
       end
     )
   end
-
 end

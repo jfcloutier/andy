@@ -3,7 +3,7 @@ defmodule Andy.Rover.Actuation do
 
   require Logger
 
-  alias Andy.{ ActuatorConfig, MotorSpec, LEDSpec, SoundSpec, CommSpec, Activation, Script }
+  alias Andy.{ActuatorConfig, MotorSpec, LEDSpec, SoundSpec, CommSpec, Activation, Script}
   import Andy.Utils
 
   @doc "Give the configurations of all Rover actuators"
@@ -12,11 +12,13 @@ defmodule Andy.Rover.Actuation do
       ActuatorConfig.new(
         name: :locomotion,
         type: :motor,
-        specs: [# to find and name motors from specs
-          %MotorSpec{ name: :left_wheel, port: "outA" },
-          %MotorSpec{ name: :right_wheel, port: "outB" }
+        # to find and name motors from specs
+        specs: [
+          %MotorSpec{name: :left_wheel, port: "outA"},
+          %MotorSpec{name: :right_wheel, port: "outB"}
         ],
-        activations: [# scripted actions to be taken upon receiving intents
+        # scripted actions to be taken upon receiving intents
+        activations: [
           %Activation{
             intent: :go_forward,
             script: going_forward()
@@ -43,7 +45,7 @@ defmodule Andy.Rover.Actuation do
         name: :manipulation,
         type: :motor,
         specs: [
-          %MotorSpec{ name: :mouth, port: "outC" }
+          %MotorSpec{name: :mouth, port: "outC"}
         ],
         activations: [
           %Activation{
@@ -56,7 +58,7 @@ defmodule Andy.Rover.Actuation do
         name: :leds,
         type: :led,
         specs: [
-          %LEDSpec{ name: :lb, position: :left, color: :blue }
+          %LEDSpec{name: :lb, position: :left, color: :blue}
         ],
         activations: [
           %Activation{
@@ -90,18 +92,21 @@ defmodule Andy.Rover.Actuation do
         name: :communicators,
         type: :comm,
         specs: [
-          %CommSpec{ name: :local, type: :pg2 },
-          %CommSpec{ name: :remote, type: :rest }
+          %CommSpec{name: :local, type: :pg2},
+          %CommSpec{name: :remote, type: :rest}
         ],
         activations: [
           %Activation{
-            intent: :broadcast, # intent value = %{info: info}
+            # intent value = %{info: info}
+            intent: :broadcast,
             script: broadcast()
           },
           %Activation{
             intent: :report,
             script: report()
-          }  # intent value = %{info: info}
+          }
+
+          # intent value = %{info: info}
         ]
       )
     ]
@@ -110,14 +115,16 @@ defmodule Andy.Rover.Actuation do
   # locomotion
 
   defp going_forward() do
-    fn (intent, motors) ->
+    fn intent, motors ->
       rps_speed = speed(intent.value.speed)
       how_long = round(intent.value.time * 1000)
+
       Script.new(:going_forward, motors)
       |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed])
       |> Script.add_step(:all, :run_for, [how_long])
-      #			|> Script.add_wait(how_long)
+
+      # 			|> Script.add_wait(how_long)
     end
   end
 
@@ -133,9 +140,10 @@ defmodule Andy.Rover.Actuation do
   end
 
   defp going_backward() do
-    fn (intent, motors) ->
+    fn intent, motors ->
       rps_speed = speed(intent.value.speed)
       how_long = round(intent.value.time * 1000)
+
       Script.new(:going_backward, motors)
       |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed * -1])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed * -1])
@@ -144,8 +152,9 @@ defmodule Andy.Rover.Actuation do
   end
 
   defp turning_right() do
-    fn (intent, motors) ->
+    fn intent, motors ->
       how_long = round(intent.value * 1000)
+
       Script.new(:turning_right, motors)
       |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5])
       |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5])
@@ -154,8 +163,9 @@ defmodule Andy.Rover.Actuation do
   end
 
   defp turning_left() do
-    fn (intent, motors) ->
+    fn intent, motors ->
       how_long = round(intent.value * 1000)
+
       Script.new(:turning_left, motors)
       |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
@@ -164,7 +174,7 @@ defmodule Andy.Rover.Actuation do
   end
 
   defp stopping() do
-    fn (_intent, motors) ->
+    fn _intent, motors ->
       Script.new(:stopping, motors)
       |> Script.add_step(:all, :coast)
       |> Script.add_step(:all, :reset)
@@ -174,7 +184,7 @@ defmodule Andy.Rover.Actuation do
   # manipulation
 
   defp eating() do
-    fn (_intent, motors) ->
+    fn _intent, motors ->
       Script.new(:eating, motors)
       |> Script.add_step(:mouth, :set_speed, [:rps, 1])
       |> Script.add_step(:mouth, :run_for, [1000])
@@ -184,42 +194,42 @@ defmodule Andy.Rover.Actuation do
   # light
 
   defp blue_lights() do
-    fn (intent, leds) ->
-      value = case intent.value do
-        :on -> 255
-        :off -> 0
-      end
+    fn intent, leds ->
+      value =
+        case intent.value do
+          :on -> 255
+          :off -> 0
+        end
+
       Script.new(:blue_lights, leds)
       |> Script.add_step(:lb, :set_brightness, [value])
     end
   end
 
-
   # Sounds
 
   defp say() do
-    fn (intent, sound_players) ->
+    fn intent, sound_players ->
       Script.new(:say, sound_players)
       |> Script.add_step(:loud_speech, :speak, [intent.value])
     end
   end
 
-
   # communications
 
   defp broadcast() do
-    fn (intent, communicators) ->
+    fn intent, communicators ->
       Script.new(:broadcast, communicators)
       |> Script.add_step(:local, :broadcast, [intent.value])
     end
   end
 
   defp report() do
-    fn (intent, communicators) ->
+    fn intent, communicators ->
       url = Andy.parent_url()
+
       Script.new(:report, communicators)
       |> Script.add_step(:remote, :send_percept, [url, :report, intent.value])
     end
   end
-
 end

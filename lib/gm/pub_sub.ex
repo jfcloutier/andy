@@ -8,7 +8,8 @@ defmodule Andy.GM.PubSub do
   import Andy.Utils
 
   @registry_name :registry
-  @topic :pp # single topic for all subscribers
+  # single topic for all subscribers
+  @topic :pp
 
   @doc "Child spec as supervised worker"
   def child_spec(_) do
@@ -21,6 +22,7 @@ defmodule Andy.GM.PubSub do
   @doc "Start the registry"
   def start_link() do
     Logger.info("Starting #{__MODULE__}")
+
     Registry.start_link(
       keys: :duplicate,
       name: @registry_name,
@@ -30,18 +32,16 @@ defmodule Andy.GM.PubSub do
 
   @doc "Register a subscriber"
   def register(module) do
-    Logger.info("Registering process #{inspect self()} on module #{module} to pubsub")
+    Logger.info("Registering process #{inspect(self())} on module #{module} to pubsub")
     Registry.register(@registry_name, @topic, module)
   end
 
   @doc "Notify after a delay"
   def notify_after(event, delay) do
-    spawn(
-      fn ->
-        Process.sleep(delay)
-        notify(event)
-      end
-    )
+    spawn(fn ->
+      Process.sleep(delay)
+      notify(event)
+    end)
   end
 
   @doc "Notify of a shutdown request"
@@ -70,7 +70,6 @@ defmodule Andy.GM.PubSub do
     notify({:believed, belief})
   end
 
-
   @doc "The registry name"
   def registry_name() do
     @registry_name
@@ -84,26 +83,26 @@ defmodule Andy.GM.PubSub do
 
   # Dispatch the handling of an event to all subscribing embodied cognition agents
   def notify(event) do
-    Logger.info("Notify #{inspect event}")
-    spawn(
-      fn ->
-        Registry.dispatch(
-          @registry_name,
-          @topic,
-          fn (subscribers) ->
-            for {pid, module} <- subscribers,
-                do: Agent.cast(
+    Logger.info("Notify #{inspect(event)}")
+
+    spawn(fn ->
+      Registry.dispatch(
+        @registry_name,
+        @topic,
+        fn subscribers ->
+          for {pid, module} <- subscribers,
+              do:
+                Agent.cast(
                   pid,
-                  fn (state) ->
+                  fn state ->
                     # Logger.debug("SENDING event #{inspect event} to #{module} at #{inspect pid}")
                     apply(module, :handle_event, [event, state])
                   end
                 )
-          end
-        )
-      end
-    )
+        end
+      )
+    end)
+
     :ok
   end
-
 end

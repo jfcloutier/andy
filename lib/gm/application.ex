@@ -5,10 +5,9 @@ defmodule Andy.GM.Application do
 
   @max_waits 20
 
-
   use Application
   require Logger
-  alias Andy.GM.{ EmbodiedCognitionSupervisor}
+  alias Andy.GM.{EmbodiedCognitionSupervisor}
   alias Andy.Speaker
   import Supervisor.Spec
 
@@ -16,14 +15,17 @@ defmodule Andy.GM.Application do
     Logger.info("Starting #{__MODULE__}")
     Logger.info("SYSTEM is #{Andy.system()}")
     Logger.info("PLATFORM is #{Andy.platform()}")
-    Logger.info("PROFILE is #{Andy.profile()}") # TODO - point to GM graph
+    # TODO - point to GM graph
+    Logger.info("PROFILE is #{Andy.profile()}")
     Andy.start_platform()
     wait_for_platform_ready(0)
+
     children = [
       supervisor(AndyWeb.Endpoint, []),
       supervisor(EmbodiedCognitionSupervisor, []),
       Speaker
     ]
+
     opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(children, opts)
     go()
@@ -45,12 +47,13 @@ defmodule Andy.GM.Application do
 
   defp wait_for_platform_ready(n) do
     if Andy.platform_ready?() do
-      Process.sleep(1000) # TODO - necessary?
+      # TODO - necessary?
+      Process.sleep(1000)
       Logger.info("Platform ready!")
       :ok
     else
       if n >= @max_waits do
-        { :error, :platform_not_ready }
+        {:error, :platform_not_ready}
       else
         Logger.info("Platform not ready")
         Process.sleep(1_000)
@@ -58,5 +61,4 @@ defmodule Andy.GM.Application do
       end
     end
   end
-
 end

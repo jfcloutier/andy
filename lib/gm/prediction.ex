@@ -10,11 +10,14 @@ defmodule Andy.GM.Prediction do
   that would generate the predicted beliefs (when there is no clear winner between competing conjectures).
   """
 
-  defstruct name: nil, # the kind of predicted belief; a conjecture or detector name
+  # The name of the GM which is the source of the prediction;
+  defstruct source: nil,
+              #  a conjecture or detector name
+            name: nil,
               # what the predicted belief is about, e.g. "robot1"
             about: nil,
               # {name, about} of a belief
-            parameter_sub_domains: %{
-            } # parameter_name => domain - the expected range of values for the predicted belief
-end
+            parameter_sub_domains: %{}
 
+  # parameter_name => domain - the expected range of values for the predicted belief
+end

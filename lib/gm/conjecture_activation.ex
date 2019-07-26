@@ -7,12 +7,12 @@ defmodule ConjectureActivation do
   alias __MODULE__
 
   defstruct conjecture_name: nil,
-              # e.g. "robot1" vs "robot2"; two conjecture activations can be the same kind of conjecture
-              # but about two different subjects
+            # e.g. "robot1" vs "robot2"; two conjecture activations can be the same kind of conjecture
+            # but about two different subjects
             about: nil,
-              # the values the conjecture's parameters are expected to have given what a GM knows
+            # the values the conjecture's parameters are expected to have given what a GM knows
             param_domains: %{},
-              # whether the conjecture activation is a goal to be achieved
+            # whether the conjecture activation is a goal to be achieved
             goal?: false
 
   @doc
@@ -21,6 +21,7 @@ defmodule ConjectureActivation do
   they are from the same conjecture and are about the same object,
   or they are about the same object and from mutually exclusive conjectures
   """
+
   def mutually_exclusive?(
         %ConjectureActivation{conjecture_name: conjecture_name, about: about},
         %ConjectureActivation{conjecture_name: conjecture_name, about: about},
@@ -44,5 +45,4 @@ defmodule ConjectureActivation do
       ) do
     false
   end
-
 end

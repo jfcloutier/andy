@@ -1,7 +1,6 @@
 defmodule Andy.Mommy.Profiling do
-
   def conjectures() do
-    [] # TODO
+    # TODO
+    []
   end
-
 end

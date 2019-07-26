@@ -13,7 +13,7 @@ defmodule Andy.BrickPi.LegoSound do
   @doc "Get the available sound player devices"
   def sound_players() do
     [:speech]
-    |> Enum.map(&(init_sound_player("#{&1}", "#{@sys_path}/#{&1}")))
+    |> Enum.map(&init_sound_player("#{&1}", "#{@sys_path}/#{&1}"))
   end
 
   @doc "Find a sound player device by type"
@@ -78,7 +78,8 @@ defmodule Andy.BrickPi.LegoSound do
   end
 
   defp speed_level(sound_player) do
-    case sound_player.props.speed do # words per minute
+    # words per minute
+    case sound_player.props.speed do
       :slow -> 80
       :normal -> 160
       :fast -> 320
@@ -88,5 +89,4 @@ defmodule Andy.BrickPi.LegoSound do
   defp voice(sound_player) do
     sound_player.props.voice
   end
-
 end

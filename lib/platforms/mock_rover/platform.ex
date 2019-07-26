@@ -1,18 +1,19 @@
 defmodule Andy.MockRover.Platform do
-
   @moduledoc "The mock ROVER platform"
 
   @behaviour Andy.PlatformBehaviour
 
-  alias Andy.MockRover.{ TouchSensor,
-                         ColorSensor,
-                         InfraredSensor,
-                         UltrasonicSensor,
-                         GyroSensor,
-                         Tachomotor,
-                         LED
-    }
-  alias Andy.{ Device, SoundPlayer, BrickPi, Rover }
+  alias Andy.MockRover.{
+    TouchSensor,
+    ColorSensor,
+    InfraredSensor,
+    UltrasonicSensor,
+    GyroSensor,
+    Tachomotor,
+    LED
+  }
+
+  alias Andy.{Device, SoundPlayer, BrickPi, Rover}
   import Andy.Utils, only: [get_andy_env: 1]
   require Logger
 
@@ -20,6 +21,7 @@ defmodule Andy.MockRover.Platform do
 
   def start() do
     Logger.info("Platform mock_rover started")
+
     if get_andy_env("ANDY_SYSTEM") == "brickpi" do
       BrickPi.Brick.start()
     end
@@ -42,7 +44,8 @@ defmodule Andy.MockRover.Platform do
   end
 
   def actuation_logic() do
-    Rover.Actuation.actuator_configs() # Use Rover's actuation
+    # Use Rover's actuation
+    Rover.Actuation.actuator_configs()
   end
 
   def device_mode(_device_type) do
@@ -62,7 +65,8 @@ defmodule Andy.MockRover.Platform do
   end
 
   def device_manager(_type) do
-    __MODULE__ # itself for all mock devices
+    # itself for all mock devices
+    __MODULE__
   end
 
   def sensors() do
@@ -103,34 +107,32 @@ defmodule Andy.MockRover.Platform do
     "en-sc"
   end
 
-  def sensor_read_sense(%Device{ mock: true } = device, sense) do
+  def sensor_read_sense(%Device{mock: true} = device, sense) do
     apply(device.mod, :read, [device, sense])
   end
 
-  def motor_read_sense(%Device{ mock: true } = device, sense) do
+  def motor_read_sense(%Device{mock: true} = device, sense) do
     apply(device.mod, :read, [device, sense])
   end
 
-  def sensor_sensitivity(%Device{ mock: true } = device, sense) do
+  def sensor_sensitivity(%Device{mock: true} = device, sense) do
     apply(device.mod, :sensitivity, [device, sense])
   end
 
-  def motor_sensitivity(%Device{ mock: true } = device, sense) do
+  def motor_sensitivity(%Device{mock: true} = device, sense) do
     apply(device.mod, :sensitivity, [device, sense])
   end
 
   def senses_for_id_channel(channel) do
-    [{ :beacon_heading, channel }, { :beacon_distance, channel }, { :beacon_on, channel }]
+    [{:beacon_heading, channel}, {:beacon_distance, channel}, {:beacon_on, channel}]
   end
 
-  def execute_command(%Device{ mock: true } = device, command, params) do
+  def execute_command(%Device{mock: true} = device, command, params) do
     apply(device.mod, command, [device | params])
   end
 
   @doc "Nudge the value of a sense from a mock device"
-  def nudge(%Device{ mock: true } = device, sense, value, previous_value) do
+  def nudge(%Device{mock: true} = device, sense, value, previous_value) do
     apply(device.mod, :nudge, [device, sense, value, previous_value])
   end
-
-
 end

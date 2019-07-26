@@ -7,10 +7,9 @@ defmodule Andy.ActionsGenerator do
   alias __MODULE__
 
   @type t :: %__MODULE__{
-               pick: non_neg_integer,
-               from: [[Action.t] | fun()]
-             }
-
+          pick: non_neg_integer,
+          from: [[Action.t()] | fun()]
+        }
 
   defstruct pick: 1,
             from: []
@@ -27,12 +26,10 @@ defmodule Andy.ActionsGenerator do
   end
 
   @doc "Count how many actions permutations can be generated"
-  def count_domain(
-        %ActionsGenerator{
-          pick: pick,
-          from: actions
-        }
-      ) do
+  def count_domain(%ActionsGenerator{
+        pick: pick,
+        from: actions
+      }) do
     n = Enum.count(actions)
     div(fac(n), fac(n - pick))
   end
@@ -47,29 +44,27 @@ defmodule Andy.ActionsGenerator do
     # TODO optimize if needed - Recalculates all indices permutations everytime...
     indices_perms = indices_perms(actions_generator)
     indices = Enum.at(indices_perms, index)
-    permutation = Enum.map(indices, &(Enum.at(actions, &1)))
-    Logger.info("Got actions sequence #{inspect permutation} at #{index}")
+    permutation = Enum.map(indices, &Enum.at(actions, &1))
+    Logger.info("Got actions sequence #{inspect(permutation)} at #{index}")
     permutation
   end
 
   #### PRIVATE
 
-  defp permutee_indices(
-         %ActionsGenerator{
-           from: actions
-         }
-       ) do
+  defp permutee_indices(%ActionsGenerator{
+         from: actions
+       }) do
     Enum.reduce(
       1..Enum.count(actions),
       [],
-      fn (i, acc) ->
+      fn i, acc ->
         [i - 1 | acc]
       end
     )
     |> List.flatten()
   end
 
-  defp indices_perms(%ActionsGenerator{ pick: pick } = actions_generator) do
+  defp indices_perms(%ActionsGenerator{pick: pick} = actions_generator) do
     items = permutee_indices(actions_generator)
     shuffle(items, pick)
   end
@@ -87,5 +82,4 @@ defmodule Andy.ActionsGenerator do
   defp fac(n) when n > 0 do
     n * fac(n - 1)
   end
-
 end

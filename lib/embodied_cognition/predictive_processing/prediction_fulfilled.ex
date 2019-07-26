@@ -28,5 +28,4 @@ defmodule Andy.PredictionFulfilled do
       fulfillment_summary: fulfillment_summary
     }
   end
-
 end

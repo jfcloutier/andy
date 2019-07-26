@@ -2,7 +2,7 @@ defmodule Andy.InternalClock do
   @moduledoc "An internal clock"
 
   require Logger
-  alias Andy.{ Percept, PubSub }
+  alias Andy.{Percept, PubSub}
   import Andy.Utils, only: [tick_interval: 0, now: 0, listen_to_events: 2]
   use Agent
 
@@ -11,26 +11,29 @@ defmodule Andy.InternalClock do
   @name __MODULE__
 
   def start_link(_) do
-    { :ok, pid } = Agent.start_link(
-      fn () ->
-        %{ responsive: false, tock: nil, count: 0 }
-      end,
-      [name: @name]
-    )
+    {:ok, pid} =
+      Agent.start_link(
+        fn ->
+          %{responsive: false, tock: nil, count: 0}
+        end,
+        name: @name
+      )
+
     Process.register(spawn(fn -> tick_tock() end), :tick_tock)
     Logger.info("#{@name} started")
     listen_to_events(pid, __MODULE__)
-    { :ok, pid }
+    {:ok, pid}
   end
 
   def tick() do
     Agent.update(
       @name,
-      fn (state) ->
+      fn state ->
         if state.responsive do
           tock = now()
           Logger.info("tick")
           PubSub.notify_tick()
+
           Percept.new_transient(
             about: %{
               class: :sensor,
@@ -44,7 +47,8 @@ defmodule Andy.InternalClock do
             }
           )
           |> PubSub.notify_perceived()
-          %{ state | tock: tock, count: state.count + 1 }
+
+          %{state | tock: tock, count: state.count + 1}
         else
           # Logger.debug(" no tick")
           state
@@ -57,7 +61,7 @@ defmodule Andy.InternalClock do
   def pause() do
     Agent.update(
       @name,
-      fn (state) ->
+      fn state ->
         pause(state)
       end
     )
@@ -66,15 +70,16 @@ defmodule Andy.InternalClock do
   @doc "Resume producing percepts"
   def resume() do
     Logger.info("Resuming clock")
+
     Agent.update(
       @name,
-      fn (state) ->
+      fn state ->
         resume(state)
       end
     )
   end
 
-   ### Cognition Agent Behaviour
+  ### Cognition Agent Behaviour
 
   def handle_event(:faint, state) do
     pause(state)
@@ -87,19 +92,19 @@ defmodule Andy.InternalClock do
   end
 
   def handle_event(_event, state) do
-   # Logger.debug("#{__MODULE__} ignored #{inspect event}")
+    # Logger.debug("#{__MODULE__} ignored #{inspect event}")
     state
   end
 
-   ### Private
+  ### Private
 
   defp pause(state) do
     Logger.info("Pausing clock")
-    %{ state | responsive: false }
+    %{state | responsive: false}
   end
 
   defp resume(state) do
-    %{ state | responsive: true, tock: now() }
+    %{state | responsive: true, tock: now()}
   end
 
   defp tick_tock() do
@@ -107,5 +112,4 @@ defmodule Andy.InternalClock do
     tick()
     tick_tock()
   end
-
 end

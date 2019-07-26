@@ -6,10 +6,9 @@ defmodule Andy.Application do
   @poll_runtime_delay 60_000
   @max_waits 20
 
-
   use Application
   require Logger
-  alias Andy.{ EmbodiedCognitionSupervisor, PubSub, Speaker }
+  alias Andy.{EmbodiedCognitionSupervisor, PubSub, Speaker}
   import Supervisor.Spec
 
   def start(_type, _args) do
@@ -19,11 +18,13 @@ defmodule Andy.Application do
     Logger.info("PROFILE is #{Andy.profile()}")
     Andy.start_platform()
     wait_for_platform_ready(0)
+
     children = [
       supervisor(AndyWeb.Endpoint, []),
       supervisor(EmbodiedCognitionSupervisor, []),
       Speaker
     ]
+
     opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(children, opts)
     go()
@@ -38,8 +39,10 @@ defmodule Andy.Application do
   end
 
   @doc "Return ERTS runtime stats"
-  def runtime_stats() do  # In camelCase for Elm's automatic translation
+  # In camelCase for Elm's automatic translation
+  def runtime_stats() do
     stats = mem_stats(Andy.system())
+
     %{
       ramFree: stats.mem_free,
       ramUsed: stats.mem_used,
@@ -56,7 +59,7 @@ defmodule Andy.Application do
   end
 
   def go() do
-    spawn(fn () -> connect_to_nodes() end)
+    spawn(fn -> connect_to_nodes() end)
     EmbodiedCognitionSupervisor.start_embodied_cognition()
     spawn(fn -> push_runtime_stats() end)
   end
@@ -65,12 +68,13 @@ defmodule Andy.Application do
 
   defp wait_for_platform_ready(n) do
     if Andy.platform_ready?() do
-      Process.sleep(1000) # TODO - necessary?
+      # TODO - necessary?
+      Process.sleep(1000)
       Logger.info("Platform ready!")
       :ok
     else
       if n >= @max_waits do
-        { :error, :platform_not_ready }
+        {:error, :platform_not_ready}
       else
         Logger.info("Platform not ready")
         Process.sleep(1_000)
@@ -80,20 +84,24 @@ defmodule Andy.Application do
   end
 
   defp connect_to_nodes() do
-    Node.connect(Andy.peer()) # try to join the peer network
+    # try to join the peer network
+    Node.connect(Andy.peer())
+
     if Node.list() == [] do
       Process.sleep(1_000)
-      connect_to_nodes() # try again
+      # try again
+      connect_to_nodes()
     else
-      Logger.info("#{Node.self()} is connected to #{inspect Node.list()}")
+      Logger.info("#{Node.self()} is connected to #{inspect(Node.list())}")
     end
   end
 
   defp mem_stats("brickpi") do
-    { res, 0 } = System.cmd("free", ["-m"])
+    {res, 0} = System.cmd("free", ["-m"])
     [_labels, mem, swap | _] = String.split(res, "\n")
     [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
     [_, _swap_total, swap_used, swap_free] = String.split(swap)
+
     %{
       mem_free: to_int!(mem_free),
       mem_used: to_int!(mem_used),
@@ -103,10 +111,11 @@ defmodule Andy.Application do
   end
 
   defp mem_stats("pc") do
-    { res, 0 } = System.cmd("free", ["-m"])
+    {res, 0} = System.cmd("free", ["-m"])
     [_labels, mem, swap, _buffers] = String.split(res, "\n")
     [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
     [_, _swap_total, swap_used, swap_free] = String.split(swap)
+
     %{
       mem_free: to_int!(mem_free),
       mem_used: to_int!(mem_used),
@@ -116,8 +125,7 @@ defmodule Andy.Application do
   end
 
   defp to_int!(s) do
-    { i, _ } = Integer.parse(s)
+    {i, _} = Integer.parse(s)
     i
   end
-
 end

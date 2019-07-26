@@ -5,13 +5,7 @@ defmodule Andy.SoundPlayer do
   require Logger
 
   def new() do
-    %Device{mod: __MODULE__,
-      class: :sound,
-      path: "speech",
-      port: nil,
-      type: "speech",
-      mock: true
-    }
+    %Device{mod: __MODULE__, class: :sound, path: "speech", port: nil, type: "speech", mock: true}
   end
 
   @doc "Execute a sound command"
@@ -36,5 +30,4 @@ defmodule Andy.SoundPlayer do
   def speak(words) do
     speak(words, 300, 160)
   end
-
 end

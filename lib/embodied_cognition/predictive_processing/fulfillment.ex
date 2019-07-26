@@ -1,34 +1,30 @@
 defmodule Andy.Fulfillment do
-
   @moduledoc "One possible way of fulfilling a prediction"
 
   alias __MODULE__
-  alias Andy.{ Action, ActionsGenerator }
+  alias Andy.{Action, ActionsGenerator}
 
-  @type action_sequence :: [Action.t | fun()]
+  @type action_sequence :: [Action.t() | fun()]
   @type t :: %__MODULE__{
-               conjecture_name: String.t,
-               actions: [action_sequence] | ActionsGenerator.t()
-               # actions or a function that produce actions
-             }
+          conjecture_name: String.t(),
+          actions: [action_sequence] | ActionsGenerator.t()
+          # actions or a function that produce actions
+        }
 
   # Fulfillment name is unique within a prediction
   defstruct conjecture_name: nil,
-              # and/or actions to carry out
-            actions: [] # (generators of individual) actions that might fulfill a conjecture's prediction
+            # and/or actions to carry out
+            # (generators of individual) actions that might fulfill a conjecture's prediction
+            actions: []
 
-  def from_believing(
-        conjecture_name
-      ) do
+  def from_believing(conjecture_name) do
     %Fulfillment{
       conjecture_name: conjecture_name
     }
   end
 
-  def from_doing(
-        action_specs
-      ) when is_list(action_specs) do
-    if Enum.all?(action_specs, &(is_list(&1))) do
+  def from_doing(action_specs) when is_list(action_specs) do
+    if Enum.all?(action_specs, &is_list(&1)) do
       %Fulfillment{
         actions: action_specs
       }
@@ -45,20 +41,21 @@ defmodule Andy.Fulfillment do
           pick: how_many,
           from: actions
         } = _action_specs
-      )  do
+      ) do
     %Fulfillment{
-      actions: ActionsGenerator.new(
-        pick: how_many,
-        from: actions
-      )
+      actions:
+        ActionsGenerator.new(
+          pick: how_many,
+          from: actions
+        )
     }
   end
 
-  def by_believing?(%Fulfillment{ conjecture_name: conjecture_name }) do
+  def by_believing?(%Fulfillment{conjecture_name: conjecture_name}) do
     conjecture_name != nil
   end
 
-  def by_doing?(%Fulfillment{ conjecture_name: conjecture_name }) do
+  def by_doing?(%Fulfillment{conjecture_name: conjecture_name}) do
     conjecture_name == nil
   end
 
@@ -66,18 +63,20 @@ defmodule Andy.Fulfillment do
     cond do
       by_believing?(fulfillment) ->
         1
+
       actions_generated?(fulfillment) ->
         ActionsGenerator.count_domain(fulfillment.actions)
+
       true ->
         Enum.count(fulfillment.actions)
     end
   end
 
-  def get_actions_at(%Fulfillment{ actions: %ActionsGenerator{ } = actions_generator }, index) do
+  def get_actions_at(%Fulfillment{actions: %ActionsGenerator{} = actions_generator}, index) do
     ActionsGenerator.get_actions_at(actions_generator, index)
   end
 
-  def get_actions_at(%Fulfillment{ actions: actions }, index) when is_list(actions) do
+  def get_actions_at(%Fulfillment{actions: actions}, index) when is_list(actions) do
     Enum.at(actions, index)
   end
 
@@ -91,7 +90,7 @@ defmodule Andy.Fulfillment do
     else
       "By doing #{
         get_actions_at(fulfillment, index)
-        |> Enum.map(&(summarize_action(&1)))
+        |> Enum.map(&summarize_action(&1))
         |> Enum.join(",")
       }"
     end
@@ -99,7 +98,7 @@ defmodule Andy.Fulfillment do
 
   ### PRIVATE
 
-  defp actions_generated?(%Fulfillment{ actions: %ActionsGenerator{ } }) do
+  defp actions_generated?(%Fulfillment{actions: %ActionsGenerator{}}) do
     true
   end
 
@@ -110,11 +109,11 @@ defmodule Andy.Fulfillment do
   # Function<6.88857842/0 in Andy.Puppy.Profiling.say_once/1>
   defp summarize_action(action) do
     case Regex.named_captures(~r{.*\.(?<name>\w+)/\d>}, inspect(action)) do
-      %{ "name" => name } ->
+      %{"name" => name} ->
         name
+
       nil ->
         inspect(action)
     end
   end
-
 end

@@ -28,8 +28,9 @@ defmodule AndyWeb do
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/test_web/templates",
-                        namespace: AndyWeb
+      use Phoenix.View,
+        root: "lib/test_web/templates",
+        namespace: AndyWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]

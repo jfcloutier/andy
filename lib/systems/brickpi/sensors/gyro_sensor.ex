@@ -15,8 +15,9 @@ defmodule Andy.BrickPi.GyroSensor do
   end
 
   def read(sensor, sense) do
-		{_, updated_sensor} = do_read(sensor, sense)
-		do_read(updated_sensor, sense) # double read seems necessary after a mode change
+    {_, updated_sensor} = do_read(sensor, sense)
+    # double read seems necessary after a mode change
+    do_read(updated_sensor, sense)
   end
 
   def do_read(sensor, :angle) do
@@ -32,7 +33,7 @@ defmodule Andy.BrickPi.GyroSensor do
   end
 
   def sensitivity(_sensor, sense) do
-    case (sense) do
+    case sense do
       :angle -> 5
       :rotational_speed -> 2
     end
@@ -52,7 +53,7 @@ defmodule Andy.BrickPi.GyroSensor do
     {value, updated_sensor}
   end
 
-### PRIVATE
+  ### PRIVATE
 
   def set_angle_mode(sensor) do
     LegoSensor.set_mode(sensor, @angle)
@@ -61,7 +62,4 @@ defmodule Andy.BrickPi.GyroSensor do
   def set_rotational_speed_mode(sensor) do
     LegoSensor.set_mode(sensor, @rotational_speed)
   end
-
 end
-
-  

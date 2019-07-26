@@ -10,7 +10,7 @@ defmodule Andy.ActuatorsSupervisor do
   def child_spec(_) do
     %{
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [] },
+      start: {__MODULE__, :start_link, []},
       type: :supervisor
     }
   end
@@ -23,8 +23,8 @@ defmodule Andy.ActuatorsSupervisor do
 
   @doc "Start an actuator on a configuration, linking it to this supervisor"
   def start_actuator(actuator_conf) do
-    spec = { Actuator, [actuator_conf] }
-    { :ok, _pid } = DynamicSupervisor.start_child(@name, spec)
+    spec = {Actuator, [actuator_conf]}
+    {:ok, _pid} = DynamicSupervisor.start_child(@name, spec)
   end
 
   ### Callbacks
@@ -32,5 +32,4 @@ defmodule Andy.ActuatorsSupervisor do
   def init(_) do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
-
 end

@@ -7,7 +7,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   use Supervisor
   require Logger
   alias Andy.GM.{PubSub, Cognition, GenerativeModelsSupervisor}
-  alias Andy.{ ActuatorsSupervisor, Device }
+  alias Andy.{ActuatorsSupervisor, Device}
 
   @name __MODULE__
 
@@ -16,7 +16,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   @doc "Start the supervisor, linking it to its parent supervisor"
   def start_link() do
     Logger.info("Starting #{@name}")
-    { :ok, _pid } = Supervisor.start_link(__MODULE__, [], name: @name)
+    {:ok, _pid} = Supervisor.start_link(__MODULE__, [], name: @name)
   end
 
   def init(_) do
@@ -24,25 +24,24 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
       PubSub,
       ActuatorsSupervisor,
       GenerativeModelsSupervisor,
-      DetectorsSupervisor,
+      DetectorsSupervisor
     ]
+
     opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
   end
 
   @doc "Start embodied cognition"
   def start_embodied_cognition() do
-    spawn(
-      fn ->
-        Process.sleep(5000)
-        Andy.BrickPi.LegoSound.speak("Ready")
-        Process.sleep(2000)
-        Logger.info("*** STARTING EMBODIED COGNITION ***")
-        start_detectors()
-        start_actuators()
-        start_generative_models()
-      end
-    )
+    spawn(fn ->
+      Process.sleep(5000)
+      Andy.BrickPi.LegoSound.speak("Ready")
+      Process.sleep(2000)
+      Logger.info("*** STARTING EMBODIED COGNITION ***")
+      start_detectors()
+      start_actuators()
+      start_generative_models()
+    end)
   end
 
   ### Private
@@ -50,6 +49,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   # Start a (not-yet-polling) detector for each sense of each sensor
   defp start_detectors() do
     Logger.info("Starting detectors")
+
     for sensor <- Andy.sensors() do
       for sense <- Device.senses(sensor) do
         DetectorsSupervisor.start_detector(sensor, sense)
@@ -60,17 +60,17 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   # Start an actuator for each mind of actuation (locomotion, sound, lights etc.)
   defp start_actuators() do
     Logger.info("Starting actuators")
-    Andy.actuation_logic() # returns actuator configs
-    |> Enum.each(&(ActuatorsSupervisor.start_actuator(&1)))
+    # returns actuator configs
+    Andy.actuation_logic()
+    |> Enum.each(&ActuatorsSupervisor.start_actuator(&1))
   end
 
   # Start and activate all generative models
   defp start_generative_models() do
     Logger.info("Starting generative models")
+
     Andy.cognition_def()
     |> Cognition.gm_defs_with_family()
-    |> Enum.each(&(GenerativeModelsSupervisor.start_generative_model(&1)))
+    |> Enum.each(&GenerativeModelsSupervisor.start_generative_model(&1))
   end
-
 end
-

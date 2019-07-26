@@ -7,10 +7,11 @@ defmodule Andy.BrickPi.UltrasonicSensor do
 
   @distance_cm "US-DIST-CM"
 
- 	### Sensing behaviour
+  ### Sensing behaviour
 
   def senses(_) do
-    [:distance] # distance is in centimeters
+    # distance is in centimeters
+    [:distance]
   end
 
   def read(sensor, sense) do
@@ -41,5 +42,4 @@ defmodule Andy.BrickPi.UltrasonicSensor do
   defp set_distance_mode(sensor) do
     LegoSensor.set_mode(sensor, @distance_cm)
   end
-
 end

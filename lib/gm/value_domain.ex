@@ -6,7 +6,6 @@ defprotocol Andy.GM.ValueDomain do
 
   @doc "What is the size of a domain?"
   def size(domain)
-
 end
 
 defimpl Andy.GM.ValueDomain, for: List do

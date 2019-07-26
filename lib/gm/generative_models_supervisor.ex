@@ -11,7 +11,7 @@ defmodule Andy.GM.GenerativeModelsSupervisor do
   def child_spec(_) do
     %{
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [] },
+      start: {__MODULE__, :start_link, []},
       type: :supervisor
     }
   end
@@ -24,7 +24,10 @@ defmodule Andy.GM.GenerativeModelsSupervisor do
 
   @doc "Start a generative model"
   def start_generative_model({%GenerativeModelDef{} = gm_def, super_parent_names, sub_gm_names}) do
-    DynamicSupervisor.start_child(@name, {GenerativeModel, [gm_def, super_parent_names, sub_gm_names]})
+    DynamicSupervisor.start_child(
+      @name,
+      {GenerativeModel, [gm_def, super_parent_names, sub_gm_names]}
+    )
   end
 
   ### Callbacks
@@ -32,5 +35,4 @@ defmodule Andy.GM.GenerativeModelsSupervisor do
   def init(_) do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
-
 end

@@ -6,14 +6,24 @@ defmodule Andy.BrickPi.Sysfs do
   @doc "Get the typed value of an attribute of the device"
   def get_attribute(device, attribute, type) do
     value = read_sys(device.path, attribute)
+
     case type do
-      :string -> value
-      :atom -> String.to_atom(value)
-      :percent -> { number, _ } = Integer.parse(value)
-                  min(max(number, 0), 100)
-      :integer -> { number, _ } = Integer.parse(value)
-                  number
-      :list -> String.split(value, " ")
+      :string ->
+        value
+
+      :atom ->
+        String.to_atom(value)
+
+      :percent ->
+        {number, _} = Integer.parse(value)
+        min(max(number, 0), 100)
+
+      :integer ->
+        {number, _} = Integer.parse(value)
+        number
+
+      :list ->
+        String.split(value, " ")
     end
   end
 
@@ -24,9 +34,11 @@ defmodule Andy.BrickPi.Sysfs do
 
   @doc "Reading a line from a file"
   def read_sys(dir, file) do
-    [line] = File.stream!("#{dir}/#{file}")
-             |> Stream.take(1)
-             |> Enum.to_list()
+    [line] =
+      File.stream!("#{dir}/#{file}")
+      |> Stream.take(1)
+      |> Enum.to_list()
+
     String.trim(line)
   end
 
@@ -46,5 +58,4 @@ defmodule Andy.BrickPi.Sysfs do
     true = command in device.props.stop_actions
     write_sys(device.path, "stop_action", command)
   end
-
 end

@@ -10,7 +10,7 @@ defmodule Andy.DetectorsSupervisor do
   def child_spec(_) do
     %{
       id: __MODULE__,
-      start: { __MODULE__, :start_link, [] },
+      start: {__MODULE__, :start_link, []},
       type: :supervisor
     }
   end
@@ -23,9 +23,9 @@ defmodule Andy.DetectorsSupervisor do
 
   @doc "Start a supervised detector worker for a sensing device"
   def start_detector(sensing_device, sense) do
-    #		Logger.debug("Starting Detector on #{sensing_device.path} for sense #{sense}")
-    spec = { Detector, [sensing_device, sense] }
-    { :ok, _pid } = DynamicSupervisor.start_child(@name, spec)
+    # 		Logger.debug("Starting Detector on #{sensing_device.path} for sense #{sense}")
+    spec = {Detector, [sensing_device, sense]}
+    {:ok, _pid} = DynamicSupervisor.start_child(@name, spec)
   end
 
   # TODO - Do this via events
@@ -38,6 +38,7 @@ defmodule Andy.DetectorsSupervisor do
         Detector.set_polling_priority(detector_pid, priority)
       end
     end
+
     :ok
   end
 
@@ -46,5 +47,4 @@ defmodule Andy.DetectorsSupervisor do
   def init(_) do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
-
 end

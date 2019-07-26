@@ -5,12 +5,11 @@ defmodule Andy.Intent do
   alias __MODULE__
 
   @type t :: %__MODULE__{
-               about: atom,
-               value: any,
-               since: number,
-               strong: boolean
-             }
-
+          about: atom,
+          value: any,
+          since: number,
+          strong: boolean
+        }
 
   @doc """
   about: The nature of the intent
@@ -43,8 +42,6 @@ defmodule Andy.Intent do
     }
   end
 
-
-
   @doc "The age of an intent"
   def age(intent) do
     now() - intent.since
@@ -56,6 +53,4 @@ defmodule Andy.Intent do
   end
 
   # A "memorable" - must have about, since and value fields
-
-
 end

@@ -1,5 +1,4 @@
 defmodule Andy.Belief do
-
   @moduledoc "Belief in a conjecture"
 
   import Andy.Utils, only: [time_secs: 0]
@@ -7,7 +6,7 @@ defmodule Andy.Belief do
   alias __MODULE__
 
   defstruct conjecture_name: nil,
-              # initially belief is 100%
+            # initially belief is 100%
             value: true,
             as_of: nil
 
@@ -18,5 +17,4 @@ defmodule Andy.Belief do
       as_of: time_secs()
     }
   end
-
 end

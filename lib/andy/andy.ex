@@ -1,8 +1,9 @@
 defmodule Andy do
-
   require Logger
   alias Andy.{Communicators, PubSub}
-  import Andy.Utils, only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
+
+  import Andy.Utils,
+    only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
   @default_ttl 10_000
 
@@ -58,8 +59,10 @@ defmodule Andy do
   end
 
   def rest_port() do
-    { port, _ } = (get_andy_env("ANDY_PORT", "4000"))
-                  |> Integer.parse()
+    {port, _} =
+      get_andy_env("ANDY_PORT", "4000")
+      |> Integer.parse()
+
     port
   end
 
@@ -82,7 +85,7 @@ defmodule Andy do
   end
 
   def peer() do
-    (get_andy_env("ANDY_PEER", "???"))
+    get_andy_env("ANDY_PEER", "???")
     |> String.to_atom()
   end
 
@@ -139,13 +142,16 @@ defmodule Andy do
   end
 
   def in_probable_range?(probability, precision) do
-    case precision  do
+    case precision do
       :high ->
         probability >= 0.8
+
       :medium ->
         probability >= 0.6
+
       :low ->
         probability >= 0.3
+
       :none ->
         true
     end
@@ -173,8 +179,8 @@ defmodule Andy do
 
   @doc "Is the first level higher than the second?"
   def higher_level?(level1, level2) do
-    level1 != level2
-    and highest_level(level1, level2) == level1
+    level1 != level2 and
+      highest_level(level1, level2) == level1
   end
 
   def lower_level?(level, level) do
@@ -212,7 +218,4 @@ defmodule Andy do
   def reduce_level_by(:high, :low) do
     :medium
   end
-
-
-
 end
