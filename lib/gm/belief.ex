@@ -4,42 +4,37 @@ defmodule Andy.GM.Belief do
   alias __MODULE__
 
   defstruct id: nil,
-            # either :prediction, :detection or :assertion
+              # either :prediction, :detection or :assertion
             type: nil,
-            # GM name or detector name
+              # GM name or detector name
             source: nil,
-            # conjecture name if from a GM, else detector name is from a detector
+              # conjecture name if from a GM, else detector name is from a detector
             name: nil,
-            # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
+              # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
             about: nil,
-            # conjecture_parameter_name => value
-            parameter_values: %{},
-            # How far the parameter values stray from predictions by super-GM(s)
-            # Is this belief contrary to prediction? 1 if maximally contrarian.
-            # TODO - make PredictionError a struct with size and predictor
-            prediction_error: nil
+              # conjecture_parameter_name => value, or nil if disbelief
+            parameter_values: nil,
+              # If the belief is from a prediction error, its size
+            prediction_error_size: 0
 
   def new(
         type: type,
         source: source,
         name: name,
         about: about,
-        parameter_value: parameter_values
+        parameter_values: parameter_values
       ) do
-    %Belief{id: UUID.uuid4()}
+    %Belief{
+      id: UUID.uuid4(),
+      type: type,
+      source: source,
+      name: name,
+      about: about,
+      parameter_values: parameter_values
+    }
   end
 
-  @doc """
-    Whether a belief overrides prediction
-  """
-  def overrides_prediction?(
-        %Belief{type: type} = belief,
-        %Belief{type: :prediction} = other_belief
-      ) when type in [:detection, :assertion] do
-      about_same_thing?(belief, other_belief)
-  end
-
-  def overrides?(_belief, _other) do
+  def prediction_error_replaces_prediction?(_belief, _other) do
     false
   end
 

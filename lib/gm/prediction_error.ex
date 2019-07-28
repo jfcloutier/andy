@@ -3,6 +3,8 @@ defmodule Andy.GM.PredictionError do
 
   # the name of the GM that made the prediction in error
   defstruct predictor: nil,
-              # the size of the error: 0..1
-            size: 0.0
+            # the size of the error: 0..1
+            size: 0.0,
+            # the belief that contradicts a prediction by the predictor
+            belief: nil
 end

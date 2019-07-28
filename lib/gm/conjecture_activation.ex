@@ -1,4 +1,4 @@
-defmodule ConjectureActivation do
+defmodule Andy.GM.ConjectureActivation do
   @moduledoc """
   A conjecture about something, instantiated with expected values
   (as sub-domains of the conjecture's param domains), and possibly considered a goal"
@@ -15,12 +15,7 @@ defmodule ConjectureActivation do
             # whether the conjecture activation is a goal to be achieved
             goal?: false
 
-  @doc
-  """
-  Two conjecture activations are mutually exclusive if
-  they are from the same conjecture and are about the same object,
-  or they are about the same object and from mutually exclusive conjectures
-  """
+  @doc "Two conjecture activations are mutually exclusive if they are from the same conjecture and are about the same object, or they are about the same object and from mutually exclusive conjectures"
 
   def mutually_exclusive?(
         %ConjectureActivation{conjecture_name: conjecture_name, about: about},

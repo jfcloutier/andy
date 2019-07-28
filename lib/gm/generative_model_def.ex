@@ -34,7 +34,6 @@ defmodule Andy.GM.GenerativeModelDef do
 
         [
           %Belief{
-            level: 1,
             source: {:gm, gm_def.name},
             about: conjecture_name,
             parameter_values: parameter_values
