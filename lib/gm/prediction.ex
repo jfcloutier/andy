@@ -10,14 +10,26 @@ defmodule Andy.GM.Prediction do
   that would generate the predicted beliefs (when there is no clear winner between competing conjectures).
   """
 
+  alias __MODULE__
+
+  @behaviour Andy.GM.Perception
+
   # The name of the GM which made the prediction;
   defstruct source: nil,
-            #  the name of a conjecture of a sub-GM, or a detector name
+              #  the name of a conjecture of a sub-GM, or a detector name
             name: nil,
-            # what the predicted belief is about, e.g. "robot1"
+              # what the predicted belief is about, e.g. "robot1"
             about: nil,
-            # {name, about} of a belief
+              # parameter_name => domain - the expected range of values for the predicted belief
             parameter_sub_domains: %{} # TODO - rename value estimates
 
-  # parameter_name => domain - the expected range of values for the predicted belief
+  # Perception behaviour
+
+  def source(%Prediction{source: source}), do: source
+  def name(%Prediction{name: name}), do: name
+  def source(%Prediction{about: about}), do: about
+  # TODO - get most expected value
+  def parameter_values(%Prediction{parameter_sub_domains: parameter_sub_domains}), do: parameter_sub_domains
+
+
 end
