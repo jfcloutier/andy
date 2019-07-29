@@ -3,26 +3,36 @@ defmodule Andy.GM.GenerativeModel do
 
   # TODO
   #      - courses_of_action: [CourseOfAction, ...]
-  #      - PredictionError has Belief: predictor, size, belief
+  #      - PredictionError has Belief: prediction, size, belief
   #      - Prediction has source (gm_name)
   #      - Perception :: Prediction | PredictionError
 
   # Round start:
   #           - Start timer on round timeout
-  #           - Copy over all the perceptions from the previous round
+  #           - Copy over all the perceptions from the previous round that have not already been copied too often
   #             (prediction errors from sub-GMs and detectors
   #             and predictions made by GM not contradicted by prediction errors)
-  #           - Copy over all the received predictions from the previous round
+  #           - Copy over all the received predictions from the previous round that have not already been copied
+  #             too often
+  #           - Carry over beliefs from the previous round
   #           - Activate conjectures (as goals or not, avoiding mutual exclusions)
   #             given previous received predictions and perceptions
-  #           - If no conjecture activations, communicate that the round has (prematurely) completed
-  #           - Drop copied perceptions and received predictions that are about inactive conjectures
+  #             - Remove prior perceptions from conjectures mutually excluded by activated conjectures
+  #           - Make predictions about perceptions in this round, given conjecture activations and carried-over
+  #             beliefs and perceptions
+  #           - Report predictions
+  #               - Sub-GMs accumulate received predictions (may lead to them producing prediction errors)
+  #               - Any detectors that could directly verify a prediction is triggered
+
+  #           - If there is no conjecture activation for this round, remove the carried-over beliefs
+  #           - and complete the round right away
   # During round:
   #           - Receive inactive round notifications from sub-GMs; mark them reported-in
   #                 - Check if round ready for completion (all attended-to sub-GMs reported in). If so complete it.
-  #           - Receive predictions from super-GMs and replace overridden previous predictions
-  #           - Receive prediction errors as perceptions and replaces any perceptions they override if they
-  #             in response to a prediction made by the GM
+  #           - Receive predictions from super-GMs and replace overridden received predictions
+  #             (overridden if same subject and same source)
+  #           - Receive prediction errors as perceptions and replaces overridden prediction errors
+  #             (overridden if same subject and same source)
   #           - Receive round completion notifications from sub-GMs; mark them reported-in
   #                 - Check if round ready for completion (all attended-to sub-GMs reported in). If so complete it.
   # Round completion (all sub-gms have reported in or the round has timed out):
@@ -32,32 +42,37 @@ defmodule Andy.GM.GenerativeModel do
   #           - When two perceptions are about the same thing, retain only the more trustworthy
   #               - A GM retains one effective perception about something
   #                (e.g. can't perceive two distances to a wall)
-  #           - Compute the GM's beliefs for each activated conjecture given GM's present and past rounds,
+  #           - Compute the new GM's beliefs for each activated conjecture given GM's present and past rounds,
   #             and determine if they are prediction errors (i.e. contradict or are misaligned with received predictions)
-  #           - Communicate the prediction errors
-  #           - Make predictions about forthcoming perceptions, given conjecture activations and previous perceptions
-  #           - Communicate predictions
-  #               - Sub-GMs accumulate received predictions (may lead to them producing prediction errors)
-  #               - Any detectors that could directly verify a prediction is triggered
+  #           - Report the prediction errors
   #           - Update course of action efficacies given current beliefs
   #             (re-evaluate what courses of action seem to work best)
   #           - Choose courses of action to
   #               - promote beliefs in activated, goal conjectures,
   #               - confirm held beliefs in, activated, non-goal conjectures
   #           - Execute the chosen courses of action
-  #           - Mark round completed and communicate completion
+  #           - Mark round completed and report completion
   #           - Drop obsolete rounds
   #           - Add new round and start it
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 2, now: 0]
   alias Andy.Intent
-  alias Andy.GM.{PubSub, GenerativeModelDef, Belief, Conjecture,
-                 ConjectureActivation, Prediction, PredictionError,
-                 Perception}
+
+  alias Andy.GM.{
+    PubSub,
+    GenerativeModelDef,
+    Belief,
+    Conjecture,
+    ConjectureActivation,
+    Prediction,
+    PredictionError,
+    Perception
+  }
 
   # for how long rounds are remembered
   @forget_round_after_secs 60
+  @max_carry_overs 3
 
   defmodule State do
     defstruct gm_def: nil,
@@ -88,7 +103,7 @@ defmodule Andy.GM.GenerativeModel do
               reported_in: [],
               # Uncontested predictions made by the GM and prediction errors from sub-GMs and detectors
               perceptions: [],
-              # [prediction, ...] predictions communicated by super-GMs about this GM's beliefs
+              # [prediction, ...] predictions reported by super-GMs about this GM's beliefs
               received_predictions: [],
               # beliefs in this GM conjecture activations given perceptions
               beliefs: [],
@@ -102,8 +117,7 @@ defmodule Andy.GM.GenerativeModel do
     def initial_round(gm_def) do
       %Round{Round.new() | beliefs: GenerativeModelDef.initial_beliefs(gm_def)}
     end
-
-    end
+  end
 
   defmodule CourseOfAction do
     @moduledoc "A course of action is a sequence of Intents meant to be realized in an attempt to validate
@@ -111,7 +125,6 @@ defmodule Andy.GM.GenerativeModel do
 
     defstruct conjecture_name: nil,
               intents: []
-
   end
 
   defmodule Efficacy do
@@ -180,7 +193,7 @@ defmodule Andy.GM.GenerativeModel do
         {:round_completed, name},
         %State{rounds: [%Round{reported_in: reported_in} = round | previous_rounds]} = state
       ) do
-    if sub_generative_model?(name, state) do
+    if sub_gm?(name, state) do
       updated_round = %Round{round | reported_in: [name | reported_in]}
 
       %State{state | rounds: [updated_round | previous_rounds]}
@@ -197,11 +210,10 @@ defmodule Andy.GM.GenerativeModel do
           :prediction_error,
           %PredictionError{} = prediction_error
         },
-        %State{rounds: [round | previous_rounds]} = state
+        state
       ) do
     if prediction_error_relevant?(prediction_error, state) do
-      updated_round = add_prediction_error_to_round(round, prediction_error)
-      %State{state | rounds: [updated_round | previous_rounds]}
+      add_prediction_error_to_round(prediction_error, state)
     else
       state
     end
@@ -209,17 +221,17 @@ defmodule Andy.GM.GenerativeModel do
 
   # Another GM made a new prediction - receive it if from a super-GM
   def handle_event(
-        {:prediction, %Belief{source: gm_name} = prediction},
+        {:prediction, %Prediction{source: gm_name} = prediction},
         %State{
           super_gm_names: super_gm_names,
           rounds: [%Round{received_predictions: received_predictions} = round | previous_rounds]
         } = state
       ) do
     if gm_name in super_gm_names do
-    updated_round = %Round{round | received_predictions: [prediction | received_predictions]}
-    %State{state | rounds: [updated_round | previous_rounds]}
+      updated_round = %Round{round | received_predictions: [prediction | received_predictions]}
+      %State{state | rounds: [updated_round | previous_rounds]}
     else
-    state
+      state
     end
   end
 
@@ -233,16 +245,26 @@ defmodule Andy.GM.GenerativeModel do
   # Start the current round
   defp start_round(%State{gm_def: gm_def} = state) do
     PubSub.notify_after(
-      {:round_timed_out, name(state)},
+      {:round_timed_out, gm_name(state)},
       gm_def.max_round_duration
     )
 
     state
+    # Carry over perceptions from previous round unless they've been carried over already too many times
     |> carry_over_perceptions()
+    # Carry over received predictions from previous round unless they've been carried over already too many times
     |> carry_over_received_predictions()
+    # Carry over the beliefs from the previous round
+    |> carry_over_beliefs()
+    # Activate conjectures
     |> activate_conjectures()
-    |> drop_irrelevant_perceptions()
-    |> drop_irrelevant_received_predictions()
+    # Remove carried-over perceptions mutually exclusive with the new conjecture activations
+    |> remove_excluded_perceptions()
+    # Make predictions about this round of perceptions given beliefs from previous round (possibly none)
+    # Add them as new perceptions, possibly overriding carried-over perceptions
+    |> make_predictions()
+    # If there is no conjecture activation for this round, remove the carried-over beliefs and complete it right away
+    |> check_if_inactive()
   end
 
   # Complete the current round if fully informed
@@ -262,22 +284,21 @@ defmodule Andy.GM.GenerativeModel do
       #  about competing perceptions (their beliefs)
       |> update_attention()
       # If there are different perception about the same thing, retain only the most trustworthy
-      |> drop_least_trusted_perceptions()
-      # Compute beliefs in the GM's own conjectures,
+      |> drop_least_trusted_competing_perceptions()
+      # Compute the new beliefs in the GM's own conjectures,
       |> determine_beliefs()
       # For each prediction received, find if a new belief is a prediction error.
-      # If so, communicate it
+      # It is a maximal prediction error when no belief supports or contradicts a received prediction.
+      # If a prediction error is generated, report it
       |> raise_prediction_errors()
-      # Make predictions about next round of perceptions given new beliefs
-      |> make_predictions()
-        # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
+      # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
       # Have the CoAs caused the desired belief validations?
       |> update_efficacies()
       # Determine courses of action to achieve each non-yet-achieved goal, or to better validate a non-goal conjecture
       |> set_courses_of_action()
       # Execute the currently set courses of action
       |> execute_courses_of_action()
-      # Terminate the current round (set completed_on, communicate round_completed)
+      # Terminate the current round (set completed_on, report round_completed)
       |> mark_round_completed()
       # Drop obsolete rounds (forget the distant past)
       |> drop_obsolete_rounds()
@@ -292,7 +313,7 @@ defmodule Andy.GM.GenerativeModel do
     new_state
   end
 
-  defp name(%State{gm_def: gm_def}) do
+  defp gm_name(%State{gm_def: gm_def}) do
     gm_def.name
   end
 
@@ -301,10 +322,15 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp carry_over_perceptions(
-         %State{rounds: [round, %Round{perceptions: prior_perceptions} = previous_round | other_rounds]} =
-           state
+         %State{
+           rounds: [round, %Round{perceptions: prior_perceptions} = previous_round | other_rounds]
+         } = state
        ) do
-    updated_round = %Round{round | perceptions: prior_perceptions}
+    carried_over =
+      Enum.reject(prior_perceptions, &(Perception.carry_overs(&1) > @max_carry_overs))
+      |> Enum.map(&Perception.increment_carry_over(&1))
+
+    updated_round = %Round{round | perceptions: carried_over}
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
@@ -316,16 +342,34 @@ defmodule Andy.GM.GenerativeModel do
          %State{
            rounds: [
              round,
-             %Round{received_predictions: predictions} = previous_round | other_rounds
+             %Round{received_predictions: prior_received_predictions} = previous_round
+             | other_rounds
            ]
          } = state
        ) do
-    updated_round = %Round{round | received_predictions: predictions}
+    carried_over =
+      Enum.reject(prior_received_predictions, &(Perception.carry_overs(&1) > @max_carry_overs))
+      |> Enum.map(&Perception.increment_carry_over(&1))
+
+    updated_round = %Round{round | received_predictions: carried_over}
+    %State{state | rounds: [updated_round, previous_round | other_rounds]}
+  end
+
+  defp carry_over_beliefs(
+         %State{
+           rounds: [
+             round,
+             %Round{beliefs: prior_beliefs} = previous_round
+             | other_rounds
+           ]
+         } = state
+       ) do
+    updated_round = %Round{round | beliefs: prior_beliefs}
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
   # Activate as many GM conjectures as possible that do not mutually exclude one another.
-  # If no activation, notify immediately that the round has completed (it won't produce beliefs).
+  # If no activation, report immediately that the round has completed (it won't produce beliefs).
   defp activate_conjectures(
          %State{
            gm_def: gm_def,
@@ -353,52 +397,59 @@ defmodule Andy.GM.GenerativeModel do
         end
       )
 
-    if conjecture_activations == [] do
-      PubSub.notify({:round_completed, gm_def.name})
-    end
-
     updated_round = %Round{round | conjecture_activations: conjecture_activations}
     %State{state | rounds: [updated_round | previous_rounds]}
   end
 
-  defp drop_irrelevant_perceptions(%State{
-         rounds: [
-           %Round{
-             conjecture_activations: conjecture_activations,
-             perceptions: perceptions
-           } = round
-           | previous_rounds
-         ]
-       } = state) do
-    updated_perceptions = drop_obsolete(perceptions, conjecture_activations)
+  # Remove perceptions that are mutually exclusive with the activated conjectures.
+  # If a prediction: it was instantiated by a mutually exclusive conjecture
+  # If a prediction error: it is an error about a prediction instantiated by a mutually exclusive conjecture
+  defp remove_excluded_perceptions(
+         %State{
+           gm_def: gm_def,
+           rounds: [
+             %Round{conjecture_activations: conjecture_activations, perceptions: perceptions} =
+               round
+             | previous_rounds
+           ]
+         } = state
+       ) do
+    updated_perceptions =
+      Enum.reject(
+        perceptions,
+        fn perception ->
+          Enum.any?(
+            conjecture_activations,
+            fn %ConjectureActivation{conjecture_name: conjecture_name} ->
+              GenerativeModelDef.mutually_exclusive?(
+                gm_def,
+                conjecture_name,
+                Perception.prediction_conjecture_name(perception)
+              )
+            end
+          )
+        end
+      )
+
     updated_round = %Round{round | perceptions: updated_perceptions}
     %State{state | rounds: [updated_round | previous_rounds]}
   end
 
-  defp drop_irrelevant_received_predictions(%State{
-         rounds: [
-           %Round{
-             conjecture_activations: conjecture_activations,
-             received_predictions: predictions
-           } = round
-           | previous_rounds
-         ]
-       } = state) do
-    updated_predictions = drop_obsolete(predictions, conjecture_activations)
-    updated_round = %Round{round | received_predictions: updated_predictions}
-    %State{state | rounds: [updated_round | previous_rounds]}
-  end
+  defp check_if_inactive(
+         %State{
+           rounds: [
+             %Round{conjecture_activations: conjecture_activations} = round | previous_rounds
+           ]
+         } = state
+       ) do
+    if conjecture_activations == [] do
+      updated_round = %Round{round | beliefs: []}
 
-  defp drop_obsolete(perceptions, conjecture_activations) do
-    Enum.reject(
-      perceptions,
-      fn perception ->
-        not Enum.any?(
-            conjecture_activations,
-            &(&1.conjecture_name == Perception.name(perception) and &1.about == Perception.about(perception))
-          )
-      end
-    )
+      %State{state | rounds: [updated_round | previous_rounds]}
+      |> complete_round()
+    else
+      state
+    end
   end
 
   defp make_predictions(
@@ -409,11 +460,15 @@ defmodule Andy.GM.GenerativeModel do
       |> Enum.map(&make_predictions_from_conjecture(&1, state))
       |> List.flatten()
 
-      # Add predictions to perceptions, removing prior perceptions that conflicted with the predictions
-      updated_perceptions = Enum.reject(perceptions,
-        fn(perception) ->
-        Enum.any?(predictions, &(Perception.competing?(perception, &1)))
-      end) ++ predictions
+    # Add predictions to perceptions, removing prior perceptions that conflicted with the predictions
+    updated_perceptions =
+      Enum.reject(
+        perceptions,
+        fn perception ->
+          Enum.any?(predictions, &Perception.same_subject?(perception, &1))
+        end
+      ) ++ predictions
+
     Enum.each(predictions, &PubSub.notify({:prediction, &1}))
     updated_round = %Round{round | perceptions: updated_perceptions}
     %State{state | rounds: [updated_round | previous_rounds]}
@@ -426,14 +481,14 @@ defmodule Andy.GM.GenerativeModel do
     conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
 
     Enum.map(conjecture.predictors, & &1.(conjecture_activation, state))
-    |> Enum.map(&%Prediction{&1 | source: name(state)})
+    |> Enum.map(&%Prediction{&1 | source: gm_name(state)})
   end
 
   defp current_round(%State{rounds: [round | _]}) do
     round
   end
 
-  defp sub_generative_model?(name, %State{sub_gm_names: sub_gm_names}) do
+  defp sub_gm?(name, %State{sub_gm_names: sub_gm_names}) do
     name in sub_gm_names
   end
 
@@ -442,41 +497,31 @@ defmodule Andy.GM.GenerativeModel do
     now() - round.started_on >= gm_def.max_round_duration
   end
 
+  # This is a reported error to a prediction this GM made
   defp prediction_error_relevant?(
-         %PredictionError{predictor: predictor_gm_name},
+         %PredictionError{prediction: %Prediction{source: prediction_gm_name}},
          state
        ) do
-    predictor_gm_name == name(state)
+    prediction_gm_name == gm_name(state)
   end
 
   # Add a prediction error to the perceptions (a mix of beliefs as predictions by this GM
   # and prediction errors from sub-GMs and detectors). Remove any created redundancies.
   defp add_prediction_error_to_round(
-         %Round{perceptions: perceptions} = round,
-         %PredictionError{belief: belief, size: size} = prediction_error
+         %PredictionError{} = prediction_error,
+         %State{rounds: [%Round{perceptions: perceptions} = round | previous_rounds]} = state
        ) do
     updated_perceptions = [
       prediction_error
       | Enum.reject(
           perceptions,
-          &prediction_error_replaces_prediction?(prediction_error, &1)
+          &(Perception.prediction?(&1) and
+              Perception.same_subject?(prediction_error, &1))
         )
     ]
 
-    %Round{round | perceptions: updated_perceptions}
+    %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
   end
-
-  defp prediction_error_replaces_prediction?(
-         %PredictionError{} = prediction_error,
-         %Prediction{} = prediction
-       ) do
-    Perception.competing?(prediction_error, prediction)
-  end
-
-  defp prediction_error_replaces_prediction?(%PredictionError{} = _prediction_error, _) do
-    false
-  end
-
 
   # All attended-to GMs have reported in
   defp round_ready_to_complete?(%State{sub_gm_names: sub_gm_names} = state) do
@@ -498,7 +543,7 @@ defmodule Andy.GM.GenerativeModel do
     attention
   end
 
-  # Compute beliefs in active conjectures given current state of the GM
+  # Compute new beliefs from active conjectures given current state of the GM
   defp determine_beliefs(%State{rounds: [round | previous_rounds]} = state) do
     beliefs =
       conjecture_activations(state)
@@ -519,7 +564,7 @@ defmodule Andy.GM.GenerativeModel do
     parameter_values = conjecture.validator.(about, param_domains, state)
 
     Belief.new(
-      source: name(state),
+      source: gm_name(state),
       name: conjecture_name,
       about: about,
       parameter_values: parameter_values
@@ -528,20 +573,40 @@ defmodule Andy.GM.GenerativeModel do
 
   defp raise_prediction_errors(state) do
     %Round{beliefs: beliefs, received_predictions: predictions} = current_round(state)
+
     prediction_errors =
       Enum.reduce(
         predictions,
         [],
-        fn %Prediction{source: source, name: name, about: about} = prediction, acc ->
+        fn %Prediction{name: name, about: about} = prediction, acc ->
           case Enum.find(beliefs, &(&1.name == name and &1.about == about)) do
+            # If no belief matches the received prediction, then there's a "no predicted belief" prediction error
             nil ->
-              acc
+              prediction_error = %PredictionError{
+                prediction: prediction,
+                size: 1.0,
+                belief:
+                  Belief.new(
+                    source: gm_name(state),
+                    name: name,
+                    about: about,
+                    # nil -> not believed
+                    parameter_values: nil
+                  )
+              }
+
+              [prediction_error | acc]
 
             belief ->
               size = prediction_error_size(belief, prediction)
 
               if size > 0.0 do
-                prediction_error = %PredictionError{predictor: source, size: size, belief: belief}
+                prediction_error = %PredictionError{
+                  prediction: prediction,
+                  size: size,
+                  belief: belief
+                }
+
                 [prediction_error | acc]
               else
                 acc
@@ -571,9 +636,11 @@ defmodule Andy.GM.GenerativeModel do
     Enum.find(gm_def.conjectures, &(&1.name == conjecture_name))
   end
 
-  defp prediction_error_size(%Belief{parameter_values: parameter_values},
-         %Prediction{parameter_sub_domains: parameter_sub_domains}) do
-         compute_prediction_error_size(parameter_values, parameter_sub_domains)
+  defp prediction_error_size(
+         %Belief{parameter_values: parameter_values},
+         %Prediction{parameter_sub_domains: parameter_sub_domains}
+       ) do
+    compute_prediction_error_size(parameter_values, parameter_sub_domains)
   end
 
   defp compute_prediction_error_size(nil, _parameter_sub_domains) do
@@ -635,13 +702,16 @@ defmodule Andy.GM.GenerativeModel do
   # Give more/less attention to competing contributors of perceptions as prediction errors based on the respective
   # sizes of the errors.
   # Temper by previous attention level.
-  defp update_attention(%State{rounds: [%Round{perceptions: perceptions} = round | previous_rounds]} = state) do
+  defp update_attention(
+         %State{rounds: [%Round{perceptions: perceptions} = round | previous_rounds]} = state
+       ) do
     prior_attention = previous_attention(state)
     # [{conjecture_name, object_of_conjecture}, ...]
-    prediction_errors = Enum.filter(perceptions, &(Perception.prediction_error?(&1)))
+    prediction_errors = Enum.filter(perceptions, &Perception.prediction_error?(&1))
+
     subjects =
       prediction_errors
-      |> Enum.map(&({Perception.name(&1), Perception.about(&1)}))
+      |> Enum.map(&{Perception.name(&1), Perception.about(&1)})
       |> Enum.uniq()
 
     # The relative confidence levels in the sub-GMs who reported prediction errors, given that they may report
@@ -715,7 +785,7 @@ defmodule Andy.GM.GenerativeModel do
     # [{gm_name, confirmation_level}, ...]
     source_raw_levels =
       Enum.zip(
-        Enum.map(competing_prediction_errors, &(Prediction.source(&1))),
+        Enum.map(competing_prediction_errors, &Prediction.source(&1)),
         Enum.map(
           competing_prediction_errors,
           # Confidence grows as prediction error decreases (confirmation bias)
@@ -735,7 +805,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # When two perceptions are about the same thing, retain only the most trustworthy
-  defp drop_least_trusted_perceptions(
+  defp drop_least_trusted_competing_perceptions(
          %State{
            rounds: [
              %Round{perceptions: perceptions} = round | previous_rounds
@@ -748,7 +818,7 @@ defmodule Andy.GM.GenerativeModel do
         {[], []},
         fn perception, {retained, considered} = _acc ->
           [one | others] =
-            Enum.filter(perceptions, &Perception.competing?(&1, perception))
+            Enum.filter(perceptions, &Perception.same_subject?(&1, perception))
             |> Enum.sort(&(trust_in(&1, state) >= trust_in(&2, state)))
 
           if Enum.any?([one | others], &(&1 in retained or &1 in considered)) do
@@ -810,7 +880,7 @@ defmodule Andy.GM.GenerativeModel do
       Map.get(efficacies, name)
       |> revise_conjecture_efficacies(level, rounds)
 
-    Map.put(efficacies, about, updated_conjecture_efficacies)
+    Map.put(efficacies, name, updated_conjecture_efficacies)
   end
 
   # Revise the efficacies of CoAs executed in all rounds and prompted by a conjecture about the new belief, given its level.
@@ -903,7 +973,6 @@ defmodule Andy.GM.GenerativeModel do
   defp select_course_of_action(
          conjecture,
          %State{
-           gm_def: gm_def,
            efficacies: efficacies,
            courses_of_action_indices: courses_of_action_indices
          }
@@ -1069,19 +1138,6 @@ defmodule Andy.GM.GenerativeModel do
 
   defp add_new_round(%State{rounds: rounds} = state) do
     %State{state | rounds: [Round.new() | rounds]}
-  end
-
-  defp set_goals(%State{gm_def: gm_def} = state) do
-    goals =
-      Enum.filter(gm_def.conjectures, & &1.motivator.(state))
-      |> Enum.map(& &1.name)
-
-    %State{state | goals: goals}
-  end
-
-  # Conjecture is believed by default in the initial round
-  defp conjecture_was_believed?(_conjecture_activation, %State{rounds: [_round]}) do
-    true
   end
 
   # Was the conjecture believed in the previous round?

@@ -6,7 +6,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.GM.{PubSub, Cognition, GenerativeModelsSupervisor}
+  alias Andy.GM.{PubSub, Cognition, GenerativeModelsSupervisor, DetectorsSupervisor}
   alias Andy.{ActuatorsSupervisor, Device}
 
   @name __MODULE__

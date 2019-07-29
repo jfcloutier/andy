@@ -21,10 +21,6 @@ defmodule Andy.GM.GenerativeModelDef do
             # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
             intentions: []
 
-  # level: 0, # from 0 to 1, how much the GM believes its named conjecture
-  #            generative_model_name: nil,
-  #            conjecture_name: nil,
-  #            parameter_values: %{}
   def initial_beliefs(gm_def) do
     Enum.reduce(
       gm_def.priors,
@@ -46,5 +42,13 @@ defmodule Andy.GM.GenerativeModelDef do
 
   def conjecture(%GenerativeModelDef{conjectures: conjectures}, name) do
     Enum.find(conjectures, &(&1.name == name))
+  end
+
+  def mutually_exclusive?(
+        %GenerativeModelDef{contradictions: contradictions},
+        conjecture_name,
+        other
+      ) do
+    Enum.any?(contradictions, &(conjecture_name in &1 and other in &1))
   end
 end

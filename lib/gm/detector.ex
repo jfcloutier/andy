@@ -9,6 +9,7 @@ defmodule Andy.GM.Detector do
   # It detect a value if not in refractory period and there's at least one received prediction.
   # For each received prediction, it notifies of a prediction error if the detected value
   # is not the one predicted.  It then removes the prediction and enters refractory period.
+  # A detector is its own conjecture (I assert that x is detected)
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([device, sense]) do
