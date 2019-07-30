@@ -7,27 +7,29 @@ defmodule Andy.GM.Belief do
             # GM name or detector name
             source: nil,
             # conjecture name if from a GM, else detector name is from a detector
-            name: nil,
+            conjecture_name: nil,
             # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
             about: nil,
-            # conjecture_parameter_name => value, or nil if disbelief
-            parameter_values: nil,
-            # TODO remove
-            level: nil
+            # value_name => value, or nil if disbelief
+            values: nil
 
   def new(
         source: source,
-        name: name,
+        conjecture_name: conjecture_name,
         about: about,
-        parameter_values: parameter_values
+        values: values
       ) do
     %Belief{
       id: UUID.uuid4(),
       source: source,
-      name: name,
+      conjecture_name: conjecture_name,
       about: about,
-      parameter_values: parameter_values
+      values: values
     }
+  end
+
+  def disbelief?(%Belief{values: values}) do
+    values == nil
   end
 
   @doc "Is this belief from a generative model?"

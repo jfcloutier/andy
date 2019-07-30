@@ -24,12 +24,12 @@ defmodule Andy.GM.PredictionError do
       }),
       do: source
 
-  def name(%PredictionError{
+  def conjecture_name(%PredictionError{
         belief: %Belief{
-          name: name
+          conjecture_name: conjecture_name
         }
       }),
-      do: name
+      do: conjecture_name
 
   def about(%PredictionError{
         belief: %Belief{
@@ -38,16 +38,10 @@ defmodule Andy.GM.PredictionError do
       }),
       do: about
 
-  def parameter_values(%PredictionError{
-        belief: %Belief{
-          parameter_values: parameter_values
-        }
-      }),
-      do: parameter_values
-
   def carry_overs(%PredictionError{carry_overs: carry_overs}), do: carry_overs
 
-  def prediction_conjecture_name(%PredictionError{prediction: %Prediction{name: name}}) do
-    name
+  # The name of the conjecture that incorrectly predicted the belief
+  def prediction_conjecture_name(%PredictionError{prediction: %Prediction{conjecture_name: conjecture_name}}) do
+    conjecture_name
   end
 end

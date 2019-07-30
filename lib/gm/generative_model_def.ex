@@ -26,13 +26,13 @@ defmodule Andy.GM.GenerativeModelDef do
       gm_def.priors,
       [],
       fn conjecture_name, acc ->
-        parameter_values = Map.get(gm_def.priors, conjecture_name)
+        values = Map.get(gm_def.priors, conjecture_name)
 
         [
           %Belief{
             source: {:gm, gm_def.name},
             about: conjecture_name,
-            parameter_values: parameter_values
+            values: values
           }
           | acc
         ]
@@ -40,8 +40,8 @@ defmodule Andy.GM.GenerativeModelDef do
     )
   end
 
-  def conjecture(%GenerativeModelDef{conjectures: conjectures}, name) do
-    Enum.find(conjectures, &(&1.name == name))
+  def conjecture(%GenerativeModelDef{conjectures: conjectures}, conjecture_name) do
+    Enum.find(conjectures, &(&1.name == conjecture_name))
   end
 
   def mutually_exclusive?(

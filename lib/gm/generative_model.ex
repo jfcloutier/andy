@@ -442,6 +442,7 @@ defmodule Andy.GM.GenerativeModel do
            ]
          } = state
        ) do
+    # No point processing events if no conjecture was activated, go straight to round completion without beliefs
     if conjecture_activations == [] do
       updated_round = %Round{round | beliefs: []}
 
@@ -547,27 +548,27 @@ defmodule Andy.GM.GenerativeModel do
   defp determine_beliefs(%State{rounds: [round | previous_rounds]} = state) do
     beliefs =
       conjecture_activations(state)
-      |> Enum.map(&create_belief(&1, state))
+      |> Enum.map(&create_belief_from_conjecture(&1, state))
 
     %State{state | rounds: [%Round{round | beliefs: beliefs} | previous_rounds]}
   end
 
-  defp create_belief(
+  defp create_belief_from_conjecture(
          %ConjectureActivation{
            conjecture_name: conjecture_name,
            about: about,
-           param_domains: param_domains
+           value_domains: value_domains
          } = conjecture_activation,
          %State{} = state
        ) do
     conjecture = activated_conjecture(conjecture_activation, state)
-    parameter_values = conjecture.validator.(about, param_domains, state)
+    values = conjecture.validator.(about, value_domains, state)
 
     Belief.new(
       source: gm_name(state),
-      name: conjecture_name,
+      conjecture_name: conjecture_name,
       about: about,
-      parameter_values: parameter_values
+      values: values
     )
   end
 
@@ -578,8 +579,8 @@ defmodule Andy.GM.GenerativeModel do
       Enum.reduce(
         predictions,
         [],
-        fn %Prediction{name: name, about: about} = prediction, acc ->
-          case Enum.find(beliefs, &(&1.name == name and &1.about == about)) do
+        fn %Prediction{conjecture_name: conjecture_name, about: about} = prediction, acc ->
+          case Enum.find(beliefs, &(&1.conjecture_name == conjecture_name and &1.about == about)) do
             # If no belief matches the received prediction, then there's a "no predicted belief" prediction error
             nil ->
               prediction_error = %PredictionError{
@@ -588,10 +589,10 @@ defmodule Andy.GM.GenerativeModel do
                 belief:
                   Belief.new(
                     source: gm_name(state),
-                    name: name,
+                    conjecture_name: conjecture_name,
                     about: about,
                     # nil -> not believed
-                    parameter_values: nil
+                    values: nil
                   )
               }
 
@@ -616,6 +617,7 @@ defmodule Andy.GM.GenerativeModel do
       )
 
     Enum.each(prediction_errors, &PubSub.notify({:prediction_error, &1}))
+    state
   end
 
   defp activated_conjectures(state) do
@@ -633,28 +635,29 @@ defmodule Andy.GM.GenerativeModel do
   defp activated_conjecture(%ConjectureActivation{conjecture_name: conjecture_name}, %State{
          gm_def: gm_def
        }) do
-    Enum.find(gm_def.conjectures, &(&1.name == conjecture_name))
+    Enum.find(gm_def.conjectures, &(&1.conjecture_name == conjecture_name))
   end
 
   defp prediction_error_size(
-         %Belief{parameter_values: parameter_values},
-         %Prediction{parameter_sub_domains: parameter_sub_domains}
+         %Belief{values: values},
+         %Prediction{value_distributions: value_distributions}
        ) do
-    compute_prediction_error_size(parameter_values, parameter_sub_domains)
+    compute_prediction_error_size(values, value_distributions)
   end
 
-  defp compute_prediction_error_size(nil, _parameter_sub_domains) do
+  # A "complete disbelief" has nil as parameter values
+  defp compute_prediction_error_size(nil, _value_distributions) do
     1.0
   end
 
-  defp compute_prediction_error_size(parameter_values, parameter_sub_domains) do
+  defp compute_prediction_error_size(values, value_distributions) do
     value_errors =
       Enum.reduce(
-        parameter_values,
+        values,
         [],
         fn {param_name, param_value}, acc ->
-          param_sub_domain = Map.get(parameter_sub_domains, param_name)
-          value_error = compute_value_error(param_value, param_sub_domain)
+          value_distribution = Map.get(value_distributions, param_name)
+          value_error = compute_value_error(param_value, value_distribution)
           [value_error | acc]
         end
       )
@@ -663,27 +666,29 @@ defmodule Andy.GM.GenerativeModel do
     Enum.reduce(value_errors, 0, &max(&1, &2))
   end
 
-  defp compute_value_error(_value, sub_domain) when sub_domain in [nil, []] do
+  # Any value is fine
+  defp compute_value_error(_value, value_distribution) when value_distribution in [nil, []] do
     0
   end
 
-  # Assuming a normal distribution over the parameter domain
+  # How well the believed numerical value fits with the predicted value
+  # when the value prediction is a normal distribution defined by a range
   defp compute_value_error(value, low..high = _range) when is_number(value) do
     mean = (low + high) / 2
-    std = (high - low) / 4
+    standard_deviation = (high - low) / 4
     delta = abs(mean - value)
 
     cond do
-      delta <= std ->
+      delta <= standard_deviation ->
         0
 
-      delta <= std * 1.5 ->
+      delta <= standard_deviation * 1.5 ->
         0.25
 
-      delta <= std * 2 ->
+      delta <= standard_deviation * 2 ->
         0.5
 
-      delta <= std * 3 ->
+      delta <= standard_deviation * 3 ->
         0.75
 
       true ->
@@ -699,8 +704,8 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
-  # Give more/less attention to competing contributors of perceptions as prediction errors based on the respective
-  # sizes of the errors.
+  # Give more/less attention to competing contributors of prediction errors based on the respective
+  # sizes of the errors (confirmation bias).
   # Temper by previous attention level.
   defp update_attention(
          %State{rounds: [%Round{perceptions: perceptions} = round | previous_rounds]} = state
@@ -711,26 +716,27 @@ defmodule Andy.GM.GenerativeModel do
 
     subjects =
       prediction_errors
-      |> Enum.map(&{Perception.name(&1), Perception.about(&1)})
+      |> Enum.map(&{Perception.conjecture_name(&1), Perception.about(&1)})
       |> Enum.uniq()
 
-    # The relative confidence levels in the sub-GMs who reported prediction errors, given that they may report
-    # on the same subject (i.e. conjecture and object of conjecture)
-    # %{sub_gm_name => [confidence_level_re_subject, ...]}
-    confidence_levels_per_sub_gm =
+    # The relative confidence levels in the sub-GMs and detectors (sources) who reported prediction errors,
+    # given that they may report on the same subject (i.e. conjecture and object of conjecture)
+    # %{source_name => [confidence_level_re_subject, ...]}
+    confidence_levels_per_source =
       Enum.reduce(
         subjects,
         %{},
         fn {conjecture_name, about}, acc ->
-          # Find competing perceptions for the same conjecture and object of the conjecture
+          # Find competing perceptions for the same conjecture (a GM has many conjectures, a detector is its own
+          # conjecture) and object of the conjecture
           competing_prediction_errors =
             Enum.filter(
               prediction_errors,
-              &(Perception.name(&1) == conjecture_name and Perception.about(&1) == about)
+              &(Perception.conjecture_name(&1) == conjecture_name and Perception.about(&1) == about)
             )
 
-          # Spread 1.0 worth of confidence among sources reporting prediction errors about the same subject
-          # [{gm_name, confidence}, ...]
+          # Spread 1.0 worth of confidence among sources (GMs and detectors) reporting prediction errors about the same
+          # subject [{source_name, confidence}, ...]
           relative_confidence_levels_per_subject =
             relative_confidence_levels(competing_prediction_errors)
 
@@ -748,15 +754,15 @@ defmodule Andy.GM.GenerativeModel do
 
     updated_attention =
       Enum.reduce(
-        confidence_levels_per_sub_gm,
+        confidence_levels_per_source,
         prior_attention,
-        fn {sub_gm_name, levels}, acc ->
+        fn {source_name, levels}, acc ->
           average_confidence = Enum.sum(levels) / Enum.count(levels)
 
-          updated_attention_for_gm =
-            (Map.get(prior_attention, sub_gm_name, 1.0) + average_confidence) / 2.0
+          updated_attention_for_source =
+            (Map.get(prior_attention, source_name, 1.0) + average_confidence) / 2.0
 
-          Map.put(acc, sub_gm_name, updated_attention_for_gm)
+          Map.put(acc, source_name, updated_attention_for_source)
         end
       )
 
@@ -817,14 +823,14 @@ defmodule Andy.GM.GenerativeModel do
         perceptions,
         {[], []},
         fn perception, {retained, considered} = _acc ->
-          [one | others] =
+          [most_trusted_one | others] =
             Enum.filter(perceptions, &Perception.same_subject?(&1, perception))
             |> Enum.sort(&(trust_in(&1, state) >= trust_in(&2, state)))
 
-          if Enum.any?([one | others], &(&1 in retained or &1 in considered)) do
-            {retained, Enum.uniq(considered ++ [one | others])}
+          if Enum.any?([most_trusted_one | others], &(&1 in retained or &1 in considered)) do
+            {retained, Enum.uniq(considered ++ [most_trusted_one | others])}
           else
-            {[one | retained], Enum.uniq(considered ++ [one | others])}
+            {[most_trusted_one | retained], Enum.uniq(considered ++ [most_trusted_one | others])}
           end
         end
       )
@@ -846,8 +852,9 @@ defmodule Andy.GM.GenerativeModel do
     Map.get(attention, Perception.source(prediction_error), 1.0)
   end
 
-  # A CoA's efficacy goes up when correlated to realized beliefs (levels > 0.5) from the same conjecture that prompted it.
-  # The closer the validated belief follows the execution of a CoA meant to validate it, the higher the correlation
+  # A CoA's efficacy goes up when beliefs validate the conjecture which originated the CoA.
+  # A belief validates its associated conjecture if parameters values are not nil.
+  # The closer the belief follows the execution of a CoA meant to cause it, the higher the correlation.
   defp update_efficacies(
          %State{
            # %{conjecture_name: [efficacy, ...]}
@@ -865,41 +872,40 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | efficacies: updated_efficacies}
   end
 
-  # TODO - No more belief levels
   # Update efficacies given a new belief
   defp update_efficacies_from_belief(
          %Belief{
            # conjecture name
-           name: name,
-           level: level
-         },
+           conjecture_name: conjecture_name
+         } = belief,
          efficacies,
          rounds
        ) do
-    updated_conjecture_efficacies =
-      Map.get(efficacies, name)
-      |> revise_conjecture_efficacies(level, rounds)
+    believed? = if Belief.disbelief?(belief), do: false, else: true
 
-    Map.put(efficacies, name, updated_conjecture_efficacies)
+    updated_conjecture_efficacies =
+      Map.get(efficacies, conjecture_name)
+      |> revise_conjecture_efficacies(believed?, rounds)
+
+    Map.put(efficacies, conjecture_name, updated_conjecture_efficacies)
   end
 
-  # Revise the efficacies of CoAs executed in all rounds and prompted by a conjecture about the new belief, given its level.
-  defp revise_conjecture_efficacies(conjecture_efficacies, new_belief_level, rounds) do
+  # Revise the efficacies of CoAs executed in all rounds and prompted by a conjecture given that it is believed or not.
+  defp revise_conjecture_efficacies(conjecture_efficacies, believed?, rounds) do
     Enum.reduce(
       conjecture_efficacies,
       [],
       fn %Efficacy{course_of_action: course_of_action, degree: degree} = efficacy, acc ->
-        updated_degree =
-          update_efficacy_degree(course_of_action, new_belief_level, degree, rounds)
+        updated_degree = update_efficacy_degree(course_of_action, believed?, degree, rounds)
 
         [%Efficacy{efficacy | degree: updated_degree} | acc]
       end
     )
   end
 
-  # Update the degree of efficacy of a CoA in achieving the current belief level
+  # Update the degree of efficacy of a CoA in achieving belief
   # across all (remembered) rounds where it was executed
-  defp update_efficacy_degree(course_of_action, belief_level, degree, rounds) do
+  defp update_efficacy_degree(course_of_action, believed?, degree, rounds) do
     number_of_rounds = Enum.count(rounds)
 
     indices_of_rounds_with_coa =
@@ -928,6 +934,7 @@ defmodule Andy.GM.GenerativeModel do
       )
       |> normalize_values()
 
+    belief_level = if believed?, do: 1.0, else: 0.0
     # Use the maximum impact on belief by an CoA from this round or a previous round
     max_impact = Enum.max(impacts_on_belief, fn -> 0 end)
     current_degree = belief_level * max_impact
@@ -1138,14 +1145,6 @@ defmodule Andy.GM.GenerativeModel do
 
   defp add_new_round(%State{rounds: rounds} = state) do
     %State{state | rounds: [Round.new() | rounds]}
-  end
-
-  # Was the conjecture believed in the previous round?
-  defp conjecture_was_believed?(
-         %ConjectureActivation{conjecture_name: conjecture_name},
-         %State{rounds: [_round, previous_round | _]}
-       ) do
-    Enum.any?(previous_round.beliefs, &(&1.about == conjecture_name and &1.level >= 0.5))
   end
 
   defp random_permutation([]) do

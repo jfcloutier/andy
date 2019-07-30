@@ -11,7 +11,7 @@ defmodule Andy.GM.ConjectureActivation do
             # but about two different subjects
             about: nil,
             # the values the conjecture's parameters are expected to have given what a GM knows
-            param_domains: %{},
+            value_domains: %{},
             # whether the conjecture activation is a goal to be achieved
             goal?: false
 

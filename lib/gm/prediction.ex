@@ -16,25 +16,21 @@ defmodule Andy.GM.Prediction do
 
   # The name of the GM which made the prediction;
   defstruct source: nil,
-            #  the name of a conjecture of a sub-GM, or a detector name
-            name: nil,
+            #  the name of a conjecture of a sub-GM, or a detector name (a detector implies a conjecture)
+            conjecture_name: nil,
             # what the predicted belief is about, e.g. "robot1"
             about: nil,
             # number of times it was carried over from a previous round
             carry_overs: 0,
-            # parameter_name => domain - the expected range of values for the predicted belief
-            # TODO - rename value estimates
-            parameter_sub_domains: %{}
+            # belief value name => predicted value distribution - the expected range of values for the predicted belief
+            value_distributions: %{}
 
   # Perception behaviour
 
   def source(%Prediction{source: source}), do: source
-  def name(%Prediction{name: name}), do: name
+  def conjecture_name(%Prediction{conjecture_name: conjecture_name}), do: conjecture_name
   def about(%Prediction{about: about}), do: about
   def carry_overs(%Prediction{carry_overs: carry_overs}), do: carry_overs
-  # TODO - get most expected value
-  def parameter_values(%Prediction{parameter_sub_domains: parameter_sub_domains}),
-    do: parameter_sub_domains
 
   def prediction_conjecture_name(prediction) do
     source(prediction)

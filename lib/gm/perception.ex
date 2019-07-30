@@ -4,14 +4,13 @@ defmodule Andy.GM.Perception do
   alias Andy.GM.{PredictionError, Prediction, Perception}
 
   @callback source(perception :: any) :: String.t()
-  @callback name(perception :: any) :: String.t()
+  @callback conjecture_name(perception :: any) :: String.t()
   @callback about(perception :: any) :: any
   @callback carry_overs(perception :: any) :: non_neg_integer
-  @callback parameter_values(perception :: any) :: map
   @callback prediction_conjecture_name(perception :: any) :: String.t()
 
   def same_subject?(perception, other) do
-    name(perception) == name(other) and
+    conjecture_name(perception) == conjecture_name(other) and
       about(perception) == about(other)
   end
 
@@ -20,9 +19,9 @@ defmodule Andy.GM.Perception do
     apply(module, :source, [])
   end
 
-  def name(perception) do
+  def conjecture_name(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :name, [])
+    apply(module, :conjecture_name, [])
   end
 
   def about(perception) do
@@ -33,11 +32,6 @@ defmodule Andy.GM.Perception do
   def carry_overs(perception) do
     module = Map.get(perception, :__struct__)
     apply(module, :carry_overs, [])
-  end
-
-  def parameter_values(perception) do
-    module = Map.get(perception, :__struct__)
-    apply(module, :parameter_values, [])
   end
 
   def prediction_conjecture_name(perception) do
