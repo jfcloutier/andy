@@ -28,8 +28,8 @@ defmodule Andy.GM.Belief do
     }
   end
 
-  def disbelief?(%Belief{values: values}) do
-    values == nil
+  def believed?(%Belief{values: values}) do
+    values != nil
   end
 
   @doc "Is this belief from a generative model?"

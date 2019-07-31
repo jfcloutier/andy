@@ -19,7 +19,8 @@ defmodule Andy.GM.GenerativeModelDef do
             # Candidate intentions that, when executed individually or in sequences, could validate a conjecture.
             # Intentions are taken either to achieve a goal (to believe in a goal conjecture)
             # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
-            intentions: []
+            # intention_name => intention
+            intentions: %{}
 
   def initial_beliefs(gm_def) do
     Enum.reduce(
@@ -50,5 +51,9 @@ defmodule Andy.GM.GenerativeModelDef do
         other
       ) do
     Enum.any?(contradictions, &(conjecture_name in &1 and other in &1))
+  end
+
+  def intention(%GenerativeModelDef{intentions: intentions}, intention_name) do
+    Map.get(intentions, intention_name)
   end
 end
