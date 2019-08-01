@@ -42,4 +42,14 @@ defmodule Andy.GM.ConjectureActivation do
       ) do
     false
   end
+
+  @doc "The subject of the conjecture activation, namely the name of the conjecture activated
+  and the object of the activation (e.g. robot1)"
+  def subject(%ConjectureActivation{conjecture_name: conjecture_name, about: about}) do
+    {conjecture_name, about}
+  end
+
+  def goal?(%ConjectureActivation{goal?: goal?}) do
+    goal?
+  end
 end
