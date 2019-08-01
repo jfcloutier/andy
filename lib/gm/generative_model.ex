@@ -4,17 +4,18 @@ defmodule Andy.GM.GenerativeModel do
   # Round start:
   #           - Start timer on round timeout
   #           - Copy over all the perceptions from the previous round that have not already been copied too often
-  #             (prediction errors from sub-GMs and detectors
-  #             and predictions made by GM not contradicted by prediction errors)
+  #             (a GM's perceptions are prediction errors from sub-GMs and detectors,
+  #             and predictions made by the GM that are not contradicted by prediction errors)
   #           - Copy over all the received predictions from the previous round that have not already been copied
   #             too often
-  #           - Carry over beliefs from the previous round
-  #           - Activate conjectures (as goals or not, avoiding mutual exclusions)
-  #             given previous received predictions and perceptions
-  #             - Remove prior perceptions from conjectures mutually excluded by activated conjectures
-  #           - Make predictions about perceptions in this round, given conjecture activations and carried-over
-  #             beliefs and perceptions
-  #           - Report predictions
+  #           - Carry over beliefs from the previous round (they will be replaced upon completing this round
+  #             by new beliefs)
+  #           - Activate conjectures (as goals or not, avoiding mutual exclusions) given current and previous beliefs
+  #           - Remove prior perceptions that are attributable to conjectures that are mutually exclusive of this
+  #             round's conjecture activations
+  #           - Make predictions about perceptions in this round, from the conjecture activations given carried-over
+  #             beliefs and perceptions. Add them to perceptions, replacing obsoleted perceptions.
+  #           - Report these predictions
   #               - Sub-GMs accumulate received predictions (may lead to them producing prediction errors)
   #               - Any detectors that could directly verify a prediction is triggered
 
@@ -24,12 +25,14 @@ defmodule Andy.GM.GenerativeModel do
   #           - Receive inactive round notifications from sub-GMs; mark them reported-in
   #                 - Check if round ready for completion (all attended-to sub-GMs reported in). If so complete it.
   #           - Receive predictions from super-GMs and replace overridden received predictions
-  #             (overridden if same subject and same source)
-  #           - Receive prediction errors as perceptions and replaces overridden prediction errors
+  #             (overridden if the have the same subject - conjecture name and object it is about -
+  #             and are from the same GM)
+  #           - Receive prediction errors as perceptions and replaces overridden prediction errors and predictions
   #             (overridden if same subject and same source)
   #           - Receive round completion notifications from sub-GMs; mark them reported-in
   #                 - Check if round ready for completion (all attended-to sub-GMs reported in). If so complete it.
-  # Round completion (all sub-gms have reported in or the round has timed out):
+  #
+  # Round completion (no conjecture was activated, or all sub-GMs have reported in, or the round has timed out):
   #           - Update attention paid to sub-GMs given prediction errors from competing sources of perceptions
   #               - Reduce attention to the competing sub-GMs that deviate more from a given prediction (confirmation bias)
   #               - Increase attention to the sub-GMs that deviate the least or have no competitor
@@ -37,14 +40,14 @@ defmodule Andy.GM.GenerativeModel do
   #               - A GM retains one effective perception about something
   #                (e.g. can't perceive two distances to a wall)
   #           - Compute the new GM's beliefs for each activated conjecture given GM's present and past rounds,
-  #             and determine if they are prediction errors (i.e. contradict or are misaligned with received predictions)
+  #             and determine if they are prediction errors (i.e. beliefs that contradict or are misaligned with
+  #             received predictions). The new beliefs replace all beliefs carried over form the previous round.
   #           - Report the prediction errors
-  #           - Update course of action efficacies given current beliefs
-  #             (re-evaluate what courses of action seem to work best)
-  #           - Choose courses of action to
-  #               - promote beliefs in activated, goal conjectures,
-  #               - confirm held beliefs in, activated, non-goal conjectures
-  #           - Execute the chosen courses of action
+  #           - Update course of action efficacies given current belief (i.e. re-evaluate what courses of action
+  #             seem to work best)
+  #           - Choose a course of action for each conjecture activation, influenced by historical efficacy, to
+  #             hopefully make belief in the activated conjecture true or keep it true in the next round
+  #           - Execute the chosen courses of action by reporting each one's sequence of intentions
   #           - Mark round completed and report completion
   #           - Drop obsolete rounds
   #           - Add new round and start it
@@ -130,7 +133,6 @@ defmodule Andy.GM.GenerativeModel do
         ) do
       coa_conjecture_name == conjecture_name and coa_intention_names == intention_names
     end
-
   end
 
   defmodule Efficacy do
@@ -144,6 +146,7 @@ defmodule Andy.GM.GenerativeModel do
     defstruct degree: 0,
               # the subject of course of action
               conjecture_activation_subject: nil,
+              # TODO - add when_already_believed? property -> efficacy of type of CoA when conjecture was already believed vs not
               # the intentions of a course of action
               intention_names: []
   end
@@ -392,7 +395,7 @@ defmodule Andy.GM.GenerativeModel do
       |> List.flatten()
       |> random_permutation()
       # Pull goals in front so they are the ones excluding others for being mutually exclusive
-      |> Enum.sort(fn(ca1, _ca2) -> ConjectureActivation.goal?(ca1) end)
+      |> Enum.sort(fn ca1, _ca2 -> ConjectureActivation.goal?(ca1) end)
 
     conjecture_activations =
       Enum.reduce(
@@ -558,6 +561,11 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Compute new beliefs from active conjectures given current state of the GM
+  # TODO - if no prediction from a conjecture activation was replaced by
+  #        a prediction error, then the activated conjecture is immediately believed with
+  #        the most likely conjectured values as the belief's values.
+  #        Otherwise, belief (or disbelief) in the activated conjecture is computed
+  #        given its unchallenged predictions and the relevant prediction errors
   defp determine_beliefs(%State{rounds: [round | previous_rounds]} = state) do
     beliefs =
       conjecture_activations(state)
@@ -990,6 +998,8 @@ defmodule Andy.GM.GenerativeModel do
 
   # For each active conjecture, choose a CoA from the conjecture's CoA domain, favoring efficacy
   # and shortness. Only look at longer CoAs if efficacy of shorter CoAs disappoints.
+  # TODO - Set no CoA for a goal conjecture that has been achieved (the conjecture is believed)
+  #
   defp set_courses_of_action(
          %State{
            rounds: [
@@ -1017,8 +1027,7 @@ defmodule Andy.GM.GenerativeModel do
             Enum.uniq([course_of_action | coas]),
             Map.put(indices, conjecture_activation_subject, maybe_updated_coa_index),
             if(new_coa?,
-              do:
-                update_efficacies_with_new_coa(efficacies_acc, course_of_action),
+              do: update_efficacies_with_new_coa(efficacies_acc, course_of_action),
               else: efficacies_acc
             )
           }
@@ -1046,6 +1055,7 @@ defmodule Andy.GM.GenerativeModel do
          } = state
        ) do
     conjecture_activation_subject = ConjectureActivation.subject(conjecture_activation)
+
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
     coa_index = Map.get(courses_of_action_indices, conjecture_activation_subject, 0)
 
@@ -1164,15 +1174,20 @@ defmodule Andy.GM.GenerativeModel do
     coa
   end
 
-  defp update_efficacies_with_new_coa(efficacies,
-         %CourseOfAction{conjecture_activation: conjecture_activation}) do
+  defp update_efficacies_with_new_coa(
+         efficacies,
+         %CourseOfAction{conjecture_activation: conjecture_activation}
+       ) do
     conjecture_activation_subject = ConjectureActivation.subject(conjecture_activation)
+
     Map.put(
       efficacies,
       conjecture_activation_subject,
       [
-        %Efficacy{conjecture_activation_subject: ConjectureActivation.subject(conjecture_activation),
-          degree: 0}
+        %Efficacy{
+          conjecture_activation_subject: ConjectureActivation.subject(conjecture_activation),
+          degree: 0
+        }
         | Map.get(efficacies, conjecture_activation_subject, [])
       ]
     )

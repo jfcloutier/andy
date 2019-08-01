@@ -10,7 +10,7 @@ defmodule Andy.GM.ConjectureActivation do
             # e.g. "robot1" vs "robot2"; two conjecture activations can be the same kind of conjecture
             # but about two different subjects
             about: nil,
-            # the values the conjecture's parameters are expected to have given what a GM knows
+            # the values a belief in the activated conjecture are expected to take on round completion
             value_domains: %{},
             # whether the conjecture activation is a goal to be achieved
             goal?: false

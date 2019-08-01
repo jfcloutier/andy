@@ -20,6 +20,7 @@ defmodule Andy.GM.GenerativeModelDef do
             # Intentions are taken either to achieve a goal (to believe in a goal conjecture)
             # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
             # intention_name => intention
+            # Should always include a do-nothing intention
             intentions: %{}
 
   def initial_beliefs(gm_def) do

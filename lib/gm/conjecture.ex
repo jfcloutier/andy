@@ -5,6 +5,7 @@ defmodule Andy.GM.Conjecture do
 
   defstruct name: nil,
             # A function on a GM's rounds that activates a conjecture for the next round,
+            # typically based on current and past beliefs,
             # setting the expected domain value ranges and possibly making it a goal.
             # fn(conjecture, state) => [conjecture_activation] - can be empty
             activator: nil,
