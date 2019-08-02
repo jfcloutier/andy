@@ -619,8 +619,8 @@ defmodule Andy.GM.GenerativeModel do
 
               [prediction_error | acc]
 
-            belief ->
-              size = prediction_error_size(belief, prediction)
+            %Belief{values: values} = belief ->
+              size = Prediction.prediction_error_size(prediction, values)
 
               if size > 0.0 do
                 prediction_error = %PredictionError{
@@ -652,86 +652,6 @@ defmodule Andy.GM.GenerativeModel do
          gm_def: gm_def
        }) do
     Enum.find(gm_def.conjectures, &(&1.conjecture_name == conjecture_name))
-  end
-
-  defp prediction_error_size(
-         %Belief{values: values},
-         %Prediction{value_distributions: value_distributions}
-       ) do
-    compute_prediction_error_size(values, value_distributions)
-  end
-
-  # A "complete disbelief" has nil as parameter values
-  defp compute_prediction_error_size(nil, _value_distributions) do
-    1.0
-  end
-
-  defp compute_prediction_error_size(values, value_distributions) do
-    value_errors =
-      Enum.reduce(
-        values,
-        [],
-        fn {param_name, param_value}, acc ->
-          value_distribution = Map.get(value_distributions, param_name)
-          value_error = compute_value_error(param_value, value_distribution)
-          [value_error | acc]
-        end
-      )
-
-    # Retain the maximum value error
-    Enum.reduce(value_errors, 0, &max(&1, &2))
-  end
-
-  # Any value is fine
-  defp compute_value_error(_value, value_distribution) when value_distribution in [nil, []] do
-    0
-  end
-
-  # How well the believed numerical value fits with the predicted value
-  # when the value prediction is a normal distribution defined by a range
-  defp compute_value_error(value, low..high = _range) when is_number(value) do
-    mean = (low + high) / 2
-    standard_deviation = (high - low) / 4
-    delta = abs(mean - value)
-
-    cond do
-      delta <= standard_deviation ->
-        0
-
-      delta <= standard_deviation * 1.5 ->
-        0.25
-
-      delta <= standard_deviation * 2 ->
-        0.5
-
-      delta <= standard_deviation * 3 ->
-        0.75
-
-      true ->
-        1.0
-    end
-  end
-
-  # Most expected values at head of the list, least expected value at tail
-  defp compute_value_error(value, list) when is_list(list) do
-    index = Enum.find_index(list, &(value in &1))
-
-    cond do
-      index == 0 ->
-        0
-
-      index == 1 ->
-        0.25
-
-      index == 2 ->
-        0.5
-
-      index == 3 ->
-        0.75
-
-      true ->
-        1.0
-    end
   end
 
   # Give more/less attention to competing contributors of prediction errors based on the respective
