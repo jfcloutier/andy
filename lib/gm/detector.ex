@@ -5,11 +5,12 @@ defmodule Andy.GM.Detector do
   import Andy.Utils, only: [listen_to_events: 2]
   require Logger
 
-  # TODO - A detector receives predictions from GMs.
-  # It detect a value if not in refractory period and there's at least one received prediction.
-  # For each received prediction, it notifies of a prediction error if the detected value
-  # is not the one predicted.  It then removes the prediction and enters refractory period.
-  # A detector is its own conjecture (I assert that x is detected)
+  # A detector receives predictions from GMs.
+  # Upon receiving a prediction it can validate, the detector
+  #    - reads a value if not in refractory period else uses the last read value
+  #    - compares the detected value with the prediction
+  #    - if the value contradicts the prediction, reports a prediction error
+  # A detector named X is its own conjecture; its asserts that X for object Y is detected
 
   @doc "Child spec asked by DynamicSupervisor"
   def child_spec([device, sense]) do

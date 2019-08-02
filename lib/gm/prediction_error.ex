@@ -44,4 +44,7 @@ defmodule Andy.GM.PredictionError do
   def prediction_conjecture_name(%PredictionError{prediction: %Prediction{conjecture_name: conjecture_name}}) do
     conjecture_name
   end
+
+  def values(%PredictionError{belief: %Belief{values: values}}), do: values
+
 end

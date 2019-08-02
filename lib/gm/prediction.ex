@@ -22,7 +22,10 @@ defmodule Andy.GM.Prediction do
             about: nil,
             # number of times it was carried over from a previous round
             carry_overs: 0,
-            # belief value name => predicted value distribution - the expected range of values for the predicted belief
+            # belief value name => predicted value distribution - the expected values for the predicted belief
+            # Either a range representing a normal distribution
+            # or a list of lists of values, where the first list represent the most expected values
+            # and the tail of the list represent the least expected values
             value_distributions: %{}
 
   # Perception behaviour
@@ -35,4 +38,19 @@ defmodule Andy.GM.Prediction do
   def prediction_conjecture_name(prediction) do
     source(prediction)
   end
+
+  def values(%Prediction{value_distributions: value_distributions}) do
+    for {key, value_distribution} <- value_distributions, into: %{} do
+      {key, expected_value(value_distribution)}
+    end
+  end
+
+  defp expected_value(low..high) do
+    (high - low) / 2
+  end
+
+  defp expected_value([firsts | _])  do
+    Enum.random(firsts)
+  end
+
 end

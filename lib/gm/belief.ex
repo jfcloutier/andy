@@ -32,6 +32,10 @@ defmodule Andy.GM.Belief do
     values != nil
   end
 
+  def subject(%Belief{conjecture_name: conjecture_name, about: about}) do
+    {conjecture_name, about}
+  end
+
   @doc "Is this belief from a generative model?"
   def from_generative_model?(%Belief{source: source}) do
     source not in [:detector, :prediction]

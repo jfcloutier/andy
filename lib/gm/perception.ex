@@ -8,6 +8,7 @@ defmodule Andy.GM.Perception do
   @callback about(perception :: any) :: any
   @callback carry_overs(perception :: any) :: non_neg_integer
   @callback prediction_conjecture_name(perception :: any) :: String.t()
+  @callback values(perception :: any) :: map
 
   def same_subject?(perception, other) do
     conjecture_name(perception) == conjecture_name(other) and
@@ -37,6 +38,11 @@ defmodule Andy.GM.Perception do
   def prediction_conjecture_name(perception) do
     module = Map.get(perception, :__struct__)
     apply(module, :prediction_conjecture_name, [])
+  end
+
+  def values(perception) do
+    module = Map.get(perception, :__struct__)
+    apply(module, :values, [])
   end
 
   def prediction_error?(perception) do
