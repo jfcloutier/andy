@@ -8,49 +8,48 @@ defmodule Andy.GM.GenerativeModel do
   #             and predictions made by the GM that are not contradicted by prediction errors)
   #           - Copy over all the received predictions from the previous round that have not already been copied
   #             too often
-  #           - Carry over beliefs from the previous round (they will be replaced upon completing this round
+  #           - Carry over beliefs from the previous round (they will all be replaced upon completing this round
   #             by new beliefs)
   #           - Activate conjectures (as goals or not, avoiding mutual exclusions) given current and previous beliefs
   #           - Remove prior perceptions that are attributable to conjectures that are mutually exclusive of this
   #             round's conjecture activations
-  #           - Make predictions about perceptions in this round, from the conjecture activations given carried-over
+  #           - Make predictions about perceptions in this round from the conjecture activations, given carried-over
   #             beliefs and perceptions. Add them to perceptions, replacing obsoleted perceptions.
   #           - Report these predictions
-  #               - Sub-GMs accumulate received predictions (may lead to them producing prediction errors)
-  #               - Any detectors that could directly verify a prediction is triggered
-
+  #               - Sub-GMs accumulate them as received predictions (may lead to them producing prediction errors)
+  #               - Any detector that could directly verify a prediction is triggered
   #           - If there is no conjecture activation for this round, remove the carried-over beliefs
   #           - and complete the round right away
-  # During round:
-  #           - Receive inactive round notifications from sub-GMs; mark them reported-in
-  #                 - Check if round ready for completion (all attended-to sub-GMs reported in). If so complete it.
+  #
+  # During round (until complete):
+  #           - Receive inactive round and completed round notifications from sub-GMs; mark them as reported-in
+  #             (i.e. they made their contributions to this round)
+  #                 - Check if the round ready for completion (all attended-to sub-GMs reported in). If so complete it.
   #           - Receive predictions from super-GMs and replace overridden received predictions
   #             (overridden if the have the same subject - conjecture name and object it is about -
   #             and are from the same GM)
-  #           - Receive prediction errors as perceptions and replaces overridden prediction errors and predictions
-  #             (overridden if same subject and same source)
-  #           - Receive round completion notifications from sub-GMs; mark them reported-in
-  #                 - Check if round ready for completion (all attended-to sub-GMs reported in). If so complete it.
+  #           - Receive prediction errors from sub-GMs and detectors as perceptions and replace overridden perceptions
+  #             (a prediction error overrides the prediction it corrects)
   #
-  # Round completion (no conjecture was activated, or all sub-GMs have reported in, or the round has timed out):
+  # Round completion (no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting):
   #           - Update attention paid to sub-GMs given prediction errors from competing sources of perceptions
-  #               - Reduce attention to the competing sub-GMs that deviate more from a given prediction (confirmation bias)
-  #               - Increase attention to the sub-GMs that deviate the least or have no competitor
+  #               - Reduce attention to the competing sub-GMs that deviate more from a given prediction
+  #                 (confirmation bias)
+  #               - Increase attention to the sub-GMs that deviate the least or have no competitor # TODO - verify
   #           - When two perceptions are about the same thing, retain only the more trustworthy
-  #               - A GM retains one effective perception about something
-  #                (e.g. can't perceive two distances to a wall)
+  #               - A GM retains one effective perception about something (e.g. can't perceive two distances to a wall)
   #           - Compute the new GM's beliefs for each activated conjecture given GM's present and past rounds,
   #             and determine if they are prediction errors (i.e. beliefs that contradict or are misaligned with
-  #             received predictions). The new beliefs replace all beliefs carried over form the previous round.
+  #             received predictions). The new beliefs replace all beliefs carried over from the previous round.
   #           - Report the prediction errors
-  #           - Update course of action efficacies given current belief (i.e. re-evaluate what courses of action
-  #             seem to work best)
+  #           - Update course of action efficacies given current belief (i.e. re-evaluate what past courses of action
+  #             seem to have worked best to achieve a belief or to maintain it)
   #           - Choose a course of action for each conjecture activation, influenced by historical efficacy, to
   #             hopefully make belief in the activated conjecture true or keep it true in the next round
-  #           - Execute the chosen courses of action by reporting each one's sequence of intentions
+  #           - Execute the chosen courses of action by reporting valued intents from each one's sequence of intentions
   #           - Mark round completed and report completion
-  #           - Drop obsolete rounds
-  #           - Add new round and start it
+  #           - Drop obsolete rounds (from too distant past)
+  #           - Add a new round and start it
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 2, now: 0]

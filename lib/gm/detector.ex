@@ -5,20 +5,21 @@ defmodule Andy.GM.Detector do
   import Andy.Utils, only: [listen_to_events: 2, now: 0, platform_dispatch: 2]
   require Logger
 
-  # half a second
+  # wait at least half a second to read a new value
   @refractory_interval 500
 
   # A detector receives predictions from GMs.
   # Upon receiving a prediction it can validate, the detector
   #    - reads a value if not in refractory period else uses the last read value
-  #    - compares the detected value with the prediction
+  #    - compares the detected value with the prediction (value_distributions = %{detected: distribution})
   #    - if the value contradicts the prediction, reports a prediction error
-  # A detector named X is its own conjecture; its asserts that X for object Y is detected
+  # A detector named X is its own conjecture; it asserts that X for a given object Y is detected
 
   defmodule State do
     defstruct name: nil,
               device: nil,
               sense: nil,
+              # %{about => read}
               previous_reads: %{}
   end
 
