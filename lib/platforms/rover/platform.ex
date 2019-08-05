@@ -43,6 +43,10 @@ defmodule Andy.Rover.Platform do
     Andy.Rover.Actuation.actuator_configs()
   end
 
+  def cognition do
+    Andy.GM.Profiles.Rover.cognition()
+  end
+
   @doc "The device mode for the platform"
   def device_mode(device_type) do
     case device_type do

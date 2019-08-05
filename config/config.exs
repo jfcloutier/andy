@@ -42,10 +42,14 @@ config :andy,
     "rover" => Andy.Rover.Platform,
     "hub" => Andy.Hub.Platform
   },
+#  profiles: %{
+#    "puppy" => Andy.Puppy.Profile,
+#    "mommy" => Andy.Mommy.Profile
+#  },
   profiles: %{
-    "puppy" => Andy.Puppy.Profile,
-    "mommy" => Andy.Mommy.Profile
+    "puppy" => Andy.GM.Puppy.Profile
   },
+
   tick_interval: 1500,
   max_percept_age: 1500,
   max_intent_age: 1500,

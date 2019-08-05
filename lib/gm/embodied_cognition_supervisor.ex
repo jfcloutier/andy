@@ -69,7 +69,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   defp start_generative_models() do
     Logger.info("Starting generative models")
 
-    Andy.cognition_def()
+    Andy.cognition()
     |> Cognition.gm_defs_with_family()
     |> Enum.each(&GenerativeModelsSupervisor.start_generative_model(&1))
   end

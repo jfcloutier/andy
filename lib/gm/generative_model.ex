@@ -35,7 +35,7 @@ defmodule Andy.GM.GenerativeModel do
   #           - Update attention paid to sub-GMs given prediction errors from competing sources of perceptions
   #               - Reduce attention to the competing sub-GMs that deviate more from a given prediction
   #                 (confirmation bias)
-  #               - Increase attention to the sub-GMs that deviate the least or have no competitor # TODO - verify
+  #               - Increase attention to the sub-GMs that deviate the least or have no competitor
   #           - When two perceptions are about the same thing, retain only the more trustworthy
   #               - A GM retains one effective perception about something (e.g. can't perceive two distances to a wall)
   #           - Compute the new GM's beliefs for each activated conjecture given GM's present and past rounds,
@@ -93,17 +93,19 @@ defmodule Andy.GM.GenerativeModel do
               completed_on: nil,
               # attention currently given to sub-GMs and detectors => float from 0 to 1 (complete attention)
               attention: %{},
-              # Conjecture activations, some of which can be goals. One conjecture can lead to multiple activations.
+              # Conjecture activations, some of which can be goals. One conjecture can lead to multiple activations,
+              # each about a different object
               conjecture_activations: [],
-              # names of sub-believer GMs that reported a completed round
+              # names of sub-GMs that reported a completed round
               reported_in: [],
               # Uncontested predictions made by the GM and prediction errors from sub-GMs and detectors
               perceptions: [],
-              # [prediction, ...] predictions reported by super-GMs about this GM's beliefs
+              # [prediction, ...] predictions reported by super-GMs about this GM's next beliefs
               received_predictions: [],
-              # beliefs in this GM conjecture activations given perceptions
+              # beliefs in this GM conjecture activations given perceptions (own predictions and prediction errors
+              # from sub-GMs and detectors)
               beliefs: [],
-              # [course_of_action, ...] - courses of action (to be) taken to achieve goals or shore up beliefs
+              # [course_of_action, ...] - courses of action (to be) taken to achieve goals and/or shore up beliefs
               courses_of_action: []
 
     def new() do
@@ -116,8 +118,8 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defmodule CourseOfAction do
-    @moduledoc "A course of action is a sequence of Intents meant to be realized in an attempt to validate
-    some activation of a named conjecture"
+    @moduledoc "A course of action is a sequence of named Intentions meant to be realized as Intents in an attempt
+    to validate some activation of a conjecture"
 
     defstruct conjecture_activation: nil,
               intention_names: []
@@ -137,9 +139,8 @@ defmodule Andy.GM.GenerativeModel do
   defmodule Efficacy do
     @moduledoc "The historical efficacy of a type of course of action to validate a conjecture.
     Efficacy is a measure of the correlation between taking a type of course of action and a conjecture
-    about some object being believed, depending on whether the activated conjecture was already believed or not
-    at the time of the execution of the CoA (i.e. efficacy in maintaining vs realizing a belief).
-    Correlation is gauged by the proximity of the CoA to a later round where the conjecture is believed.
+    about some object becoming believed or staying believed.
+    Correlation is gauged by the proximity of the CoA's round to a later round where the conjecture is believed.
     Updates in degrees of efficacy are tempered by prior values."
 
     # degree of efficacy, float from 0 to 1.0
@@ -148,7 +149,7 @@ defmodule Andy.GM.GenerativeModel do
               conjecture_activation_subject: nil,
               # the names of the sequence of intentions of a course of action
               intention_names: [],
-              # efficacy for when a conjecture activation was believed (vs not) at the time of its execution
+              # whether efficacy is for when a conjecture activation was believed (vs not) at the time of its execution
               when_already_believed?: false
   end
 
@@ -160,7 +161,7 @@ defmodule Andy.GM.GenerativeModel do
     }
   end
 
-  @doc "Start the memory server"
+  @doc "Start the generative model"
   def start_link(gm_def, super_gm_names, sub_gm_names) do
     name = gm_def.name
     Logger.info("Starting Generative Model #{name}")
@@ -660,7 +661,6 @@ defmodule Andy.GM.GenerativeModel do
          %State{rounds: [%Round{perceptions: perceptions} = round | previous_rounds]} = state
        ) do
     prior_attention = previous_attention(state)
-    # [{conjecture_name, object_of_conjecture}, ...]
     prediction_errors = Enum.filter(perceptions, &Perception.prediction_error?(&1))
 
     subjects =
@@ -669,7 +669,7 @@ defmodule Andy.GM.GenerativeModel do
       |> Enum.uniq()
 
     # The relative confidence levels in the sub-GMs and detectors (sources) who reported prediction errors,
-    # given that they may report on the same subject (i.e. conjecture and object of conjecture)
+    # given that they may report on the same subject (i.e. conjecture name and object of conjecture - about)
     # %{source_name => [confidence_level_re_subject, ...]}
     confidence_levels_per_source =
       Enum.reduce(
@@ -686,11 +686,12 @@ defmodule Andy.GM.GenerativeModel do
             )
 
           # Spread 1.0 worth of confidence among sources (GMs and detectors) reporting prediction errors about the same
+          # The lesser the size of the error, the greater the confidence (confirmation bias)
           # subject [{source_name, confidence}, ...]
           relative_confidence_levels_per_subject =
             relative_confidence_levels(competing_prediction_errors)
 
-          # Aggregate per source names the relative confidence levels per subject with those for other subjects
+          # Aggregate per source name the relative confidence levels per subject
           # %{source_name => [confidence_level_re_subject, ...]}
           Enum.reduce(
             relative_confidence_levels_per_subject,
@@ -736,7 +737,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Spread 1.0 worth of confidence levels among sources with competing prediction errors about a same subject,
-  # favoring the source reporting the least controversial prediction error
+  # favoring the source reporting the least prediction error
   defp relative_confidence_levels(competing_prediction_errors) do
     # [{gm_name, confirmation_level}, ...]
     source_raw_levels =
