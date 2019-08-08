@@ -64,7 +64,8 @@ defmodule Andy.GM.GenerativeModel do
     Prediction,
     PredictionError,
     Perception,
-    LongTermMemory
+    LongTermMemory,
+    Intention
   }
 
   # for how long rounds are remembered
@@ -107,7 +108,9 @@ defmodule Andy.GM.GenerativeModel do
               # from sub-GMs and detectors)
               beliefs: [],
               # [course_of_action, ...] - courses of action (to be) taken to achieve goals and/or shore up beliefs
-              courses_of_action: []
+              courses_of_action: [],
+              # intents executed in the round
+              intents: []
 
     def new() do
       %Round{started_on: now()}
@@ -127,7 +130,7 @@ defmodule Andy.GM.GenerativeModel do
 
     def of_type?(
           %CourseOfAction{
-            conjecture_activation: %ConjectureActivation{conjecture_name: coa_conjecture_name},
+            conjecture_activation: %ConjectureActivation{conjecture: %Conjecture{name: coa_conjecture_name}},
             intention_names: coa_intention_names
           },
           {conjecture_name, _},
@@ -410,11 +413,11 @@ defmodule Andy.GM.GenerativeModel do
   defp activate_conjectures(
          %State{
            gm_def: gm_def,
-           rounds: [round | previous_rounds]
+           rounds: [round | previous_rounds] = rounds
          } = state
        ) do
     candidate_activations =
-      Enum.map(gm_def.conjectures, & &1.activator.(state))
+      Enum.map(gm_def.conjectures, & &1.activator.(&1, rounds))
       |> List.flatten()
       |> random_permutation()
       # Pull goals in front so they are the ones excluding others for being mutually exclusive
@@ -459,10 +462,10 @@ defmodule Andy.GM.GenerativeModel do
         fn perception ->
           Enum.any?(
             conjecture_activations,
-            fn %ConjectureActivation{conjecture_name: conjecture_name} ->
+            fn %ConjectureActivation{conjecture: conjecture} ->
               GenerativeModelDef.mutually_exclusive?(
                 gm_def,
-                conjecture_name,
+                conjecture.name,
                 Perception.prediction_conjecture_name(perception)
               )
             end
@@ -518,12 +521,11 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp make_predictions_from_conjecture(
-         %ConjectureActivation{conjecture_name: conjecture_name} = conjecture_activation,
-         %State{gm_def: gm_def} = state
+         %ConjectureActivation{conjecture: conjecture} =  conjecture_activation,
+         %State{rounds: rounds} = state
        ) do
-    conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
 
-    Enum.map(conjecture.predictors, & &1.(conjecture_activation, state))
+    Enum.map(conjecture.predictors, & &1.(conjecture_activation, rounds))
     |> Enum.map(&%Prediction{&1 | source: gm_name(state)})
   end
 
@@ -597,20 +599,18 @@ defmodule Andy.GM.GenerativeModel do
 
   defp create_belief_from_conjecture(
          %ConjectureActivation{
-           conjecture_name: conjecture_name,
+           conjecture: conjecture,
            about: about,
-           value_domains: value_domains
          } = conjecture_activation,
-         %State{} = state
+         %State{rounds: rounds} = state
        ) do
-    conjecture = activated_conjecture(conjecture_activation, state)
-    values = conjecture.validator.(about, value_domains, state)
+    values_or_nil = conjecture.validator.(conjecture_activation, rounds)
 
     Belief.new(
       source: gm_name(state),
-      conjecture_name: conjecture_name,
+      conjecture_name: conjecture.name,
       about: about,
-      values: values
+      values: values_or_nil
     )
   end
 
@@ -666,13 +666,6 @@ defmodule Andy.GM.GenerativeModel do
   defp conjecture_activations(state) do
     %Round{conjecture_activations: conjecture_activations} = current_round(state)
     conjecture_activations
-  end
-
-  # Get the conjecture for a conjecture activation
-  defp activated_conjecture(%ConjectureActivation{conjecture_name: conjecture_name}, %State{
-         gm_def: gm_def
-       }) do
-    Enum.find(gm_def.conjectures, &(&1.conjecture_name == conjecture_name))
   end
 
   # Give more/less attention to competing contributors of prediction errors based on the respective
@@ -1039,8 +1032,7 @@ defmodule Andy.GM.GenerativeModel do
     untried_coa =
       new_course_of_action(
         conjecture_activation,
-        coa_index,
-        state
+        coa_index
       )
 
     # Collect as candidates all tried CoAs for similar conjecture activations (same subject)
@@ -1086,12 +1078,9 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp new_course_of_action(
-         %ConjectureActivation{conjecture_name: conjecture_name} = conjecture_activation,
-         courses_of_action_index,
-         %State{gm_def: gm_def}
+         %ConjectureActivation{conjecture: %Conjecture{intention_domain: intention_domain}} = conjecture_activation,
+         courses_of_action_index
        ) do
-    %Conjecture{intention_domain: intention_domain} =
-      GenerativeModelDef.conjecture(gm_def, conjecture_name)
 
     # Convert the index into a list of indices e.g. 5 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
     index_list =
@@ -1185,38 +1174,78 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Generate the intents to run the course of action.
-  defp execute_courses_of_action(%State{gm_def: gm_def} = state) do
-    %Round{courses_of_action: courses_of_action, beliefs: beliefs} = current_round(state)
+  defp execute_courses_of_action(
+         %State{gm_def: gm_def, rounds: [round | previous_rounds] = rounds} = state
+       ) do
+    %Round{courses_of_action: courses_of_action, beliefs: beliefs} = round
 
-    Enum.each(
-      courses_of_action,
-      fn %CourseOfAction{
-           intention_names: intention_names,
-           conjecture_activation: %ConjectureActivation{
-             conjecture_name: conjecture_name,
-             about: about
-           }
-         } ->
-        belief =
-          Enum.find(beliefs, &(&1.conjecture_name == conjecture_name and &1.about == about))
+    updated_round =
+      Enum.reduce(
+        courses_of_action,
+        round,
+        fn %CourseOfAction{
+             intention_names: intention_names,
+             conjecture_activation: %ConjectureActivation{
+               conjecture: %Conjecture{name: conjecture_name},
+               about: about
+             }
+           },
+           acc ->
+          belief_values =
+            case Enum.find(
+                   beliefs,
+                   &(&1.conjecture_name == conjecture_name and &1.about == about)
+                 ) do
+              nil ->
+                nil
 
-        Enum.each(
-          intention_names,
-          fn intention_name ->
-            intention = GenerativeModelDef.intention(gm_def, intention_name)
+              %Belief{values: values} ->
+                values
+            end
 
-            PubSub.notify_intended(
-              Intent.new(
-                about: intention.intent_name,
-                value: intention.valuator.(belief.values)
-              )
-            )
-          end
-        )
+          Enum.reduce(
+            intention_names,
+            acc,
+            fn intention_name, %Round{intents: intents} = acc1 ->
+              intention = GenerativeModelDef.intention(gm_def, intention_name)
+
+              intent =
+                Intent.new(
+                  about: intention.intent_name,
+                  value: intention.valuator.(belief_values)
+                )
+
+              if not (Intention.not_repeatable?(intention) and
+                        would_be_repeated?(intent, rounds)) do
+                PubSub.notify_intended(intent)
+                %Round{acc1 | intents: [intent | intents]}
+              else
+                acc1
+              end
+            end
+          )
+        end
+      )
+
+    %State{state | rounds: [updated_round | previous_rounds]}
+  end
+
+  # Would an intent be repeated (does the latest remembered intent about the same thing, executed in
+  # this or prior rounds, have the same value)?
+  defp would_be_repeated?(%Intent{about: about, value: value}, rounds) do
+    Enum.reduce_while(
+      rounds,
+      false,
+      fn %Round{intents: intents}, _ ->
+        case Enum.find(intents, &(&1.about == about)) do
+          nil ->
+            {:cont, false}
+
+          %Intent{value: intent_value} ->
+            {:halt, intent_value == value}
+        end
       end
     )
-
-    state
   end
 
   defp mark_round_completed(%State{gm_def: gm_def, rounds: [round | previous_rounds]} = state) do

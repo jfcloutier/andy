@@ -6,7 +6,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
   use Supervisor
   require Logger
-  alias Andy.GM.{PubSub, Cognition, GenerativeModelsSupervisor, DetectorsSupervisor}
+  alias Andy.GM.{PubSub, Cognition, GenerativeModelsSupervisor, DetectorsSupervisor, LongTermMemory}
   alias Andy.{ActuatorsSupervisor, Device}
 
   @name __MODULE__
@@ -22,6 +22,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   def init(_) do
     children = [
       PubSub,
+      LongTermMemory,
       ActuatorsSupervisor,
       GenerativeModelsSupervisor,
       DetectorsSupervisor

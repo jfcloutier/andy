@@ -14,7 +14,7 @@ defmodule Andy.GM.GenerativeModelDef do
             conjectures: [],
             # sets of mutually-exclusive conjectures (by name) - hyper-prior
             contradictions: [],
-            # conjecture_name => %{} parameter values of initially believed conjectures
+            # conjecture_name => %{} parameter values of initial conjecture beliefs
             priors: %{},
             # Candidate intentions that, when executed individually or in sequences, could validate a conjecture.
             # Intentions are taken either to achieve a goal (to believe in a goal conjecture)
@@ -28,16 +28,20 @@ defmodule Andy.GM.GenerativeModelDef do
       gm_def.priors,
       [],
       fn conjecture_name, acc ->
-        values = Map.get(gm_def.priors, conjecture_name)
+        case Map.get(gm_def.priors, conjecture_name) do
+          nil ->
+            acc
 
-        [
-          %Belief{
-            source: {:gm, gm_def.name},
-            about: conjecture_name,
-            values: values
-          }
-          | acc
-        ]
+          values ->
+            [
+              %Belief{
+                source: {:gm, gm_def.name},
+                about: conjecture_name,
+                values: values
+              }
+              | acc
+            ]
+        end
       end
     )
   end

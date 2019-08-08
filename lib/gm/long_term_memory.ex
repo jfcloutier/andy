@@ -11,7 +11,7 @@ defmodule Andy.GM.LongTermMemory do
   end
 
   def start_link(_) do
-    Logger.info("Starting long term memory")
+    Logger.info("Starting #{__MODULE__}")
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 

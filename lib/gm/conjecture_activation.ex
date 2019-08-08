@@ -1,17 +1,15 @@
 defmodule Andy.GM.ConjectureActivation do
   @moduledoc """
-  A conjecture about something, instantiated with expected values
-  (as sub-domains of the conjecture's param domains), and possibly considered a goal"
+  A conjecture instantiated about something, and possibly considered a goal"
   """
 
   alias __MODULE__
+  alias Andy.GM.Conjecture
 
-  defstruct conjecture_name: nil,
+  defstruct conjecture: nil,
             # e.g. "robot1" vs "robot2"; two conjecture activations can be the same kind of conjecture
             # but about two different subjects
             about: nil,
-            # the values a belief in the activated conjecture are expected to take on round completion
-            value_domains: %{},
             # whether the conjecture activation is a goal to be achieved
             goal?: false
 
@@ -20,18 +18,18 @@ defmodule Andy.GM.ConjectureActivation do
   exclusive conjectures"
 
   def mutually_exclusive?(
-        %ConjectureActivation{conjecture_name: conjecture_name, about: about},
-        %ConjectureActivation{conjecture_name: conjecture_name, about: about},
+        %ConjectureActivation{conjecture: conjecture, about: about},
+        %ConjectureActivation{conjecture: conjecture, about: about},
         _contradictions
       ) do
     true
   end
 
   def mutually_exclusive?(
-        %ConjectureActivation{conjecture_name: conjecture_name, about: about},
-        %ConjectureActivation{conjecture_name: other_conjecture_name, about: about},
+        %ConjectureActivation{conjecture: %Conjecture{name: conjecture_name}, about: about},
+        %ConjectureActivation{conjecture: %Conjecture{name: other_conjecture_name}, about: about},
         contradictions
-      ) do
+      ) when conjecture_name != other_conjecture_name do
     Enum.any?(contradictions, &(conjecture_name in &1 and other_conjecture_name in &1))
   end
 
@@ -45,7 +43,7 @@ defmodule Andy.GM.ConjectureActivation do
 
   @doc "The subject of the conjecture activation, namely the name of the conjecture activated
   and the object of the activation (e.g. robot1)"
-  def subject(%ConjectureActivation{conjecture_name: conjecture_name, about: about}) do
+  def subject(%ConjectureActivation{conjecture: %Conjecture{name: conjecture_name}, about: about}) do
     {conjecture_name, about}
   end
 
