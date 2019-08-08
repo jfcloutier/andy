@@ -63,7 +63,8 @@ defmodule Andy.GM.GenerativeModel do
     ConjectureActivation,
     Prediction,
     PredictionError,
-    Perception
+    Perception,
+    LongTermMemory
   }
 
   # for how long rounds are remembered
@@ -166,6 +167,9 @@ defmodule Andy.GM.GenerativeModel do
     name = gm_def.name
     Logger.info("Starting Generative Model #{name}")
 
+    %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices} =
+      recall_experience(name)
+
     {:ok, pid} =
       Agent.start_link(
         fn ->
@@ -173,7 +177,9 @@ defmodule Andy.GM.GenerativeModel do
             gm_def: gm_def,
             rounds: [Round.initial_round(gm_def)],
             super_gm_names: super_gm_names,
-            sub_gm_names: sub_gm_names
+            sub_gm_names: sub_gm_names,
+            efficacies: efficacies,
+            courses_of_action_indices: courses_of_action_indices
           }
           |> start_round()
         end,
@@ -250,12 +256,27 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
+  def handle_event(:shutdown, state) do
+    shutdown(state)
+  end
+
   # Ignore any other event
   def handle_event(_event, state) do
     state
   end
 
   ### PRIVATE
+
+  # Recall what was remembered, if anything, after the last run
+  defp recall_experience(gm_name) do
+    case LongTermMemory.recall(gm_name, :experience) do
+      nil ->
+        %{efficacies: %{}, courses_of_action_indices: %{}}
+
+      %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices} ->
+        %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices}
+    end
+  end
 
   # Start the current round
   defp start_round(%State{gm_def: gm_def} = state) do
@@ -1229,5 +1250,13 @@ defmodule Andy.GM.GenerativeModel do
   defp random_permutation(list) do
     chosen = Enum.random(list)
     [chosen | random_permutation(List.delete(list, chosen))]
+  end
+
+  defp shutdown(%State{efficacies: efficacies, courses_of_action_indices: indices} = state) do
+    LongTermMemory.store(
+      gm_name(state),
+      :experience,
+      %{efficacies: efficacies, courses_of_action_indices: indices}
+    )
   end
 end

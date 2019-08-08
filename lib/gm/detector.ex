@@ -32,7 +32,7 @@ defmodule Andy.GM.Detector do
   end
 
   @doc "Child spec asked by DynamicSupervisor"
-  def child_spec([name, device, sense]) do
+  def child_spec([device, sense]) do
     %{
       # defaults to restart: permanent and type: :worker
       id: __MODULE__,
@@ -42,11 +42,12 @@ defmodule Andy.GM.Detector do
 
   @doc "Start a named detector on a sensing device"
   def start_link(device, sense) do
+    name = name(device, sense)
     {:ok, pid} =
       Agent.start_link(
         fn ->
           %State{
-            name: name(device, sense),
+            name: name,
             device: device,
             sense: sense
           }
@@ -70,7 +71,7 @@ defmodule Andy.GM.Detector do
            about: about,
            value_distributions: %{detected: _value_distribution}
          } = prediction},
-        state
+        %State{name: name} = state
       ) do
     if name_match?(conjecture_name, state) do
       {value, updated_state} = read_value(about, state)
@@ -106,7 +107,7 @@ defmodule Andy.GM.Detector do
   defp name_match?(conjecture_name, %State{device: device, sense: sense}) do
     case String.split(conjecture_name, ":") do
       [device_type, device_port, sense_name] ->
-        device_type in ["*", device.type] and port in ["*", device.port] and
+        device_type in ["*", device.type] and device_port in ["*", device.port] and
           sense_name in ["*", sense]
 
       _other ->

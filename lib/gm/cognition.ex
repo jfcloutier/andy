@@ -6,9 +6,7 @@ defmodule Andy.GM.Cognition do
   defstruct gm_defs: [],
             # list of all defined generative models
             # gm_def_name => [gm_def_name, ...]
-            children: %{},
-            # all detectors
-            detectors: []
+            children: %{}
 
   def gm_defs_with_family(%Cognition{
         gm_defs: gm_defs,

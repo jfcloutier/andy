@@ -1,19 +1,19 @@
 defmodule Andy do
   require Logger
-  alias Andy.{Communicators, PubSub}
+  alias Andy.Communicators
+  alias Andy.GM.{LongTermMemory, PubSub}
 
   import Andy.Utils,
     only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
   @default_ttl 10_000
 
-  @doc "Shut down the Prediction Processing"
   def shutdown() do
     PubSub.notify_shutdown()
   end
 
-  def toggle_paused() do
-    PubSub.toggle_paused()
+  def forget() do
+    LongTermMemory.forget_everything()
   end
 
   def platform() do
@@ -41,8 +41,8 @@ defmodule Andy do
   end
 
   # GM
-  def cognition_def() do
-    platform_dispatch(:cognition_def)
+  def cognition() do
+    platform_dispatch(:cognition)
   end
 
   def display(words) do

@@ -13,7 +13,7 @@ defmodule Andy.MockRover.Platform do
     LED
   }
 
-  alias Andy.{Device, SoundPlayer, BrickPi, Rover}
+  alias Andy.{Device, SoundPlayer, BrickPi}
   import Andy.Utils, only: [get_andy_env: 1]
   require Logger
 
@@ -45,7 +45,11 @@ defmodule Andy.MockRover.Platform do
 
   def actuation_logic() do
     # Use Rover's actuation
-    Rover.Actuation.actuator_configs()
+    Andy.Rover.Actuation.actuator_configs()
+  end
+
+  def cognition() do
+    Andy.GM.Profiles.Rover.cognition()
   end
 
   def device_mode(_device_type) do
