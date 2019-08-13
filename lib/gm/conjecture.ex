@@ -17,10 +17,10 @@ defmodule Andy.GM.Conjecture do
             # Functions fn(conjecture_activation, rounds) :: prediction that produces next-round predictions about
             # perceptions given the (activated) conjecture.
             predictors: [],
-            # Function that sets whether and how the GM believes in an activation of this conjecture given
+            # Function that sets the values of the belief in this activated conjecture given
             # the state of the GM (present and past perceptions, courses of action taken)
             # fn(conjecture_activation,rounds) -> param_values (if believed) or nil (if disbelieved)
-            validator: nil,
+            valuator: nil,
             # Names of intentions from the GM definition from which courses of action can be composed and executed to realize the conjecture
             intention_domain: []
 

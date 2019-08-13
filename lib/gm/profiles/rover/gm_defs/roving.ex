@@ -41,7 +41,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Roving do
       activator: fn conjecture, state -> [] end,
       value_domains: %{level: [:low, :medium, :high]},
       predictors: [],
-      validator: fn about, value, rounds -> %{level: :high} end,
+      valuator: fn about, value, rounds -> %{level: :high} end,
       intention_domain: [:express_safe]
     }
   end
@@ -62,7 +62,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Roving do
 
   # Conjecture predictors
 
-  # Conjecture validators
+  # Conjecture belief valuators
 
   # Intention valuators
 

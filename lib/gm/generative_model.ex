@@ -604,7 +604,7 @@ defmodule Andy.GM.GenerativeModel do
          } = conjecture_activation,
          %State{rounds: rounds} = state
        ) do
-    values_or_nil = conjecture.validator.(conjecture_activation, rounds)
+    values_or_nil = conjecture.valuator.(conjecture_activation, rounds)
 
     Belief.new(
       source: gm_name(state),
