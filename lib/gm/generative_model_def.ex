@@ -21,7 +21,9 @@ defmodule Andy.GM.GenerativeModelDef do
             # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
             # intention_name => intention
             # Should always include a do-nothing intention
-            intentions: %{}
+            intentions: %{},
+            # Whether this GM is always activating conjectures
+            hyper_prior: false
 
   def initial_beliefs(gm_def) do
     Enum.reduce(
@@ -60,5 +62,9 @@ defmodule Andy.GM.GenerativeModelDef do
 
   def intention(%GenerativeModelDef{intentions: intentions}, intention_name) do
     Map.get(intentions, intention_name)
+  end
+
+  def hyper_prior?(%GenerativeModelDef{hyper_prior: hyper_prior?}) do
+    hyper_prior?
   end
 end

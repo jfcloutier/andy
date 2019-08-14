@@ -5,13 +5,14 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Roving do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :roving,
+      name: :thriving,
       conjectures: [
         conjecture(:safe),
         conjecture(:sated),
         conjecture(:free)
       ],
       contradictions: [],
+      hyper_prior: true,
       priors: %{safe: %{level: :high}, sated: %{level: :high}, free: %{level: :high}},
       intentions: %{
         express_safe: %Intention{

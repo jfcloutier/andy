@@ -68,8 +68,9 @@ defmodule Andy.GM.GenerativeModel do
     Intention
   }
 
-  # for how long rounds are remembered
+  # for how long rounds are remembered (long-term memory)
   @forget_round_after_secs 60
+  # How many rounds a perception/received prediction be carried over (short-term memory)
   @max_carry_overs 3
 
   defmodule State do
@@ -130,7 +131,9 @@ defmodule Andy.GM.GenerativeModel do
 
     def of_type?(
           %CourseOfAction{
-            conjecture_activation: %ConjectureActivation{conjecture: %Conjecture{name: coa_conjecture_name}},
+            conjecture_activation: %ConjectureActivation{
+              conjecture: %Conjecture{name: coa_conjecture_name}
+            },
             intention_names: coa_intention_names
           },
           {conjecture_name, _},
@@ -407,25 +410,38 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
-  # Activate as many GM conjectures as possible that do not mutually exclude one another.
+  # Activate non-goal conjectures only if predictions were received in previous round or the GM
+  # is a "hyper-prior" (focus).
+  # Activate as many conjectures as possible that do not mutually exclude one another.
   # Goal conjecture activations win over other mutually exclusive activations.
   # If no activation, report immediately that the round has completed (it won't produce beliefs).
   defp activate_conjectures(
          %State{
            gm_def: gm_def,
-           rounds: [round | previous_rounds] = rounds
+           rounds:
+             [%Round{received_predictions: received_predictions} = round | previous_rounds] =
+               rounds
          } = state
        ) do
-    candidate_activations =
+    candidates_for_activation =
       Enum.map(gm_def.conjectures, & &1.activator.(&1, rounds))
       |> List.flatten()
       |> random_permutation()
       # Pull goals in front so they are the ones excluding others for being mutually exclusive
       |> Enum.sort(fn ca1, _ca2 -> ConjectureActivation.goal?(ca1) end)
 
+    # Remove all non-goal candidate conjecture activations if no received predictions
+    # and GM is not a hyper-prior.
+    conjectures_to_activate =
+      if not GenerativeModelDef.hyper_prior?(gm_def) and Enum.count(received_predictions) == 0 do
+        Enum.filter(candidates_for_activation, &(ConjectureActivation.goal?(&1)))
+      else
+        candidates_for_activation
+      end
+
     conjecture_activations =
       Enum.reduce(
-        candidate_activations,
+        conjectures_to_activate,
         [],
         fn candidate, acc ->
           if Enum.any?(
@@ -521,10 +537,9 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp make_predictions_from_conjecture(
-         %ConjectureActivation{conjecture: conjecture} =  conjecture_activation,
+         %ConjectureActivation{conjecture: conjecture} = conjecture_activation,
          %State{rounds: rounds} = state
        ) do
-
     Enum.map(conjecture.predictors, & &1.(conjecture_activation, rounds))
     |> Enum.map(&%Prediction{&1 | source: gm_name(state)})
   end
@@ -600,7 +615,7 @@ defmodule Andy.GM.GenerativeModel do
   defp create_belief_from_conjecture(
          %ConjectureActivation{
            conjecture: conjecture,
-           about: about,
+           about: about
          } = conjecture_activation,
          %State{rounds: rounds} = state
        ) do
@@ -1078,10 +1093,10 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp new_course_of_action(
-         %ConjectureActivation{conjecture: %Conjecture{intention_domain: intention_domain}} = conjecture_activation,
+         %ConjectureActivation{conjecture: %Conjecture{intention_domain: intention_domain}} =
+           conjecture_activation,
          courses_of_action_index
        ) do
-
     # Convert the index into a list of indices e.g. 5 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
     index_list =
       Integer.to_string(courses_of_action_index, Enum.count(intention_domain))
