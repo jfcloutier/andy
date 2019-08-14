@@ -434,7 +434,7 @@ defmodule Andy.GM.GenerativeModel do
     # and GM is not a hyper-prior.
     conjectures_to_activate =
       if not GenerativeModelDef.hyper_prior?(gm_def) and Enum.count(received_predictions) == 0 do
-        Enum.filter(candidates_for_activation, &(ConjectureActivation.goal?(&1)))
+        Enum.filter(candidates_for_activation, &ConjectureActivation.goal?(&1))
       else
         candidates_for_activation
       end
@@ -966,7 +966,7 @@ defmodule Andy.GM.GenerativeModel do
   # For each active conjecture, choose a CoA from the conjecture's CoA domain, favoring efficacy
   # and shortness. Only look at longer CoAs if efficacy of shorter CoAs disappoints.
   # Set no CoA for a goal that has been achieved (i.e. the goal activated conjecture is believed)
-  #
+  # Set no CoA for a non-goal that is not believed (i.e. no belief to maintain)
   defp set_courses_of_action(
          %State{
            rounds: [
@@ -982,11 +982,20 @@ defmodule Andy.GM.GenerativeModel do
         conjecture_activations,
         [],
         fn conjecture_activation, acc ->
-          if ConjectureActivation.goal?(conjecture_activation) and
-               believed_now?(conjecture_activation, state) do
-            acc
-          else
-            [select_course_of_action(conjecture_activation, state) | acc]
+          cond do
+            ConjectureActivation.goal?(conjecture_activation) ->
+              if believed_now?(conjecture_activation, state) do
+                acc
+              else
+                [select_course_of_action(conjecture_activation, state) | acc]
+              end
+
+            true ->
+              if believed_now?(conjecture_activation, state) do
+                [select_course_of_action(conjecture_activation, state) | acc]
+              else
+                acc
+              end
           end
         end
       )
