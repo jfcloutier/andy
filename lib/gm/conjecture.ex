@@ -12,8 +12,6 @@ defmodule Andy.GM.Conjecture do
             # setting the expected domain value ranges and possibly making it a goal.
             # fn(conjecture, rounds) => [conjecture_activation] - can be empty
             activator: nil,
-            # value_name => domain - a domain is an enumerable of all values parameters of conjecture activations could take
-            value_domains: %{},
             # Functions fn(conjecture_activation, rounds) :: prediction that produces next-round predictions about
             # perceptions given the (activated) conjecture.
             predictors: [],

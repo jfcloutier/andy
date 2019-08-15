@@ -5,9 +5,8 @@ defmodule Andy.GM.Prediction do
   and do it strongly enough (gain is high enough on the sub-believer sources and the differences between prediction
   and contrarian belief are significant.)
   Prediction errors can cause changes in the next round as to
-  which conjectures are valid and which act as goals, as well as shifts in attention (adjusting the gain on sub-believers).
-  Predictions "flow" to sub-believers, causing them, potentially, to shift their winning conjectures to ones
-  that would generate the predicted beliefs (when there is no clear winner between competing conjectures).
+  which conjectures are valid and which act as goals, as well as shifts in assigned precision weight (adjusting the gain).
+  Predictions "flow" to sub-GMs and detectors.
   """
 
   alias __MODULE__

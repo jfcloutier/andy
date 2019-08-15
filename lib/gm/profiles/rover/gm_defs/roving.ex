@@ -40,7 +40,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Roving do
     %Conjecture{
       name: :safe,
       activator: fn conjecture, state -> [] end,
-      value_domains: %{level: [:low, :medium, :high]},
       predictors: [],
       valuator: fn about, value, rounds -> %{level: :high} end,
       intention_domain: [:express_safe]
