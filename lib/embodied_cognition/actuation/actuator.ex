@@ -11,7 +11,7 @@ defmodule Andy.Actuator do
     SoundSpec,
     CommSpec,
     Communicators,
-    PubSub,
+    GM.PubSub,
     Intent
   }
 
@@ -66,8 +66,7 @@ defmodule Andy.Actuator do
   def realize_intent(intent, %{name: name, actuator_config: actuator_config} = state) do
     Logger.info("Realizing intent #{inspect(intent)}")
 
-    if check_freshness(name, intent) do
-      actuator_config.activations
+       actuator_config.activations
       |> Enum.filter(fn activation -> activation.intent == intent.about end)
       |> Enum.map(fn activation -> activation.script end)
       |> Enum.each(
@@ -80,7 +79,6 @@ defmodule Andy.Actuator do
           PubSub.notify_actuated(intent)
         end
       )
-    end
   end
 
   ### Cognition agent
@@ -99,19 +97,6 @@ defmodule Andy.Actuator do
   end
 
   ### Private
-
-  defp check_freshness(name, intent) do
-    age = Intent.age(intent)
-    factor = if intent.strong, do: strong_intent_factor(), else: 1
-
-    if age > max_intent_age() * factor do
-      Logger.warn("STALE #{Intent.strength(intent)} intent #{inspect(intent.about)} #{age}")
-      PubSub.notify_overwhelmed(:actuator, name)
-      false
-    else
-      true
-    end
-  end
 
   defp find_motors(motor_specs) do
     all_motors = platform_dispatch(:motors)

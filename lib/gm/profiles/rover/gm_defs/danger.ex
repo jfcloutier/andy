@@ -27,7 +27,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
   defp conjecture(:safe) do
     %Conjecture{
       name: :safe,
-      activator: safe_activator(),
+      activator: always_activator(:opinion),
       predictors: [
         no_change_predictor(:clear_of_obstacle, %{is: true}),
         no_change_predictor(:clear_of_other, %{is: true}),
@@ -40,18 +40,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
 
   # Conjecture activators
 
-  # Always activate, and as opinion
-  defp safe_activator() do
-    fn conjecture, _rounds ->
-      [
-        Conjecture.activate(conjecture,
-          about: :self,
-          goal?: false
-        )
-      ]
-    end
-  end
-
   # Conjecture predictors
 
   # Conjecture belief valuators
@@ -61,10 +49,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
       about = conjecture_activation.about
 
       clear_of_obstacle? =
-        current_perceived_value(:clear_of_obstacle, :is, about, rounds, false)
+        current_perceived_value(:clear_of_obstacle, :is, about, rounds, true)
 
-      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, rounds, false)
-      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, rounds, false)
+      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, rounds, true)
+      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, rounds, true)
 
       %{is: clear_of_obstacle? and clear_of_other? and in_well_lit_area?}
     end

@@ -38,6 +38,10 @@ defmodule Andy.Rover.Actuation do
           %Activation{
             intent: :stop,
             script: stopping()
+          },
+          %Activation{
+            intent: :roam,
+            script: roaming()
           }
         ]
       ),
@@ -159,6 +163,35 @@ defmodule Andy.Rover.Actuation do
       |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5])
       |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5])
       |> Script.add_step(:all, :run_for, [how_long])
+    end
+  end
+
+  dep roaming() do
+    fn intent, motors ->
+      forward_rps_speed = speed(intent.value.forward_speed)
+      forward_time_ms = round(intent.value.forward_time * 1000)
+      turn_direction = intent.value.turn_direction
+      turn_time_ms = round(intent.value.turn_time * 1000)
+      script = Script.new(:roaming, motors)
+
+      script =
+        case turn_direction do
+          :right ->
+            script
+            |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5])
+            |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5])
+
+          :left ->
+            script
+            |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
+            |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
+        end
+
+      script
+      |> Script.add_step(:all, :run_for, [turn_time_ms])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, forward_rps_speed])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, forward_rps_speed])
+      |> Script.add_step(:all, :run_for, [forward_time_ms])
     end
   end
 

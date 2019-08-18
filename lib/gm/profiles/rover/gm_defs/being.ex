@@ -28,7 +28,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
   defp conjecture(:thriving) do
     %Conjecture{
       name: :thriving,
-      activator: thriving_activator(),
+      activator: always_activator(:opinion),
       predictors: [
         no_change_predictor(:safe, %{is: true}),
         sated_predictor(),
@@ -76,18 +76,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
     end
   end
 
-
-  # Always activate, and as opinion
-  defp thriving_activator() do
-    fn conjecture, _rounds ->
-      [
-        Conjecture.activate(conjecture,
-          about: :self,
-          goal?: false
-        )
-      ]
-    end
-  end
 
   # Conjecture predictors
 

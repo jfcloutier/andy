@@ -1,6 +1,18 @@
 defmodule Andy.GM.Profiles.Rover.Utils do
   alias Andy.GM.Perception
 
+  def always_activator(opinion_or_goal) do
+    fn conjecture, _rounds ->
+      [
+        Conjecture.activate(conjecture,
+          about: :self,
+          goal?: opinion_or_goal == :goal
+        )
+      ]
+    end
+
+  end
+
   # Predict no change, or some initial expectation
   def no_change_predictor(predicted_conjecture_name, default_expectations) do
     fn conjecture_activation, rounds ->
