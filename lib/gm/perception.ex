@@ -10,9 +10,16 @@ defmodule Andy.GM.Perception do
   @callback prediction_conjecture_name(perception :: any) :: String.t()
   @callback values(perception :: any) :: map
 
+  def make_subject(conjecture_name: conjecture_name, about: about) do
+    {conjecture_name, about}
+  end
+
+  def subject(perception) do
+    {conjecture_name(perception), about(perception)}
+  end
+
   def same_subject?(perception, other) do
-    conjecture_name(perception) == conjecture_name(other) and
-      about(perception) == about(other)
+    subject(perception) == subject(other)
   end
 
   def source(perception) do

@@ -15,8 +15,8 @@ defmodule Andy.GM.Detector do
   # detector's name. E.g. "color:*:ambient"
   # Upon receiving a prediction it can validate, the detector
   #    - reads a value if not in refractory period else uses the last read value
-  #    - compares the detected value with the prediction (value_distributions = %{detected: distribution})
-  #    - if the value contradicts the prediction, reports a prediction error
+  #    - compares the detected value with the prediction (expectations = %{detected: value})
+  #    - if the value contradicts the expectation in the prediction, reports a prediction error
 
   defmodule State do
     defstruct name: nil,
@@ -62,14 +62,14 @@ defmodule Andy.GM.Detector do
 
   ### Event handling
 
-  # value_distributions = %{detector_name: value_distribution}
+  # expectations = %{detector_name: value}
   def handle_event(
         {:prediction,
          %Prediction{
            # "device_type:device_port:sense" where any can be wild-carded. Eg. "*:*:distance"
            conjecture_name: conjecture_name,
            about: about,
-           value_distributions: %{detected: _value_distribution}
+           expectations: %{detected: _expectation}
          } = prediction},
         %State{name: name} = state
       ) do

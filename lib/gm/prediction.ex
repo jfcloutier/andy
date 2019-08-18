@@ -17,16 +17,16 @@ defmodule Andy.GM.Prediction do
   defstruct source: nil,
             #  the name of a conjecture of a sub-GM, or a detector name (a detector implies a conjecture)
             conjecture_name: nil,
-            # what the predicted belief is about, e.g. "robot1"
-            about: nil,
             # number of times it was carried over from a previous round
             carry_overs: 0,
+            # what the predicted belief is about, e.g. "robot1"
+            about: nil,
             # belief value name => predicted value distribution - the expected values for the predicted belief
             # Predictions about a detector => %{detected: value_distribution}
-            # Either a range representing a normal distribution
+            # Either a single value, a range representing a normal distribution
             # or a list of lists of values, where the first list represent the most expected values
             # and the tail of the list represent the least expected values
-            value_distributions: %{}
+            expectations: %{}
 
   # Perception behaviour
 
@@ -39,32 +39,32 @@ defmodule Andy.GM.Prediction do
     source(prediction)
   end
 
-  def values(%Prediction{value_distributions: value_distributions}) do
-    for {key, value_distribution} <- value_distributions, into: %{} do
-      {key, expected_value(value_distribution)}
+  def values(%Prediction{expectations: expectations}) do
+    for {key, expectation} <- expectations, into: %{} do
+      {key, expected_value(expectation)}
     end
   end
 
   def prediction_error_size(
-        %Prediction{value_distributions: value_distributions},
+        %Prediction{expectations: expectations},
         values
       ) do
-    compute_prediction_error_size(values, value_distributions)
+    compute_prediction_error_size(values, expectations)
   end
 
   # A "complete disbelief" has nil as parameter values
-  defp compute_prediction_error_size(nil, _value_distributions) do
+  defp compute_prediction_error_size(nil, _expectations) do
     1.0
   end
 
-  defp compute_prediction_error_size(values, value_distributions) do
+  defp compute_prediction_error_size(values, expectations) do
     value_errors =
       Enum.reduce(
         values,
         [],
         fn {param_name, param_value}, acc ->
-          value_distribution = Map.get(value_distributions, param_name)
-          value_error = compute_value_error(param_value, value_distribution)
+          expectation = Map.get(expectations, param_name)
+          value_error = compute_value_error(param_value, expectation)
           [value_error | acc]
         end
       )
@@ -74,13 +74,13 @@ defmodule Andy.GM.Prediction do
   end
 
   # Any value is fine
-  defp compute_value_error(_value, value_distribution) when value_distribution in [nil, []] do
+  defp compute_value_error(_value, expectation) when expectation in [nil, []] do
     0
   end
 
   # How well the believed numerical value fits with the predicted value
   # when the value prediction is a normal distribution defined by a range
-  defp compute_value_error(value, low..high = _range) when is_number(value) do
+  defp compute_value_error(value, low..high = _expectation) when is_number(value) do
     mean = (low + high) / 2
     standard_deviation = (high - low) / 4
     delta = abs(mean - value)
@@ -104,7 +104,7 @@ defmodule Andy.GM.Prediction do
   end
 
   # Most expected values at head of the list, least expected value at tail
-  defp compute_value_error(value, list) when is_list(list) do
+  defp compute_value_error(value, list = _expectation) when is_list(list) do
     index = Enum.find_index(list, &(value in &1))
 
     cond do
@@ -125,11 +125,23 @@ defmodule Andy.GM.Prediction do
     end
   end
 
+  defp compute_value_error(value, single_value = _expectation) do
+    if value == single_value do
+      0
+    else
+      1.0
+    end
+  end
+
   defp expected_value(low..high) do
     (high - low) / 2
   end
 
   defp expected_value([firsts | _]) do
     Enum.random(firsts)
+  end
+
+  defp expected_value(value) do
+    value
   end
 end

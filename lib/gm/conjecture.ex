@@ -12,12 +12,13 @@ defmodule Andy.GM.Conjecture do
             # setting the expected domain value ranges and possibly making it a goal.
             # fn(conjecture, rounds) => [conjecture_activation] - can be empty
             activator: nil,
-            # Functions fn(conjecture_activation, rounds) :: prediction that produces next-round predictions about
-            # perceptions given the (activated) conjecture.
+            # Functions fn(conjecture_activation, rounds) :: prediction || nil.
+            # A predictor produces a prediction (or none) about perceptions given the (activated) conjecture.
+            # Only the :conjecture_name (of a sub_gm), :about and :expectations of instantiated prediction need be set by predictors
             predictors: [],
             # Function that sets the values of the belief in this activated conjecture given
             # the state of the GM (present and past perceptions, courses of action taken)
-            # fn(conjecture_activation,rounds) -> param_values (if believed) or nil (if disbelieved)
+            # fn(conjecture_activation, rounds) -> param_values (if believed) or nil (if disbelieved)
             valuator: nil,
             # Names of intentions from the GM definition from which courses of action can be composed and executed to realize the conjecture
             intention_domain: []

@@ -413,27 +413,45 @@ defmodule Andy.GM.GenerativeModel do
 
   # Activate conjectures only if predictions were received in previous round (attention),
   # or the GM is a "hyper-prior".
-  # If so, activate as many conjectures as possible that do not mutually exclude one another.
+  # If so, carry over goal activations of conjectures not yet achieved
+  # and activate as many conjectures as possible that do not conflict with carried-over goal activation
+  # or mutually exclude one another.
   # Goal conjecture activations win over other mutually exclusive activations.
   # If no activation, report immediately that the round has completed (it won't produce beliefs).
   defp activate_conjectures(
          %State{
            gm_def: gm_def,
+           conjecture_activations: prior_conjecture_activations,
            rounds:
              [%Round{received_predictions: received_predictions} | _previous_rounds] = rounds
          } = state
        ) do
     if GenerativeModelDef.hyper_prior?(gm_def) or Enum.count(received_predictions) > 0 do
+      preserved_goal_activations =
+        Enum.filter(
+          prior_conjecture_activations,
+          &(ConjectureActivation.goal?(&1) and not believed_now?(&1, state))
+        )
+
       candidates_for_activation =
+        # Get as many conjecture activation candidates as possible
         Enum.map(gm_def.conjectures, & &1.activator.(&1, rounds))
         |> List.flatten()
+        # Reject those that conflict with carried-over goal activations
+        |> Enum.reject(fn candidate ->
+          Enum.any?(
+            preserved_goal_activations,
+            &(ConjectureActivation.subject(&1) == ConjectureActivation.subject(candidate))
+          )
+        end)
+        # Shuffle the remaining candidates
         |> random_permutation()
         # Pull goals in front so they are the ones excluding others for being mutually exclusive
         |> Enum.sort(fn ca1, _ca2 -> ConjectureActivation.goal?(ca1) end)
 
       conjecture_activations =
         Enum.reduce(
-          candidates_for_activation,
+          preserved_goal_activations ++ candidates_for_activation,
           [],
           fn candidate, acc ->
             if Enum.any?(
@@ -535,7 +553,8 @@ defmodule Andy.GM.GenerativeModel do
          %State{rounds: rounds} = state
        ) do
     Enum.map(conjecture.predictors, & &1.(conjecture_activation, rounds))
-    |> Enum.map(&%Prediction{&1 | source: gm_name(state)})
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.map(&%Prediction{&1 | source: gm_name(state) })
   end
 
   defp current_round(%State{rounds: [round | _]}) do
