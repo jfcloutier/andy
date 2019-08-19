@@ -10,7 +10,6 @@ defmodule Andy.GM.Profiles.Rover.Utils do
         )
       ]
     end
-
   end
 
   # Predict no change, or some initial expectation
@@ -25,6 +24,46 @@ defmodule Andy.GM.Profiles.Rover.Utils do
           current_perceived_values(predicted_conjecture_name, about, rounds) ||
             default_expectations
       }
+    end
+  end
+
+  # Fixed prediction (to be achieved by the goal conjecture)
+  def goal_predictor(predicted_conjecture_name, goal_values) do
+    fn conjecture_activation, _rounds ->
+      about = conjecture_activation.about
+
+      %Prediction{
+        conjecture_name: predicted_conjecture_name,
+        about: about,
+        expectations: goal_values
+      }
+    end
+  end
+
+  # Stupidly infers from all previous rounds the expected distribution of a named, numerical value
+  def trend_predictor(predicted_conjecture_name, value_name) do
+    fn conjecture_activation, [_round | previous_rounds] ->
+      about = conjecture_activation.about
+
+      all_values =
+        all_perceived_values(
+          predicted_conjecture_name,
+          about,
+          value_name,
+          previous_rounds
+        )
+        |> Enum.filter(&is_number(&1))
+
+      if Enum.count(all_values) == 0 do
+        Map.new({value_name, :unknown})
+      else
+        average = Enum.sum(all_values) / Enum.count(all_values)
+        min_value = Enum.min(all_values)
+        max_value = Enum.max(all_values)
+        min_deviation = min(average - min_value, max_value - average)
+        range = [(average - min_deviation)..(average + min_deviation)]
+        Map.new({value_name, range})
+      end
     end
   end
 
@@ -67,6 +106,63 @@ defmodule Andy.GM.Profiles.Rover.Utils do
 
       perception ->
         Perception.values(perception)
+    end
+  end
+
+  defp all_perceived_values(
+         predicted_conjecture_name,
+         about,
+         value_name,
+         rounds
+       ) do
+    collect_all_perceived_values(
+      predicted_conjecture_name,
+      about,
+      value_name,
+      rounds
+    )
+    |> Enum.reverse()
+  end
+
+  defp collect_all_perceived_values(
+         _predicted_conjecture_name,
+         _about,
+         _value_name,
+         []
+       ) do
+    []
+  end
+
+  defp collect_all_perceived_values(
+         predicted_conjecture_name,
+         about,
+         value_name,
+         [round | previous_rounds] = rounds
+       ) do
+    case current_perceived_value(
+           predicted_conjecture_name,
+           about,
+           value_name,
+           rounds
+         ) do
+      nil ->
+        collect_all_perceived_values(
+          predicted_conjecture_name,
+          about,
+          value_name,
+          previous_rounds
+        )
+
+      value ->
+        [
+          value
+          | collect_all_perceived_values(
+              predicted_conjecture_name,
+              about,
+              value_name,
+              previous_rounds
+            )
+        ]
     end
   end
 end
