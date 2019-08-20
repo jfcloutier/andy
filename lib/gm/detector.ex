@@ -1,5 +1,5 @@
 defmodule Andy.GM.Detector do
-  @moduledoc "A detector as generator of prediction errors"
+  @moduledoc "A detector as generator of prediction errors from reading sense values"
 
   alias Andy.GM.{PubSub, Prediction, PredictionError, Belief}
   import Andy.Utils, only: [listen_to_events: 2, now: 0, platform_dispatch: 2]
@@ -43,6 +43,7 @@ defmodule Andy.GM.Detector do
   @doc "Start a named detector on a sensing device"
   def start_link(device, sense) do
     name = name(device, sense)
+
     {:ok, pid} =
       Agent.start_link(
         fn ->
@@ -71,12 +72,12 @@ defmodule Andy.GM.Detector do
            about: about,
            expectations: %{detected: _expectation}
          } = prediction},
-        %State{name: name} = state
+        state
       ) do
     if name_match?(conjecture_name, state) do
       {value, updated_state} = read_value(about, state)
 
-      case maybe_prediction_error(prediction, value, name, about) do
+      case maybe_prediction_error(prediction, value, conjecture_name, about, state) do
         nil ->
           :ok
 
@@ -106,7 +107,9 @@ defmodule Andy.GM.Detector do
 
   defp name_match?(conjecture_name, %State{device: device, sense: sense}) do
     case String.split(conjecture_name, ":") do
-      [device_type, device_port, sense_name] ->
+      [device_type_s, device_port_s, sense_name_s] ->
+        [device_type, device_port, sense_name] = Enum.map(&atomize_if_name/1)
+
         device_type in ["*", device.type] and device_port in ["*", device.port] and
           sense_name in ["*", sense]
 
@@ -114,6 +117,9 @@ defmodule Andy.GM.Detector do
         false
     end
   end
+
+  defp atomize_if_name("*"), do: "*"
+  defp atomize_if_name(name) when is_binary(name), do: String.to_atom(name)
 
   defp read_value(
          about,
@@ -150,7 +156,7 @@ defmodule Andy.GM.Detector do
   end
 
   # Prediction error or nil
-  defp maybe_prediction_error(prediction, value, name, about) do
+  defp maybe_prediction_error(prediction, value, conjecture_name, about, %State{name: name}) do
     values = %{detected: value}
     size = Prediction.prediction_error_size(prediction, values)
 
@@ -160,7 +166,7 @@ defmodule Andy.GM.Detector do
       belief =
         Belief.new(
           source: name,
-          conjecture_name: name,
+          conjecture_name: conjecture_name,
           about: about,
           values: values
         )

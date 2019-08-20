@@ -14,14 +14,14 @@ defmodule Andy.GM.Profiles.Rover.Utils do
 
   # Predict no change, or some initial expectation
   def no_change_predictor(predicted_conjecture_name, default_expectations) do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
       %Prediction{
         conjecture_name: predicted_conjecture_name,
         about: about,
         expectations:
-          current_perceived_values(predicted_conjecture_name, about, rounds) ||
+          current_perceived_values(predicted_conjecture_name, about, round) ||
             default_expectations
       }
     end
@@ -40,30 +40,57 @@ defmodule Andy.GM.Profiles.Rover.Utils do
     end
   end
 
-  # Stupidly infers from all previous rounds the expected distribution of a named, numerical value
-  def trend_predictor(predicted_conjecture_name, value_name) do
-    fn conjecture_activation, [_round | previous_rounds] ->
-      about = conjecture_activation.about
+  # Crudely predict, from all previous rounds, the expected distribution of a named, numerical value
+  def expected_numerical_value([_round | previous_rounds], conjecture_name, about, value_name) do
+    all_values =
+      all_perceived_values(
+        conjecture_name,
+        about,
+        value_name,
+        previous_rounds
+      )
+      |> Enum.filter(&is_number(&1))
 
-      all_values =
-        all_perceived_values(
-          predicted_conjecture_name,
-          about,
-          value_name,
-          previous_rounds
-        )
-        |> Enum.filter(&is_number(&1))
+    if Enum.count(all_values) == 0 do
+      :unknown
+    else
+      average = Enum.sum(all_values) / Enum.count(all_values)
+      min_value = Enum.min(all_values)
+      max_value = Enum.max(all_values)
+      min_deviation = min(average - min_value, max_value - average)
+      [(average - min_deviation)..(average + min_deviation)]
+    end
+  end
 
-      if Enum.count(all_values) == 0 do
-        Map.new({value_name, :unknown})
-      else
-        average = Enum.sum(all_values) / Enum.count(all_values)
-        min_value = Enum.min(all_values)
-        max_value = Enum.max(all_values)
-        min_deviation = min(average - min_value, max_value - average)
-        range = [(average - min_deviation)..(average + min_deviation)]
-        Map.new({value_name, range})
-      end
+  # Determine if a name value has been :increasing, :decreasing, :static, or :unknown over previous rounds
+  def numerical_value_trend([round | previous_rounds], conjecture_name, about, value_name) do
+    all_values =
+      all_perceived_values(
+        conjecture_name,
+        about,
+        value_name,
+        previous_rounds
+      )
+      |> Enum.filter(&is_number(&1))
+
+    case all_values do
+      [] ->
+        :unknown
+
+      [_value] ->
+        :static
+
+      [value, prior_value | _] ->
+        cond do
+          value == prior_value ->
+            :static
+
+          value < prior_value ->
+            :decreasing
+
+          true ->
+            :increasing
+        end
     end
   end
 
@@ -71,13 +98,13 @@ defmodule Andy.GM.Profiles.Rover.Utils do
         predicted_conjecture_name,
         value_name,
         about,
-        rounds,
+        round,
         default \\ nil
       ) do
     case current_perceived_values(
            predicted_conjecture_name,
            about,
-           rounds
+           round
          ) do
       nil ->
         default
@@ -90,7 +117,7 @@ defmodule Andy.GM.Profiles.Rover.Utils do
   def current_perceived_values(
         predicted_conjecture_name,
         about,
-        [%Round{perceptions: perceptions}, _previous_rounds],
+        %Round{perceptions: perceptions},
         default_values \\ nil
       ) do
     case Enum.find(
@@ -143,7 +170,7 @@ defmodule Andy.GM.Profiles.Rover.Utils do
            predicted_conjecture_name,
            about,
            value_name,
-           rounds
+           round
          ) do
       nil ->
         collect_all_perceived_values(

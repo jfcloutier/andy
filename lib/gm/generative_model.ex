@@ -433,8 +433,8 @@ defmodule Andy.GM.GenerativeModel do
           &(ConjectureActivation.goal?(&1) and not believed_now?(&1, state))
         )
 
+      # Get as many conjecture activation candidates as possible
       candidates_for_activation =
-        # Get as many conjecture activation candidates as possible
         Enum.map(gm_def.conjectures, & &1.activator.(&1, rounds))
         |> List.flatten()
         # Reject those that conflict with carried-over goal activations
@@ -554,7 +554,7 @@ defmodule Andy.GM.GenerativeModel do
        ) do
     Enum.map(conjecture.predictors, & &1.(conjecture_activation, rounds))
     |> Enum.reject(&(&1 == nil))
-    |> Enum.map(&%Prediction{&1 | source: gm_name(state) })
+    |> Enum.map(&%Prediction{&1 | source: gm_name(state)})
   end
 
   defp current_round(%State{rounds: [round | _]}) do
@@ -1222,19 +1222,26 @@ defmodule Andy.GM.GenerativeModel do
             acc,
             fn intention_name, %Round{intents: intents} = acc1 ->
               intention = GenerativeModelDef.intention(gm_def, intention_name)
+              intent_value = intention.valuator.(belief_values)
 
-              intent =
-                Intent.new(
-                  about: intention.intent_name,
-                  value: intention.valuator.(belief_values)
-                )
-
-              if not (Intention.not_repeatable?(intention) and
-                        would_be_repeated?(intent, rounds)) do
-                PubSub.notify_intended(intent)
-                %Round{acc1 | intents: [intent | intents]}
-              else
+              if intent_value == nil do
+                # a nil-valued intent is a noop intent, so ignore it
                 acc1
+              else
+                # execute valued intent
+                intent =
+                  Intent.new(
+                    about: intention.intent_name,
+                    value: intent_value
+                  )
+
+                if not (Intention.not_repeatable?(intention) and
+                          would_be_repeated?(intent, rounds)) do
+                  PubSub.notify_intended(intent)
+                  %Round{acc1 | intents: [intent | intents]}
+                else
+                  acc1
+                end
               end
             end
           )

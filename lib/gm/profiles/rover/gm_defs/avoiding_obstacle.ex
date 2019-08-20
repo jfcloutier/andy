@@ -6,7 +6,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :danger,
+      name: :avoiding_obstacle,
       conjectures: [
         conjecture(:obstacle_not_hit),
         conjecture(:obstacle_avoided)
@@ -45,7 +45,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       name: :obstacle_not_hit,
       activator: obstacle_not_hit_activator(),
       predictors: [
-        no_change_predictor(:touched, %{is: false})
+        no_change_predictor("*:*:touch", %{detected: :released})
       ],
       valuator: obstacle_not_hit_valuator(),
       intention_domain: [:turn_away, :move_forward, :move_back]
@@ -58,7 +58,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       activator: obstacle_avoided_activator(),
       predictors: [
         goal_predictor(:approaching_obstacle, %{is: false}),
-        trend_predictor(:obstacle_distance, :is)
+        distance_to_obstacle_predictor()
       ],
       valuator: obstacle_avoided_valuator(),
       intention_domain: [:turn_away, :move_forward, :move_back]
@@ -89,10 +89,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       approaching_obstacle? =
         current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
 
-      obstacle_distance =
-        current_perceived_value(:obstacle_distance, :is, about, rounds, :unknown)
+      distance_to_obstacle =
+        current_perceived_value(:distance_to_obstacle, :is, about, rounds, :unknown)
 
-      if obstacle_distance != :unknown and obstacle_distance <= 10 do
+      if distance_to_obstacle != :unknown and distance_to_obstacle <= 10 do
         [
           Conjecture.activate(conjecture,
             about: :self,
@@ -107,13 +107,25 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   # Conjecture predictors
 
+  def distance_to_obstacle_predictor() do
+    fn conjecture_activation, rounds ->
+    about = conjecture_activation.about
+      expectation = expected_numerical_value(rounds, :distance_to_obstacle, about, :is)
+      %Prediction{
+        conjecture_name: :distance_to_obstacle,
+        about: about,
+        expectations: Map.new({:is, expectation})
+      }
+    end
+  end
+
   # Conjecture belief valuators
 
   defp obstacle_not_hit_valuator() do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
-      touched? = current_perceived_value(:touched, :is, about, rounds, false)
+      touched? = current_perceived_value("*:*:touch", :detected, about, rounds, :released) == :touched
 
       approaching_obstacle? =
         current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
@@ -129,12 +141,12 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       approaching_obstacle? =
         current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
 
-      obstacle_distance =
-        current_perceived_value(:obstacle_distance, :is, about, rounds, :unknown)
+      distance_to_obstacle =
+        current_perceived_value(:distance_to_obstacle, :is, about, rounds, :unknown)
 
       %{
         is:
-          not approaching_obstacle? and (obstacle_distance == :unknown or obstacle_distance > 10)
+          not approaching_obstacle? and (distance_to_obstacle == :unknown or distance_to_obstacle > 10)
       }
     end
   end

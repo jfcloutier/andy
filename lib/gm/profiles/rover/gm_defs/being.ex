@@ -42,15 +42,15 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
   # Conjecture activators
 
   defp sated_predictor() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
-      safe? = current_perceived_value(:safe, :is, about, rounds, false)
+      safe? = current_perceived_value(:safe, :is, about, round, false)
 
       if safe? do
         %Prediction{
           conjecture_name: :sated,
           about: about,
-          expectations: current_perceived_values(:sated, about, rounds, %{is: true})
+          expectations: current_perceived_values(:sated, about, round, %{is: true})
         }
       else
         nil
@@ -59,16 +59,16 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
   end
 
   defp free_predictor() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
-      safe? = current_perceived_value(:safe, :is, about, rounds, false)
-      sated? = current_perceived_value(:sated, :is, about, rounds, false)
+      safe? = current_perceived_value(:safe, :is, about, round, false)
+      sated? = current_perceived_value(:sated, :is, about, round, false)
 
       if safe? and sated? do
         %Prediction{
           conjecture_name: :free,
           about: about,
-          expectations: current_perceived_values(:free, about, rounds, %{is: true})
+          expectations: current_perceived_values(:free, about, round, %{is: true})
         }
       else
         nil

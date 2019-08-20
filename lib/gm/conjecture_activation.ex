@@ -17,7 +17,7 @@ defmodule Andy.GM.ConjectureActivation do
   and are about the same object, or they are about the same object and from mutually
   exclusive conjectures"
 
-  def conjecture_name(%Conjecture{name: name}) do
+  def conjecture_name(%ConjectureActivation{conjecture: %Conjecture{name: name}}) do
     name
   end
 

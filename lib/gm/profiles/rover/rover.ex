@@ -3,7 +3,7 @@ defmodule Andy.GM.Profiles.Rover do
 
   alias Andy.GM.{Cognition}
   alias Andy.GM.Profiles.Rover.GMDefs.{Being, Danger, Hunger, Freedom, Clearance, Lighting, OtherRover, Belly,
-                                       AvoidingObstacle, AvoidingOtherRover, OtherRoverProximity,
+                                       AvoidingObstacle, ObstacleDistance, AvoidingOtherRover, OtherRoverProximity,
                                        CollisionCourseWithOtherRover, Eating, SeekingFood, BehaviorOfOtherRover,
                                        ObservingOtherRover}
   #
@@ -20,6 +20,7 @@ defmodule Andy.GM.Profiles.Rover do
         OtherRover.gm_def(),
         Belly.gm_def(),
         AvoidingObstacle.gm_def(),
+        ObstacleDistance.gm_def(),
         ObstacleApproach.gm_def(),
         AvoidingOtherRover.gm_def(),
         OtherRoverProximity.gm_def(),
@@ -35,7 +36,7 @@ defmodule Andy.GM.Profiles.Rover do
         hunger: [:belly],
         freedom: [],
         clearance: [:avoiding_obstacle, :avoiding_other_rover],
-        avoiding_obstacle: [:obstacle_approach],
+        avoiding_obstacle: [:obstacle_approach, :obstacle_distance],
         obstacle_approach: [],
         avoiding_other_rover: [:other_rover_proximity, :collision_course_with_other_rover],
         other_rover_proximity: [],
