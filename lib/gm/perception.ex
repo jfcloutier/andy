@@ -18,6 +18,16 @@ defmodule Andy.GM.Perception do
     {conjecture_name(perception), about(perception)}
   end
 
+  def values_match?(perception, values) do
+    case values(perception) do
+      values ->
+        true
+
+      _ ->
+        false
+    end
+  end
+
   def same_subject?(perception, other) do
     subject(perception) == subject(other)
   end

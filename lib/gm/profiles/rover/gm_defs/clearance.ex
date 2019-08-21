@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
   @moduledoc "The GM definition for :clearance"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -25,8 +25,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
       name: :clear_of_obstacle,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor(:obstacle_not_hit, %{is: true}),
-        no_change_predictor(:obstacle_avoided, %{is: true})
+        no_change_predictor(:obstacle_not_hit, default: %{is: true}),
+        no_change_predictor(:obstacle_avoided, default: %{is: true})
       ],
       valuator: clear_of_obstacle_valuator(),
       intention_domain: []
@@ -38,8 +38,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
       name: :clear_of_other,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor(:other_rover_out_of_range, %{is: true}),
-        no_change_predictor(:other_rover_avoided, %{is: true})
+        no_change_predictor(:other_rover_out_of_range, default: %{is: true}),
+        no_change_predictor(:other_rover_avoided, default: %{is: true})
       ],
       valuator: clear_of_other_valuator(),
       intention_domain: []

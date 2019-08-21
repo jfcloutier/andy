@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleApproach do
   @moduledoc "The GM definition for :obstacle_approach"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -23,7 +23,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleApproach do
       name: :approaching_obstacle,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor(:distance_to_obstacle, %{is: :unknown})
+        no_change_predictor(:distance_to_obstacle, default: %{is: :unknown})
       ],
       valuator: approaching_obstacle_valuator(),
       intention_domain: []

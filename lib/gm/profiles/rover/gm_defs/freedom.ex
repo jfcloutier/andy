@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Freedom do
   @moduledoc "The GM definition for :danger"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{

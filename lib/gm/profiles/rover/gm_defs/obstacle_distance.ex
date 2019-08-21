@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleDistance do
   @moduledoc "The GM definition for :obstacle_distance"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -29,7 +29,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleDistance do
       name: :distance_to_obstacle,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor("*:*:distance", %{detected: -128})
+        no_change_predictor("*:*:distance", default: %{detected: -128})
       ],
       valuator: distance_to_obstacle_valuator(),
       intention_domain: [:express_opinion_about_distance]
@@ -46,7 +46,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleDistance do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
-      distance = current_perceived_value("*:*:distance", :detected, about, rounds, -128)
+      distance = current_perceived_value("*:*:distance", :detected, about, rounds, default: -128)
 
       if distance == -128 do
         %{is: :unknown}

@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
   @moduledoc "The GM definition for :avoiding_obstacle"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -13,28 +13,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       ],
       contradictions: [],
       priors: %{obstacle_not_hit: %{is: true}, obstacle_avoided: %{is: true}},
-      intentions: %{
-        turn_away: %Intention{
-          intent_name: :turn_right,
-          valuator: turn_valuator(),
-          repeatable: true
-        },
-        turn_away: %Intention{
-          intent_name: :turn_left,
-          valuator: turn_valuator(),
-          repeatable: true
-        },
-        move_forward: %Intention{
-          intent_name: :go_forward,
-          valuator: move_valuator(),
-          repeatable: true
-        },
-        move_back: %Intention{
-          intent_name: :go_backward,
-          valuator: move_valuator(),
-          repeatable: true
-        }
-      }
+      intentions: movement_intentions()
     }
   end
 
@@ -45,10 +24,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       name: :obstacle_not_hit,
       activator: obstacle_not_hit_activator(),
       predictors: [
-        no_change_predictor("*:*:touch", %{detected: :released})
+        no_change_predictor("*:*:touch", default: %{detected: :released})
       ],
       valuator: obstacle_not_hit_valuator(),
-      intention_domain: [:turn_away, :move_forward, :move_back]
+      intention_domain: movement_domain()
     }
   end
 
@@ -61,7 +40,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
         distance_to_obstacle_predictor()
       ],
       valuator: obstacle_avoided_valuator(),
-      intention_domain: [:turn_away, :move_forward, :move_back]
+      intention_domain: movement_domain()
     }
   end
 
@@ -69,7 +48,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   defp obstacle_not_hit_activator() do
     fn conjecture, rounds ->
-      touched? = current_perceived_value(:touched, :is, about, rounds, false)
+      touched? = current_perceived_value(:touched, :is, about, rounds, default: false)
 
       if touched? do
         [
@@ -90,7 +69,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
         current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
 
       distance_to_obstacle =
-        current_perceived_value(:distance_to_obstacle, :is, about, rounds, :unknown)
+        current_perceived_value(:distance_to_obstacle, :is, about, rounds, default: :unknown)
 
       if distance_to_obstacle != :unknown and distance_to_obstacle <= 10 do
         [
@@ -125,10 +104,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
-      touched? = current_perceived_value("*:*:touch", :detected, about, rounds, :released) == :touched
+      touched? = current_perceived_value("*:*:touch", :detected, about, rounds, default: :released) == :touched
 
       approaching_obstacle? =
-        current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
+        current_perceived_value(:approaching_obstacle, :is, about, rounds, default: false)
 
       %{is: not touched? and not approaching_obstacle?}
     end
@@ -139,10 +118,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
       about = conjecture_activation.about
 
       approaching_obstacle? =
-        current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
+        current_perceived_value(:approaching_obstacle, :is, about, rounds, default: false)
 
       distance_to_obstacle =
-        current_perceived_value(:distance_to_obstacle, :is, about, rounds, :unknown)
+        current_perceived_value(:distance_to_obstacle, :is, about, rounds, default: :unknown)
 
       %{
         is:
@@ -153,13 +132,5 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   # Intention valuators
 
-  defp turn_valuator() do
-    2 # seconds
-  end
-
-  defp move_valuator() do
-    %{speed: :normal,
-      time: 2}
-  end
 
 end

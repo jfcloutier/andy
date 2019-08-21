@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
   @moduledoc "The GM definition for :being"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -30,7 +30,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
       name: :thriving,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor(:safe, %{is: true}),
+        no_change_predictor(:safe, default: %{is: true}),
         sated_predictor(),
         free_predictor()
       ],
@@ -44,13 +44,13 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
   defp sated_predictor() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
-      safe? = current_perceived_value(:safe, :is, about, round, false)
+      safe? = current_perceived_value(:safe, :is, about, round, default: false)
 
       if safe? do
         %Prediction{
           conjecture_name: :sated,
           about: about,
-          expectations: current_perceived_values(:sated, about, round, %{is: true})
+          expectations: current_perceived_values(:sated, about, round, default: %{is: true})
         }
       else
         nil
@@ -61,14 +61,14 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
   defp free_predictor() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
-      safe? = current_perceived_value(:safe, :is, about, round, false)
-      sated? = current_perceived_value(:sated, :is, about, round, false)
+      safe? = current_perceived_value(:safe, :is, about, round, default: false)
+      sated? = current_perceived_value(:sated, :is, about, round, default: false)
 
       if safe? and sated? do
         %Prediction{
           conjecture_name: :free,
           about: about,
-          expectations: current_perceived_values(:free, about, round, %{is: true})
+          expectations: current_perceived_values(:free, about, round, default: %{is: true})
         }
       else
         nil

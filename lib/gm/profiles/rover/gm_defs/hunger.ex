@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
   @moduledoc "The GM definition for :hunger"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -29,7 +29,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
       name: :sated,
       activator: sated_activator(),
       predictors: [
-        no_change_predictor(:belly_full, %{is: true})
+        no_change_predictor(:chewing, default: %{is: true})
       ],
       valuator: sated_valuator(),
       intention_domain: [:express_opinion_about_hunger]
@@ -40,13 +40,20 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
 
   # Always activate, and as opinion
   defp sated_activator() do
-    fn conjecture, _rounds ->
-      [
-        Conjecture.activate(conjecture,
-          about: :self,
-          goal?: false
-        )
-      ]
+    fn conjecture, [_round | previous_rounds] ->
+      chewings_count =
+        count_perceived_since(:chewing, :self, %{is: true}, previous_rounds, now() - 20_000)
+
+      if chewings_count < 3 do
+        [
+          Conjecture.activate(conjecture,
+            about: :self,
+            goal?: true
+          )
+        ]
+      else
+        []
+      end
     end
   end
 
@@ -58,21 +65,21 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
-      belly_full? = current_perceived_value(:belly_full, :is, about, rounds, false)
+      chewings_count = count_perceived_since(:chewing, :self, %{is: true}, rounds, now() - 20_000)
 
-      %{is: belly_full?}
+      %{is: chewings_count >= 3}
     end
   end
 
   # Intention valuators
 
   defp opinion_about_hunger() do
-    fn %{is: true} ->
+    fn %{is: false} ->
       "I am hungry"
     end
 
     fn _other ->
-      "I am not hungry"
+      nil
     end
   end
 end

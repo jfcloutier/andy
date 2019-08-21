@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
   @moduledoc "The GM definition for :danger"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Profiles.Rover.Utils
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -29,9 +29,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
       name: :safe,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor(:clear_of_obstacle, %{is: true}),
-        no_change_predictor(:clear_of_other, %{is: true}),
-        no_change_predictor(:in_well_lit_area, %{is: true})
+        no_change_predictor(:clear_of_obstacle, default: %{is: true}),
+        no_change_predictor(:clear_of_other, default: %{is: true}),
+        no_change_predictor(:in_well_lit_area, default: %{is: true})
       ],
       valuator: safe_valuator(),
       intention_domain: [:express_opinion_about_safety]
@@ -49,10 +49,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
       about = conjecture_activation.about
 
       clear_of_obstacle? =
-        current_perceived_value(:clear_of_obstacle, :is, about, rounds, true)
+        current_perceived_value(:clear_of_obstacle, :is, about, rounds, default: true)
 
-      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, rounds, true)
-      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, rounds, true)
+      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, rounds, default: true)
+      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, rounds, default: true)
 
       %{is: clear_of_obstacle? and clear_of_other? and in_well_lit_area?}
     end
