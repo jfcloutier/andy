@@ -47,8 +47,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
   # Conjecture activators
 
   defp obstacle_not_hit_activator() do
-    fn conjecture, rounds ->
-      touched? = current_perceived_value(:touched, :is, about, rounds, default: false)
+    fn conjecture, [round, _previous_rounds] ->
+      touched? = current_perceived_value(:touched, :is, about, round, default: false)
 
       if touched? do
         [
@@ -64,12 +64,12 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
   end
 
   defp obstacle_avoided_activator() do
-    fn conjecture, rounds ->
+    fn conjecture, [round, _previous_rounds] ->
       approaching_obstacle? =
-        current_perceived_value(:approaching_obstacle, :is, about, rounds, false)
+        current_perceived_value(:approaching_obstacle, :is, about, round, false)
 
       distance_to_obstacle =
-        current_perceived_value(:distance_to_obstacle, :is, about, rounds, default: :unknown)
+        current_perceived_value(:distance_to_obstacle, :is, about, round, default: :unknown)
 
       if distance_to_obstacle != :unknown and distance_to_obstacle <= 10 do
         [
@@ -101,27 +101,27 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
   # Conjecture belief valuators
 
   defp obstacle_not_hit_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      touched? = current_perceived_value("*:*:touch", :detected, about, rounds, default: :released) == :touched
+      touched? = current_perceived_value("*:*:touch", :detected, about, round, default: :released) == :touched
 
       approaching_obstacle? =
-        current_perceived_value(:approaching_obstacle, :is, about, rounds, default: false)
+        current_perceived_value(:approaching_obstacle, :is, about, round, default: false)
 
       %{is: not touched? and not approaching_obstacle?}
     end
   end
 
   defp obstacle_avoided_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
       approaching_obstacle? =
-        current_perceived_value(:approaching_obstacle, :is, about, rounds, default: false)
+        current_perceived_value(:approaching_obstacle, :is, about, round, default: false)
 
       distance_to_obstacle =
-        current_perceived_value(:distance_to_obstacle, :is, about, rounds, default: :unknown)
+        current_perceived_value(:distance_to_obstacle, :is, about, round, default: :unknown)
 
       %{
         is:

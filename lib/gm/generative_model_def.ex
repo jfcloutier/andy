@@ -19,8 +19,7 @@ defmodule Andy.GM.GenerativeModelDef do
             # Candidate intentions that, when executed individually or in sequences, could validate a conjecture.
             # Intentions are taken either to achieve a goal (to believe in a goal conjecture)
             # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
-            # intention_name => intention
-            # Should always include a do-nothing intention
+            # name => intention or [intention, ...] # either single intention or a group of combined intentions
             intentions: %{},
             # Whether this GM is always activating conjectures
             hyper_prior: false
@@ -60,11 +59,30 @@ defmodule Andy.GM.GenerativeModelDef do
     Enum.any?(contradictions, &(conjecture_name in &1 and other in &1))
   end
 
-  def intention(%GenerativeModelDef{intentions: intentions}, intention_name) do
-    Map.get(intentions, intention_name)
+  # An intention name may be associated with a group of intentions or a single one.
+  # Always return a group
+  def intentions(%GenerativeModelDef{intentions: intentions}, intention_name) do
+    case Map.get(intentions, intention_name, []) do
+      group when is_list(group) ->
+        group
+
+      intention ->
+        [intention]
+    end
   end
 
   def hyper_prior?(%GenerativeModelDef{hyper_prior: hyper_prior?}) do
     hyper_prior?
+  end
+
+  def unduplicate_non_repeatables(gm_def, intention_names) do
+    Enum.reduce(
+      intention_names,
+      [],
+      fn intention_name, acc ->
+        not_repeatable? = intentions(gm_def, intention_name) |> Enum.all?(&(not &1.repeatable))
+        if not_repeatable? and intention_name in acc, do: acc, else: [intention_name | acc]
+      end
+    )
   end
 end

@@ -13,9 +13,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
       contradictions: [],
       priors: %{sated: %{is: true}},
       intentions: %{
-        express_opinion_about_hunger: %Intention{
+        express_opinion_about_sated: %Intention{
           intent_name: :say,
-          valuator: opinion_about_hunger(),
+          valuator: opinion_about_sated(),
           repeatable: false
         }
       }
@@ -32,7 +32,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
         no_change_predictor(:chewing, default: %{is: true})
       ],
       valuator: sated_valuator(),
-      intention_domain: [:express_opinion_about_hunger]
+      intention_domain: [:express_opinion_about_sated]
     }
   end
 
@@ -73,7 +73,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
 
   # Intention valuators
 
-  defp opinion_about_hunger() do
+  defp opinion_about_sated() do
     fn %{is: false} ->
       "I am hungry"
     end

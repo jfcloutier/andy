@@ -1,11 +1,11 @@
 defmodule Andy.GM.Utils do
-  alias Andy.GM.Perception
+  alias Andy.GM.{Perception, Belief}
 
-  def always_activator(opinion_or_goal) do
+  def always_activator(opinion_or_goal, about \\ :self) do
     fn conjecture, _rounds ->
       [
         Conjecture.activate(conjecture,
-          about: :self,
+          about: about,
           goal?: opinion_or_goal == :goal
         )
       ]
@@ -15,6 +15,12 @@ defmodule Andy.GM.Utils do
   def constant_valuator(values) do
     fn _conjecture_activation, _rounds ->
       values
+    end
+  end
+
+  def empty_valuator() do
+    fn _conjecture_activation, _rounds ->
+      %{}
     end
   end
 
@@ -100,30 +106,34 @@ defmodule Andy.GM.Utils do
     end
   end
 
-  defp count_perceived_since(_conjecture_name, _about, _values, [], _since) do
-    0
+  def channel_of_other() do
+    # TODO
+    nil
   end
 
-  defp count_perceived_since(
-         conjecture_name,
-         about,
-         values,
-         [%Round{completed_on: completed_on, perceptions: perceptions} | previous_rounds],
-         since
-       ) do
+  def once_believed?(conjecture_name, _about, _value_name, value, _since, []) do
+    false
+  end
+
+  def once_believed?(conjecture_name, about, value_name, value, since, [
+        %Round{beliefs: beliefs, completed_on: completed_on} | previous_rounds
+      ]) do
     if completed_on < since do
-      0
+      false
     else
-      subject_counted = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+      subject = Perception.make_subject(conjecture_name, about)
 
-      count =
-        perceptions
-        |> Enum.filter(
-          &(Perception.subject(&1) == subject_counted and Perception.values_match?(&1, values))
-        )
-        |> Enum.count()
+      case Enum.find(beliefs, &(Belief.subject(&1) == subject)) do
+        nil ->
+          once_believed?(conjecture_name, about, value_name, value, since, previous_rounds)
 
-      count + count_perceived_since(conjecture_name, about, values, previous_rounds, since)
+        %Belief{values: values} ->
+          if Map.get(values, value_name) == value do
+            true
+          else
+            once_believed?(conjecture_name, about, value_name, value, since, previous_rounds)
+          end
+      end
     end
   end
 
@@ -200,6 +210,33 @@ defmodule Andy.GM.Utils do
   end
 
   ### PRIVATE
+
+  defp count_perceived_since(_conjecture_name, _about, _values, [], _since) do
+    0
+  end
+
+  defp count_perceived_since(
+         conjecture_name,
+         about,
+         values,
+         [%Round{completed_on: completed_on, perceptions: perceptions} | previous_rounds],
+         since
+       ) do
+    if completed_on < since do
+      0
+    else
+      subject_counted = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+
+      count =
+        perceptions
+        |> Enum.filter(
+          &(Perception.subject(&1) == subject_counted and Perception.values_match?(&1, values))
+        )
+        |> Enum.count()
+
+      count + count_perceived_since(conjecture_name, about, values, previous_rounds, since)
+    end
+  end
 
   defp all_perceived_values(
          predicted_conjecture_name,

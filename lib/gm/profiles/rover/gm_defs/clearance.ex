@@ -54,26 +54,26 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
   # Conjecture belief valuators
 
   defp clear_of_obstacle_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
       obstacle_not_hit? =
-        current_perceived_value(:obstacle_not_hit, :is, about, rounds, true)
+        current_perceived_value(:obstacle_not_hit, :is, about, round, true)
 
-      obstacle_avoided? = current_perceived_value(:obstacle_avoided, :is, about, rounds, true)
+      obstacle_avoided? = current_perceived_value(:obstacle_avoided, :is, about, round, true)
 
       %{is: obstacle_not_hit? and obstacle_avoided?}
     end
   end
 
   defp clear_of_other_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
       other_rover_out_of_range? =
-        current_perceived_value(:other_rover_out_of_range, :is, about, rounds, true)
+        current_perceived_value(:other_rover_out_of_range, :is, about, round, true)
 
-      other_rover_avoided? = current_perceived_value(:other_rover_avoided, :is, about, rounds, true)
+      other_rover_avoided? = current_perceived_value(:other_rover_avoided, :is, about, round, true)
 
       %{is: other_rover_out_of_range? and other_rover_avoided?}
     end

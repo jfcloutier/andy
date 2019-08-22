@@ -1043,10 +1043,11 @@ defmodule Andy.GM.GenerativeModel do
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
     coa_index = Map.get(courses_of_action_indices, conjecture_activation_subject, 0)
 
-    untried_coa =
+    maybe_untried_coa =
       new_course_of_action(
         conjecture_activation,
-        coa_index
+        coa_index,
+        state
       )
 
     # Collect as candidates all tried CoAs for similar conjecture activations (same subject)
@@ -1070,7 +1071,11 @@ defmodule Andy.GM.GenerativeModel do
 
     # Candidates CoA are the previously tried CoAs plus a new one given the average efficacy of the other candidates.
     candidates =
-      [{untried_coa, average_efficacy} | tried]
+      if course_of_action_already_tried?(maybe_untried_coa, tried) do
+        tried
+      else
+        [{maybe_untried_coa, average_efficacy} | tried]
+      end
       # Normalize efficacies (sum = 1.0)
       |> normalize_efficacies()
 
@@ -1080,6 +1085,11 @@ defmodule Andy.GM.GenerativeModel do
     new_coa? = course_of_action == untried_coa
     updated_coa_index = if new_coa?, do: coa_index + 1, else: coa_index
     {course_of_action, updated_coa_index, new_coa?}
+  end
+
+  defp course_of_action_already_tried?(maybe_untried_coa, tried) do
+    tried_coas = Enum.map(tried, fn {coa, _efficacy} -> coa end)
+    maybe_untried_coa in tried_coas
   end
 
   defp average_efficacy([]) do
@@ -1094,7 +1104,8 @@ defmodule Andy.GM.GenerativeModel do
   defp new_course_of_action(
          %ConjectureActivation{conjecture: %Conjecture{intention_domain: intention_domain}} =
            conjecture_activation,
-         courses_of_action_index
+         courses_of_action_index,
+         %State{gm_def: gm_def}
        ) do
     # Convert the index into a list of indices e.g. 5 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
     index_list =
@@ -1111,6 +1122,7 @@ defmodule Andy.GM.GenerativeModel do
           [Enum.at(intention_domain, i) | acc]
         end
       )
+      |> GenerativeModelDef.unduplicate_non_repeatables(gm_def, intention_names)
       |> Enum.reverse()
 
     %CourseOfAction{
@@ -1220,35 +1232,45 @@ defmodule Andy.GM.GenerativeModel do
           Enum.reduce(
             intention_names,
             acc,
-            fn intention_name, %Round{intents: intents} = acc1 ->
-              intention = GenerativeModelDef.intention(gm_def, intention_name)
-              intent_value = intention.valuator.(belief_values)
-
-              if intent_value == nil do
-                # a nil-valued intent is a noop intent, so ignore it
-                acc1
-              else
-                # execute valued intent
-                intent =
-                  Intent.new(
-                    about: intention.intent_name,
-                    value: intent_value
-                  )
-
-                if not (Intention.not_repeatable?(intention) and
-                          would_be_repeated?(intent, rounds)) do
-                  PubSub.notify_intended(intent)
-                  %Round{acc1 | intents: [intent | intents]}
-                else
-                  acc1
-                end
-              end
+            fn intention_name, %Round{} = acc1 ->
+              intentions = GenerativeModelDef.intentions(gm_def, intention_name)
+              activate_intents(intentions, belief_values, acc1)
             end
           )
         end
       )
 
     %State{state | rounds: [updated_round | previous_rounds]}
+  end
+
+  defp activate_intents(intentions, belief_values, round) do
+    Enum.reduce(
+      intentions,
+      round,
+      fn intention, %Round{intents: intents} = acc ->
+        intent_value = intention.valuator.(belief_values)
+
+        if intent_value == nil do
+          # a nil-valued intent is a noop intent, so ignore it
+          acc
+        else
+          # execute valued intent
+          intent =
+            Intent.new(
+              about: intention.intent_name,
+              value: intent_value
+            )
+
+          if not (Intention.not_repeatable?(intention) and
+                    would_be_repeated?(intent, rounds)) do
+            PubSub.notify_intended(intent)
+            %Round{acc | intents: [intent | intents]}
+          else
+            acc
+          end
+        end
+      end
+    )
   end
 
   # Would an intent be repeated (does the latest remembered intent about the same thing, executed in

@@ -41,8 +41,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
   # Conjecture activators
 
   defp in_well_lit_area_activator() do
-    fn conjecture, rounds ->
-      ambient_light = current_perceived_value("*:*:ambient", :detected, :self, rounds, 100)
+    fn conjecture, [round, _previous_rounds] ->
+      ambient_light = current_perceived_value("*:*:ambient", :detected, :self, round, 100)
 
       if ambient_light < 10 do
         [
@@ -62,13 +62,13 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
   # Conjecture belief valuators
 
   defp in_well_lit_area_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      clear_of_obstacle? = current_perceived_value(:clear_of_obstacle, :is, about, rounds, true)
+      clear_of_obstacle? = current_perceived_value(:clear_of_obstacle, :is, about, round, true)
 
-      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, rounds, true)
-      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, rounds, true)
+      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, round, true)
+      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, round, true)
 
       %{is: clear_of_obstacle? and clear_of_other? and in_well_lit_area?}
     end
