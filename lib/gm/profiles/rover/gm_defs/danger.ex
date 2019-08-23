@@ -62,18 +62,17 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
     fn conjecture, [round | _previous_rounds] ->
       other_panicking? =
         current_perceived_value(
+          round,
+          :other,
           :other_panicking,
           :is,
-          :other,
-          round,
           default: false
         )
 
       if not other_panicking? do
         [
           Conjecture.activate(conjecture,
-            about: :other,
-            goal?: false
+            about: :other
           )
         ]
       else
@@ -87,18 +86,17 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
     fn conjecture, [round | _previous_rounds] ->
       other_panicking? =
         current_perceived_value(
+          round,
+          :other,
           :other_panicking,
           :is,
-          :other,
-          round,
           default: false
         )
 
       if other_panicking? do
         [
           Conjecture.activate(conjecture,
-            about: :other,
-            goal?: false
+            about: :other
           )
         ]
       else
@@ -116,12 +114,12 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
       about = conjecture_activation.about
 
       clear_of_obstacle? =
-        current_perceived_value(:clear_of_obstacle, :is, about, round, default: true)
+        current_perceived_value(round, about, :clear_of_obstacle, :is, default: true)
 
-      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, round, default: true)
+      clear_of_other? = current_perceived_value(round, about, :clear_of_other, :is, default: true)
 
       in_well_lit_area? =
-        current_perceived_value(:in_well_lit_area, :is, about, round, default: true)
+        current_perceived_value(round, about, :in_well_lit_area, :is, default: true)
 
       %{is: clear_of_obstacle? and clear_of_other? and in_well_lit_area?}
     end
@@ -133,15 +131,15 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
 
       other_panicking? =
         current_perceived_value(
+          round,
+          about,
           :other_panicking,
           :is,
-          about,
-          round,
           default: false
         )
 
       in_well_lit_area? =
-        current_perceived_value(:in_well_lit_area, :is, :self, round, default: true)
+        current_perceived_value(round, :self, :in_well_lit_area, :is, default: true)
 
       %{is: other_panicking?, well_lit: in_well_lit_area?}
     end

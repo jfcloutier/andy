@@ -2,7 +2,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
   @moduledoc "The GM definition for :lighting"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
-  import Andy.GM.Utilss
+  import Andy.GM.Utils
 
   def gm_def() do
     %GenerativeModelDef{
@@ -42,13 +42,13 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
 
   defp in_well_lit_area_activator() do
     fn conjecture, [round, _previous_rounds] ->
-      ambient_light = current_perceived_value("*:*:ambient", :detected, :self, round, 100)
+      ambient_light = current_perceived_value(round, :self, "*:*:ambient", :detected, default: 100)
 
       if ambient_light < 10 do
         [
           Conjecture.activate(conjecture,
             about: :self,
-            goal?: true
+            goal: fn %{is: well_lit?} -> well_lit? end
           )
         ]
       else
@@ -65,12 +65,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
     fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      clear_of_obstacle? = current_perceived_value(:clear_of_obstacle, :is, about, round, true)
+      in_well_lit_area? = current_perceived_value(round, about, "*:*:ambient", :detected, default: 100) >= 10
 
-      clear_of_other? = current_perceived_value(:clear_of_other, :is, about, round, true)
-      in_well_lit_area? = current_perceived_value(:in_well_lit_area, :is, about, round, true)
-
-      %{is: clear_of_obstacle? and clear_of_other? and in_well_lit_area?}
+      %{is: in_well_lit_area?}
     end
   end
 

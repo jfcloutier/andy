@@ -6,7 +6,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :danger,
+      name: :clearance,
       conjectures: [
         conjecture(:clear_of_obstacle),
         conjecture(:clear_of_other)
@@ -36,10 +36,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
   defp conjecture(:clear_of_other) do
     %Conjecture{
       name: :clear_of_other,
-      activator: always_activator(:opinion),
+      activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor(:other_rover_out_of_range, default: %{is: true}),
-        no_change_predictor(:other_rover_avoided, default: %{is: true})
+        no_change_predictor(:on_collision_course, default: false)
       ],
       valuator: clear_of_other_valuator(),
       intention_domain: []
@@ -58,9 +57,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
       about = conjecture_activation.about
 
       obstacle_not_hit? =
-        current_perceived_value(:obstacle_not_hit, :is, about, round, true)
+        current_perceived_value(round, about, :obstacle_not_hit, :is, default: true)
 
-      obstacle_avoided? = current_perceived_value(:obstacle_avoided, :is, about, round, true)
+      obstacle_avoided? = current_perceived_value(round, about, :obstacle_avoided, :is, default: true)
 
       %{is: obstacle_not_hit? and obstacle_avoided?}
     end
@@ -70,12 +69,10 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
     fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      other_rover_out_of_range? =
-        current_perceived_value(:other_rover_out_of_range, :is, about, round, true)
+      on_collision_course? =
+        current_perceived_value(round, about, :on_collision_course, :is, default: false)
 
-      other_rover_avoided? = current_perceived_value(:other_rover_avoided, :is, about, round, true)
-
-      %{is: other_rover_out_of_range? and other_rover_avoided?}
+      %{is: on_collision_course?}
     end
   end
 

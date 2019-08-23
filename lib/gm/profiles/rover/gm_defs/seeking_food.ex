@@ -70,8 +70,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       name: :other_found_food,
       activator: other_found_food_activator(),
       predictors: [
-        no_change_predictor(:other_homing_on_food, default: %{is: false}),
-        no_change_predictor(:other_eating, default: %{is: false})
+        no_change_predictor(:other_homing_on_food, default: %{is: false})
       ],
       valuator: other_found_food_belief_valuator(),
       intention_domain: [:track_other]
@@ -83,15 +82,12 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
   defp other_found_food_activator() do
     fn conjecture, [round | _previous_rounds] ->
       other_homing_on_food? =
-        current_perceived_value(:other_homing_on_food, :is, :other, round, default: false)
+        current_perceived_value(round, :other, :other_homing_on_food, :is, default: false)
 
-      other_eating? = current_perceived_value(:other_eating, :is, :other, round, default: false)
-
-      if other_homing_on_food? or other_eating? do
+       if other_homing_on_food?do
         [
           Conjecture.activate(conjecture,
-            about: :other,
-            goal?: false
+            about: :other
           )
         ]
       else
@@ -103,17 +99,17 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
   defp over_food_activator() do
     fn conjecture, [round | _previous_rounds] ->
       white? =
-        current_perceived_value("*:*:color", :detected, :self, round, default: :mystery) == :white
+        current_perceived_value(round, :self, "*:*:color", :detected, default: :mystery) == :white
 
       food_detected? =
-        current_perceived_value("*:*:beacon_distance/1", :detected, :self, round, default: -128) !=
+        current_perceived_value(round, :self, "*:*:beacon_distance/1", :detected, default: -128) !=
           -128
 
       if not white? and food_detected? do
         [
           Conjecture.activate(conjecture,
             about: :self,
-            goal?: true
+            goal: fn(%{is: over_food?}) -> over_food? end
           )
         ]
       else
@@ -131,13 +127,13 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       about = conjecture_activation.about
 
       white? =
-        current_perceived_value("*:*:color", :detected, :self, round, default: :mystery) == :white
+        current_perceived_value(round, :self, "*:*:color", :detected, default: :mystery) == :white
 
       distance =
-        current_perceived_value("*:*:beacon_distance/1", :detected, :self, round, default: -128)
+        current_perceived_value(round, :self, "*:*:beacon_distance/1", :detected, default: -128)
 
       heading =
-        current_perceived_value("*:*:beacon_heading/1", :detected, :self, round, default: 0)
+        current_perceived_value(round, :self, "*:*:beacon_heading/1", :detected, default: 0)
 
       %{is: white?, distance: distance, heading: heading}
     end
@@ -148,7 +144,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       about = conjecture_activation.about
 
       no_food_detected? =
-        current_perceived_value("*:*:beacon_heading/1", :detected, :self, round, default: -128) ==
+        current_perceived_value(round, :self, "*:*:beacon_heading/1", :detected, default: -128) ==
           -128
 
       %{is: no_food_detected?}
@@ -160,14 +156,12 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       about = conjecture_activation.about
 
       other_homing_on_food? =
-        current_perceived_value(:other_homing_on_food, :is, about, round, default: false)
+        current_perceived_value(round, about, :other_homing_on_food, :is, default: false)
 
-      other_eating? = current_perceived_value(:other_eating, :is, about, round, default: false)
+      other_eating? = current_perceived_value(round, about, :other_eating, :is, default: false)
 
       other_vector =
-        current_perceived_values(:other_eating, about, round,
-          default: %{distance: -128, heading: 0}
-        )
+        current_perceived_values(round, about, :other_eating, default: %{distance: -128, heading: 0})
 
       %{
         is: other_homing_on_food? or other_eating?,

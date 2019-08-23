@@ -8,20 +8,15 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObservingOtherRover do
     %GenerativeModelDef{
       name: :observing_other_rover,
       conjectures: [
-        conjecture(:other_not_seen),
-        conjecture(:observing),
+        conjecture(:not_seen),
+        conjecture(:observed)
       ],
-      contradictions: [[:other_not_seen, :observing]],
-      priors: %{other_not_seen: %{is: true}, observing: %{is: false}},
+      contradictions: [[:not_seen, :observed]],
+      priors: %{not_seen: %{is: true}, observed: %{is: false}},
       intentions: %{
-        scan_right: %Intention{
-          intent_name: :scan,
-          valuator: scan_valuator(:right),
-          repeatable: true
-        },
-        scan_left: %Intention{
-          intent_name: :scan,
-          valuator: scan_valuator(:left),
+        face: %Intention{
+          intent_name: :turn,
+          valuator: face_valuator(),
           repeatable: true
         }
       }
@@ -30,75 +25,111 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObservingOtherRover do
 
   # Conjectures
 
-  defp conjecture(:other_not_seen) do
+  defp conjecture(:not_seen) do
     %Conjecture{
-      name: :other_not_seen,
+      name: :not_seen,
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor("*:*:distance", default: %{detected: -128})
+        no_change_predictor("*:*:distance/#{channel_of_other()}", default: %{detected: -128})
       ],
-      valuator: other_not_seen_belief_valuator(),
+      valuator: not_seen_belief_valuator(),
       intention_domain: []
     }
   end
 
-  defp conjecture(:observing) do
+  defp conjecture(:observed) do
     %Conjecture{
-      name: :other_not_seen,
-      activator: observing_activator(),
+      name: :observed,
+      activator: observed_activator(),
       predictors: [
         no_change_predictor("*:*:distance/#{channel_of_other()}", default: %{detected: -128}),
         no_change_predictor("*:*:heading/#{channel_of_other()}", default: %{detected: 0})
       ],
-      valuator: observing_valuator(),
-      intention_domain: [:scan_right, :scan_left]
+      valuator: observed_belief_valuator(),
+      intention_domain: [:face]
     }
   end
 
-
   # Conjecture activators
 
-  defp observing_activator() do
+  defp observed_activator() do
     fn conjecture, rounds ->
-      recently_observing? = once_believed?(:observing, :other, :is, true, now() - 10_000, rounds)
-      if not recently_observing? do
-      [
-        Conjecture.activate(conjecture,
-          about: :other,
-          goal?: true
-        )
-      ]
+      recently_observed? =
+        once_believed?(rounds, :other, :observed, :is, true, since: now() - 30_000)
+      # if we have not observed the other in the last 30 secs
+      if not recently_observed? do
+        [
+          Conjecture.activate(conjecture,
+            about: :other,
+            # face the other robot for 5 secs or give up after failing to for 10 secs
+            goal: fn %{since: since, failing_since: failing_since} -> since >= 5_000 or failing_since > 10_000 end
+          )
+        ]
       else
-      []
+        []
       end
     end
   end
-
-  # TODO
 
   # Conjecture predictors
 
   # Conjecture belief valuators
 
-  defp distance_to_obstacle_valuator() do
+  defp not_seen_belief_valuator() do
     fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      distance = current_perceived_value("*:*:distance", :detected, about, round, default: -128)
+      not_seen? =
+        current_perceived_value(round, about, "*:*:distance/#{channel_of_other()}", :detected,
+          default: -128
+        ) == -128
 
-      if distance == -128 do
-        %{is: :unknown}
-      else
-        %{is: distance}
-      end
+      %{is: not_seen?}
+    end
+  end
+
+  defp observed_belief_valuator() do
+    fn conjecture_activation, [round, previous_rounds] ->
+      about = conjecture_activation.about
+
+      distance =
+        current_perceived_value(round, about, "*:*:distance/#{channel_of_other()}", :detected,
+          default: -128
+        )
+
+      target_heading =
+        current_perceived_value(round, about, "*:*:heading/#{channel_of_other()}", :detected,
+          default: 0
+        )
+
+      seen? = distance != -128
+      facing? = abs(target_heading) < 15
+
+      since = duration_believed_since(previous_rounds, about, :observed, :is, true)
+      failing_since = duration_believed_since(previous_rounds, about, :observed, :is, false)
+      %{is: seen? and facing?, heading: target_heading, distance: distance, since: since, failing_since: failing_since}
     end
   end
 
   # Intention valuators
 
-  defp opinion_about_distance() do
-    fn (%{is: distance}) when distance < 10 -> "Oops!" end
-    fn (_)  -> nil end
-  end
+  defp face_valuator() do
+    fn %{distance: -128} ->
+      turn_direction = Enum.random([:right, :left])
+      %{turn_direction: turn_direction, turn_time: 1}
+    end
 
+    fn %{heading: 0} ->
+      nil
+    end
+
+    fn %{heading: heading} ->
+      if abs(heading < 10) do
+        nil
+      else
+        turn_direction = if heading < 0, do: :left, else: :right
+        %{turn_direction: turn_direction, turn_time: 0.5}
+      end
+    end
+  end
 end

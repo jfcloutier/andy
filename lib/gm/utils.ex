@@ -1,12 +1,23 @@
 defmodule Andy.GM.Utils do
   alias Andy.GM.{Perception, Belief}
 
-  def always_activator(opinion_or_goal, about \\ :self) do
+  def always_activator(:opinion, about \\ :self) do
     fn conjecture, _rounds ->
       [
         Conjecture.activate(conjecture,
           about: about,
-          goal?: opinion_or_goal == :goal
+          goal: nil
+        )
+      ]
+    end
+  end
+
+  def always_activator(:goal, about \\ :self) do
+    fn conjecture, _rounds ->
+      [
+        Conjecture.activate(conjecture,
+          about: about,
+          goal: fn _belief_values -> true end
         )
       ]
     end
@@ -56,10 +67,10 @@ defmodule Andy.GM.Utils do
   def expected_numerical_value([_round | previous_rounds], conjecture_name, about, value_name) do
     all_values =
       all_perceived_values(
-        conjecture_name,
+        previous_rounds,
         about,
-        value_name,
-        previous_rounds
+        conjecture_name,
+        value_name
       )
       |> Enum.filter(&is_number(&1))
 
@@ -78,10 +89,10 @@ defmodule Andy.GM.Utils do
   def numerical_value_trend([round | previous_rounds], conjecture_name, about, value_name) do
     all_values =
       all_perceived_values(
-        conjecture_name,
+        previous_rounds,
         about,
-        value_name,
-        previous_rounds
+        conjecture_name,
+        value_name
       )
       |> Enum.filter(&is_number(&1))
 
@@ -111,13 +122,25 @@ defmodule Andy.GM.Utils do
     nil
   end
 
-  def once_believed?(conjecture_name, _about, _value_name, value, _since, []) do
+  def name_of_other() do
+    # TODO
+    nil
+  end
+
+  def once_believed?([], _about, _conjecture_name, _value_name, _value, since: _since) do
     false
   end
 
-  def once_believed?(conjecture_name, about, value_name, value, since, [
-        %Round{beliefs: beliefs, completed_on: completed_on} | previous_rounds
-      ]) do
+  def once_believed?(
+        [
+          %Round{beliefs: beliefs, completed_on: completed_on} | previous_rounds
+        ],
+        about,
+        conjecture_name,
+        value_name,
+        value,
+        since: since
+      ) do
     if completed_on < since do
       false
     else
@@ -138,16 +161,16 @@ defmodule Andy.GM.Utils do
   end
 
   def current_perceived_value(
+        round,
+        about,
         predicted_conjecture_name,
         value_name,
-        about,
-        round,
         default: default
       ) do
     case current_perceived_values(
-           predicted_conjecture_name,
-           about,
            round,
+           about,
+           predicted_conjecture_name,
            default: nil
          ) do
       nil ->
@@ -158,10 +181,19 @@ defmodule Andy.GM.Utils do
     end
   end
 
+  def perceived_value_range(rounds, about, conjecture_name, value_name, since: since) do
+    since_rounds = Enum.filter(rounds, &{&1.completed_on >= since})
+
+    case all_perceived_values(since_rounds, about, conjecture_name, value_name) do
+      [] -> nil
+      values -> [Enum.min(values)..Enum.max(values)]
+    end
+  end
+
   def current_perceived_values(
-        predicted_conjecture_name,
-        about,
         %Round{perceptions: perceptions},
+        about,
+        predicted_conjecture_name,
         default: default_values
       ) do
     case Enum.find(
@@ -177,6 +209,71 @@ defmodule Andy.GM.Utils do
 
       perception ->
         Perception.values(perception)
+    end
+  end
+
+  def recent_perceived_values([], _about, _conjecture_name, matching: _match, since: _since) do
+    []
+  end
+
+  def recent_perceived_values(
+        [%Round{completed_on: completed_on, perceptions: perceptions} | previous_rounds],
+        about,
+        conjecture_name,
+        matching: match,
+        since: since
+      ) do
+    if completed_on < since do
+      []
+    else
+      subject = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+
+      matching_perceptions =
+        Enum.filter(
+          perceptions,
+          &(Perception.subject(&1) == subject and Perception.values_match?(&1, match))
+        )
+
+      matching_perceptions ++
+        recent_perceived_values(previous_rounds, about, conjecture_name,
+          matching: match,
+          since: since
+        )
+    end
+  end
+
+  # The number of msecs a belief's value has been held without interruption
+  def duration_believed_since([], _about, _conjecture_name, _value_name, _value, latest \\ 0) do
+    latest
+  end
+
+  def duration_believed_since(
+        [%Round{completed_on: completed_on, beliefs: beliefs} | previous_rounds],
+        about,
+        conjecture_name,
+        value_name,
+        value,
+        latest \\ 0
+      ) do
+    subject = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+
+    value_believed? =
+      Enum.any?(
+        beliefs,
+        &(Belief.subject(&1) == subject and Belief.has_value?(&1, value_name, value))
+      )
+
+    if value_believed? do
+      duration_believed_since(
+        previous_rounds,
+        about,
+        conjecture_name,
+        value_name,
+        value,
+        completed_on
+      )
+    else
+      latest
     end
   end
 
@@ -209,18 +306,64 @@ defmodule Andy.GM.Utils do
     movement_intentions() |> Map.keys()
   end
 
+  # The number of times the value went from decreasing to increasing, increasing to decreasing, increasing to none etc.
+  def variability(values) do
+    values = Enum.map(maps, &Map.get(value_name, 0))
+    changes_of_directions = find_changes_of_directions(values)
+    count_changes(changes_of_direction)
+  end
+
+  def count_changes([]) do
+    0
+  end
+
+  def count_changes([_]) do
+    0
+  end
+
+  def count_changes([val, val | rest]) do
+    count_changes([val | rest])
+  end
+
+  def count_changes([val1, val2 | rest]) do
+    count_changes([val2 | rest]) + 1
+  end
+
   ### PRIVATE
 
-  defp count_perceived_since(_conjecture_name, _about, _values, [], _since) do
+  defp find_changes_of_directions(values) do
+    changes_of_direction(values) |> Enum.reverse()
+  end
+
+  defp changes_of_direction([]) do
+    []
+  end
+
+  defp changes_of_direction([_]) do
+    [:none]
+  end
+
+  defp changes_of_direction([val1, val2 | rest]) do
+    change_of_direction =
+      cond do
+        val1 == val2 -> :none
+        val1 < val2 -> :decreasing
+        val1 > val2 -> :increasing
+      end
+
+    [change_of_direction | changes_of_direction([val2 | rest])]
+  end
+
+  defp count_perceived_since([], _about, _conjecture_name, _values, since: _since) do
     0
   end
 
   defp count_perceived_since(
-         conjecture_name,
-         about,
-         values,
          [%Round{completed_on: completed_on, perceptions: perceptions} | previous_rounds],
-         since
+         about,
+         conjecture_name,
+         values,
+         since: since
        ) do
     if completed_on < since do
       0
@@ -234,62 +377,63 @@ defmodule Andy.GM.Utils do
         )
         |> Enum.count()
 
-      count + count_perceived_since(conjecture_name, about, values, previous_rounds, since)
+      count + count_perceived_since(previous_rounds, about, conjecture_name, values, since)
     end
   end
 
   defp all_perceived_values(
-         predicted_conjecture_name,
+         rounds,
          about,
-         value_name,
-         rounds
+         predicted_conjecture_name,
+         value_name
        ) do
     collect_all_perceived_values(
-      predicted_conjecture_name,
+      rounds,
       about,
-      value_name,
-      rounds
+      predicted_conjecture_name,
+      value_name
     )
     |> Enum.reverse()
   end
 
   defp collect_all_perceived_values(
-         _predicted_conjecture_name,
+         [],
          _about,
-         _value_name,
-         []
+         _predicted_conjecture_name,
+         _value_name
        ) do
     []
   end
 
   defp collect_all_perceived_values(
-         predicted_conjecture_name,
+         [round | previous_rounds] = rounds,
          about,
-         value_name,
-         [round | previous_rounds] = rounds
+         predicted_conjecture_name,
+         value_name
        ) do
     case current_perceived_value(
-           predicted_conjecture_name,
+           round,
            about,
+           predicted_conjecture_name,
            value_name,
-           round
+           default: nil
          ) do
       nil ->
         collect_all_perceived_values(
-          predicted_conjecture_name,
+          previous_rounds,
           about,
-          value_name,
-          previous_rounds
+          predicted_conjecture_name,
+          value_name
         )
 
       value ->
         [
           value
           | collect_all_perceived_values(
-              predicted_conjecture_name,
+              previous_rounds,
               about,
-              value_name,
-              previous_rounds
+              predicted_conjecture_name,
+              value_name
             )
         ]
     end

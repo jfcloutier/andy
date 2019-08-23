@@ -46,7 +46,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleDistance do
     fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      distance = current_perceived_value("*:*:distance", :detected, about, round, default: -128)
+      distance = current_perceived_value(round, about, "*:*:distance", :detected, default: -128)
 
       if distance == -128 do
         %{is: :unknown}

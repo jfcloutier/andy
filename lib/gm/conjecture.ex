@@ -23,11 +23,11 @@ defmodule Andy.GM.Conjecture do
             # Names of intentions from the GM definition from which courses of action can be composed and executed to realize the conjecture
             intention_domain: []
 
-  def activate(%Conjecture{} = conjecture, about: about, goal?: goal?) do
+  def activate(%Conjecture{} = conjecture, about: about, goal: goal) do
     %ConjectureActivation{
       conjecture: conjecture,
       about: about,
-      goal?: goal?
+      goal: goal
     }
   end
 end

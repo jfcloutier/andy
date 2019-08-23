@@ -36,6 +36,27 @@ defmodule Andy.GM.Belief do
     {conjecture_name, about}
   end
 
+  def values_match?(%Belief{values: belief_values}, values) do
+    case belief_values do
+      values ->
+        true
+
+      _ ->
+        false
+    end
+  end
+
+  def has_value?(%Belief{values: belief_values}, value_name, value) do
+    case Map.get(belief_values, value_name) do
+      value ->
+        true
+
+      _ ->
+        false
+    end
+  end
+
+
   @doc "Is this belief from a generative model?"
   def from_generative_model?(%Belief{source: source}) do
     source not in [:detector, :prediction]

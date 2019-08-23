@@ -36,6 +36,10 @@ defmodule Andy.Rover.Actuation do
             script: turning_left()
           },
           %Activation{
+            intent: :turn,
+            script: turning()
+          },
+          %Activation{
             intent: :stop,
             script: stopping()
           },
@@ -170,7 +174,34 @@ defmodule Andy.Rover.Actuation do
     end
   end
 
-  dep roaming() do
+  defp turning_left() do
+    fn intent, motors ->
+      how_long = round(intent.value * 1000)
+
+      Script.new(:turning_left, motors)
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
+      |> Script.add_step(:all, :run_for, [how_long])
+    end
+  end
+
+  defp turning() do
+    fn intent, motors ->
+      how_long = round(intent.value.turn_time * 1000)
+      direction = intent.value.turn.direction
+      toggle = case direction do
+        :right -> 1
+        :left -> -1
+      end
+
+      Script.new(:turning, motors)
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5 * toggle])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5 * toggle])
+      |> Script.add_step(:all, :run_for, [how_long])
+    end
+  end
+
+  defp roaming() do
     fn intent, motors ->
       forward_rps_speed = speed(intent.value.forward_speed)
       forward_time_ms = round(intent.value.forward_time * 1000)
@@ -199,7 +230,7 @@ defmodule Andy.Rover.Actuation do
     end
   end
 
-  dep panicking() do
+  defp panicking() do
     fn intent, motors ->
       script = Script.new(:panicking, motors)
       intensity = intent.value.intensity
@@ -235,17 +266,6 @@ defmodule Andy.Rover.Actuation do
       |> Script.add_step(:left_wheel, :set_speed, [:rps, backward_rps_speed * -1])
       |> Script.add_step(:all, :run_for, [backward_time_ms])
 
-    end
-  end
-
-  defp turning_left() do
-    fn intent, motors ->
-      how_long = round(intent.value * 1000)
-
-      Script.new(:turning_left, motors)
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
-      |> Script.add_step(:all, :run_for, [how_long])
     end
   end
 

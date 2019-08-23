@@ -157,8 +157,9 @@ defmodule Andy.GM.GenerativeModel do
               conjecture_activation_subject: nil,
               # the names of the sequence of intentions of a course of action
               intention_names: [],
-              # whether efficacy is for when a conjecture activation was believed (vs not) at the time of its execution
-              when_already_believed?: false
+              # whether efficacy is for when a conjecture activation was satisfied (vs not) at the time of its execution
+              # a conjecture is satisfied if it's an achieved goal or a believed opinion
+              when_already_satisfied?: false
   end
 
   @doc "Child spec as supervised worker"
@@ -882,30 +883,30 @@ defmodule Andy.GM.GenerativeModel do
          %Efficacy{
            conjecture_activation_subject: conjecture_activation_subject,
            intention_names: intention_names,
-           when_already_believed?: when_already_believed?,
+           when_already_satisfied?: when_already_satisfied?,
            degree: degree
          },
          conjecture_believed?,
          %State{
            rounds: rounds
-         }
+         } = state
        ) do
     number_of_rounds = Enum.count(rounds)
 
     # Find the indices of rounds where the type of CoA was executed
-    # and where what the conjecture was about (its subject) was already believed (or not)
+    # and where what the conjecture was about (its subject) is already satisfied (or not)
     indices_of_rounds_with_coa =
       Enum.reduce(
         0..(number_of_rounds - 1),
         [],
         fn index, acc ->
-          %Round{courses_of_action: courses_of_action, beliefs: beliefs} = Enum.at(rounds, index)
+          %Round{courses_of_action: courses_of_action} = Enum.at(rounds, index)
 
           if Enum.any?(
                courses_of_action,
                &(CourseOfAction.of_type?(&1, conjecture_activation_subject, intention_names) and
-                   when_already_believed? ==
-                     already_believed?(conjecture_activation_subject, beliefs))
+                   when_already_satisfied? ==
+                     satisfied_now?(conjecture_activation_subject, state))
              ) do
             [index | acc]
           else
@@ -956,7 +957,7 @@ defmodule Andy.GM.GenerativeModel do
 
   # For each active conjecture, choose a CoA from the conjecture's CoA domain, favoring efficacy
   # and shortness. Only look at longer CoAs if efficacy of shorter CoAs disappoints.
-  # Set no CoA for a goal that has been achieved (i.e. the goal activated conjecture is believed)
+  # Set no CoA for a goal that has been achieved (i.e. the goal activated conjecture is achieved)
   # Set no CoA for a non-goal that is not believed (i.e. no belief to maintain)
   defp set_courses_of_action(
          %State{
@@ -972,20 +973,22 @@ defmodule Andy.GM.GenerativeModel do
         conjecture_activations,
         [],
         fn conjecture_activation, acc ->
-          cond do
-            ConjectureActivation.goal?(conjecture_activation) ->
-              if believed_now?(conjecture_activation, state) do
-                acc
-              else
-                [select_course_of_action(conjecture_activation, state) | acc]
-              end
+          if ConjectureActivation.goal?(conjecture_activation) do
+            if achieved_now?(conjecture_activation, state) do
+              acc
+            else
+              # keep trying to achieve the goal
+              [select_course_of_action(conjecture_activation, state) | acc]
+            end
 
-            true ->
-              if believed_now?(conjecture_activation, state) do
-                [select_course_of_action(conjecture_activation, state) | acc]
-              else
-                acc
-              end
+            # opinion
+          else
+            if believed_now?(conjecture_activation, state) do
+              # keep trying to confirm the opinion
+              [select_course_of_action(conjecture_activation, state) | acc]
+            else
+              acc
+            end
           end
         end
       )
@@ -1029,6 +1032,46 @@ defmodule Andy.GM.GenerativeModel do
     )
   end
 
+  defp achieved_now?(%ConjectureActivation{goals: goal} = conjecture_activation, state) do
+    %Round{beliefs: beliefs} = current_round(state)
+
+    case(
+      Enum.find(
+        beliefs,
+        &(ConjectureActivation.subject(conjecture_activation) == Belief.subject(&1))
+      )
+    ) do
+      nil ->
+        false
+
+      %Belief{values: values} ->
+        goal.(values)
+    end
+  end
+
+  # goal achieved or opinion believed
+  defp satisfied_now?(
+         conjecture_name,
+         %State{conjecture_activations: conjecture_activations} = state
+       )
+       when is_binary(conjecture_name) do
+    case Enum.find(conjecture_activations, &(&1.conjecture_name == conjecture_name)) do
+      nil ->
+        false
+
+      conjecture_activation ->
+        satisfied_now?(conjecture_activation, state)
+    end
+  end
+
+  defp satisfied_now?(%ConjectureActivation{} = conjecture_activation, state) do
+    if ConjectureActivation.goal?(conjecture_activation) do
+      achieved_now?(conjecture_activation, state)
+    else
+      believed_now?(conjecture_activation, state)
+    end
+  end
+
   # Select a course of action for a conjecture
   # Returns {selected_course_of_action, updated_coa_index, new_coa?}
   defp select_course_of_action(
@@ -1053,12 +1096,12 @@ defmodule Andy.GM.GenerativeModel do
     # Collect as candidates all tried CoAs for similar conjecture activations (same subject)
     # when belief in the conjecture was the same as now (believed vs not)
     # => [{CoA, degree_of_efficacy}, ...]
-    believed? = believed_now?(conjecture_activation, state)
+    satisfied? = satisfied_now?(conjecture_activation, state)
 
     tried =
       Map.get(efficacies, conjecture_activation_subject)
-      |> Enum.filter(fn %Efficacy{when_already_believed?: when_already_believed?} ->
-        when_already_believed? == believed?
+      |> Enum.filter(fn %Efficacy{when_already_satisfied?: when_already_satisfied?} ->
+        when_already_satisfied? == satisfied?
       end)
       |> Enum.map(
         &{%CourseOfAction{
@@ -1191,7 +1234,7 @@ defmodule Andy.GM.GenerativeModel do
       [
         %Efficacy{
           conjecture_activation_subject: ConjectureActivation.subject(conjecture_activation),
-          when_already_believed?: believed_now?(conjecture_activation, state),
+          when_already_satisfied?: satisfied_now?(conjecture_activation, state),
           degree: 0
         }
         | Map.get(efficacies, conjecture_activation_subject, [])
