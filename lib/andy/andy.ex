@@ -1,6 +1,5 @@
 defmodule Andy do
   require Logger
-  alias Andy.Communicators
   alias Andy.GM.{LongTermMemory, PubSub}
 
   import Andy.Utils,
@@ -107,10 +106,6 @@ defmodule Andy do
 
   def sound_players() do
     platform_dispatch(:sound_players)
-  end
-
-  def communicators() do
-    Communicators.communicators()
   end
 
   def perception_logic() do

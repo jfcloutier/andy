@@ -3,18 +3,19 @@ defmodule Andy.Application do
   # for more information on OTP Applications
   @moduledoc false
 
-  @poll_runtime_delay 60_000
   @max_waits 20
 
   use Application
   require Logger
-  alias Andy.{EmbodiedCognitionSupervisor, PubSub, Speaker}
+  alias Andy.GM.{EmbodiedCognitionSupervisor}
+  alias Andy.Speaker
   import Supervisor.Spec
 
   def start(_type, _args) do
     Logger.info("Starting #{__MODULE__}")
     Logger.info("SYSTEM is #{Andy.system()}")
     Logger.info("PLATFORM is #{Andy.platform()}")
+    # TODO - point to GM graph
     Logger.info("PROFILE is #{Andy.profile()}")
     Andy.start_platform()
     wait_for_platform_ready(0)
@@ -31,37 +32,8 @@ defmodule Andy.Application do
     result
   end
 
-  # Tell Phoenix to update the endpoint configuration
-  # whenever the application is updated.
-  def config_change(changed, _new, removed) do
-    AndyWeb.Endpoint.config_change(changed, removed)
-    :ok
-  end
-
-  @doc "Return ERTS runtime stats"
-  # In camelCase for Elm's automatic translation
-  def runtime_stats() do
-    stats = mem_stats(Andy.system())
-
-    %{
-      ramFree: stats.mem_free,
-      ramUsed: stats.mem_used,
-      swapFree: stats.swap_free,
-      swapUsed: stats.swap_used
-    }
-  end
-
-  @doc "Loop pushing runtime stats every @poll_runtime_delay seconds"
-  def push_runtime_stats() do
-    PubSub.notify_runtime_stats(runtime_stats())
-    :timer.sleep(@poll_runtime_delay)
-    push_runtime_stats()
-  end
-
   def go() do
-    spawn(fn -> connect_to_nodes() end)
     EmbodiedCognitionSupervisor.start_embodied_cognition()
-    spawn(fn -> push_runtime_stats() end)
   end
 
   ## PRIVATE
@@ -81,51 +53,5 @@ defmodule Andy.Application do
         wait_for_platform_ready(n + 1)
       end
     end
-  end
-
-  defp connect_to_nodes() do
-    # try to join the peer network
-    Node.connect(Andy.peer())
-
-    if Node.list() == [] do
-      Process.sleep(1_000)
-      # try again
-      connect_to_nodes()
-    else
-      Logger.info("#{Node.self()} is connected to #{inspect(Node.list())}")
-    end
-  end
-
-  defp mem_stats("brickpi") do
-    {res, 0} = System.cmd("free", ["-m"])
-    [_labels, mem, swap | _] = String.split(res, "\n")
-    [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
-    [_, _swap_total, swap_used, swap_free] = String.split(swap)
-
-    %{
-      mem_free: to_int!(mem_free),
-      mem_used: to_int!(mem_used),
-      swap_free: to_int!(swap_free),
-      swap_used: to_int!(swap_used)
-    }
-  end
-
-  defp mem_stats("pc") do
-    {res, 0} = System.cmd("free", ["-m"])
-    [_labels, mem, swap, _buffers] = String.split(res, "\n")
-    [_, _mem_total, mem_used, mem_free, _, _, _] = String.split(mem)
-    [_, _swap_total, swap_used, swap_free] = String.split(swap)
-
-    %{
-      mem_free: to_int!(mem_free),
-      mem_used: to_int!(mem_used),
-      swap_free: to_int!(swap_free),
-      swap_used: to_int!(swap_used)
-    }
-  end
-
-  defp to_int!(s) do
-    {i, _} = Integer.parse(s)
-    i
   end
 end

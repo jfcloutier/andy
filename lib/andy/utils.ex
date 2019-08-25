@@ -1,7 +1,7 @@
 defmodule Andy.Utils do
   @moduledoc "Utility functions"
 
-  alias Andy.PubSub
+  alias Andy.GM.PubSub
   require Logger
 
   @ttl 10_000
@@ -184,6 +184,9 @@ defmodule Andy.Utils do
         port_name
     end
   end
+
+  def does_match?(values, values), do: true
+  def does_match?(_, _), do: false
 
   ### PRIVATE
 

@@ -42,7 +42,7 @@ config :andy,
     "rover" => Andy.Rover.Platform,
     "hub" => Andy.Hub.Platform
   },
-#  profiles: %{
+#  andy.profiles: %{
 #    "puppy" => Andy.Puppy.Profile,
 #    "mommy" => Andy.Mommy.Profile
 #  },

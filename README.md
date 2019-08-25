@@ -8,7 +8,7 @@ Setup:
     https://github.com/resin-io/etcher#debian-and-ubuntu-based-package-repository-gnulinux-x86x64
     http://docs.ev3dev.org/projects/lego-linux-drivers/en/ev3dev-stretch/brickpi3.html#input-ports
 
-    http://docs.ev3dev.org/en/ev3dev-stretch/platforms/brickpi3.html
+    http://docs.ev3dev.org/en/ev3dev-stretch/andy.platforms/brickpi3.html
 
         Enable BrickPi
         Uncomment: dtoverlay=brickpi3
