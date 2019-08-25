@@ -12,8 +12,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
         conjecture(:clear_of_other)
       ],
       contradictions: [],
-      priors: %{clear_of_obstacle: %{is: true},
-                clear_of_other: %{is: true}},
+      priors: %{clear_of_obstacle: %{is: true}, clear_of_other: %{is: true}},
       intentions: %{}
     }
   end
@@ -45,7 +44,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
     }
   end
 
-
   # Conjecture activators
 
   # Conjecture predictors
@@ -59,7 +57,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
       obstacle_not_hit? =
         current_perceived_value(round, about, :obstacle_not_hit, :is, default: true)
 
-      obstacle_avoided? = current_perceived_value(round, about, :obstacle_avoided, :is, default: true)
+      obstacle_avoided? =
+        current_perceived_value(round, about, :obstacle_avoided, :is, default: true)
 
       %{is: obstacle_not_hit? and obstacle_avoided?}
     end
@@ -76,7 +75,5 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
     end
   end
 
-
   # Intention valuators
-
- end
+end

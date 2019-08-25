@@ -189,10 +189,12 @@ defmodule Andy.Rover.Actuation do
     fn intent, motors ->
       how_long = round(intent.value.turn_time * 1000)
       direction = intent.value.turn.direction
-      toggle = case direction do
-        :right -> 1
-        :left -> -1
-      end
+
+      toggle =
+        case direction do
+          :right -> 1
+          :left -> -1
+        end
 
       Script.new(:turning, motors)
       |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5 * toggle])
@@ -235,14 +237,19 @@ defmodule Andy.Rover.Actuation do
       script = Script.new(:panicking, motors)
       intensity = intent.value.intensity
       turn_direction = intent.value.turn_direction
-      backward_speed = case intensity do
-        :low -> :normal
-        :high -> :fast
-      end
-      fear_factor = case intensity do
-        :low -> 1
-        :high -> 3
-      end
+
+      backward_speed =
+        case intensity do
+          :low -> :normal
+          :high -> :fast
+        end
+
+      fear_factor =
+        case intensity do
+          :low -> 1
+          :high -> 3
+        end
+
       backward_rps_speed = speed(backward_speed)
       backward_time_ms = round(1000) * fear_factor
       turn_time_ms = round(1000) * fear_factor
@@ -265,7 +272,6 @@ defmodule Andy.Rover.Actuation do
       |> Script.add_step(:right_wheel, :set_speed, [:rps, backward_rps_speed * -1])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, backward_rps_speed * -1])
       |> Script.add_step(:all, :run_for, [backward_time_ms])
-
     end
   end
 

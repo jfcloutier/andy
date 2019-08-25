@@ -42,7 +42,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
 
   defp in_well_lit_area_activator() do
     fn conjecture, [round, _previous_rounds] ->
-      ambient_light = current_perceived_value(round, :self, "*:*:ambient", :detected, default: 100)
+      ambient_light =
+        current_perceived_value(round, :self, "*:*:ambient", :detected, default: 100)
 
       if ambient_light < 10 do
         [
@@ -65,7 +66,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
     fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      in_well_lit_area? = current_perceived_value(round, about, "*:*:ambient", :detected, default: 100) >= 10
+      in_well_lit_area? =
+        current_perceived_value(round, about, "*:*:ambient", :detected, default: 100) >= 10
 
       %{is: in_well_lit_area?}
     end

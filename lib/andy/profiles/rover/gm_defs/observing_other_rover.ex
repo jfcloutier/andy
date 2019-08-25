@@ -57,13 +57,16 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObservingOtherRover do
     fn conjecture, rounds ->
       recently_observed? =
         once_believed?(rounds, :other, :observed, :is, true, since: now() - 30_000)
+
       # if we have not observed the other in the last 30 secs
       if not recently_observed? do
         [
           Conjecture.activate(conjecture,
             about: :other,
             # face the other robot for 5 secs or give up after failing to for 10 secs
-            goal: fn %{since: since, failing_since: failing_since} -> since >= 5_000 or failing_since > 10_000 end
+            goal: fn %{since: since, failing_since: failing_since} ->
+              since >= 5_000 or failing_since > 10_000
+            end
           )
         ]
       else
@@ -108,7 +111,14 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObservingOtherRover do
 
       since = duration_believed_since(previous_rounds, about, :observed, :is, true)
       failing_since = duration_believed_since(previous_rounds, about, :observed, :is, false)
-      %{is: seen? and facing?, heading: target_heading, distance: distance, since: since, failing_since: failing_since}
+
+      %{
+        is: seen? and facing?,
+        heading: target_heading,
+        distance: distance,
+        since: since,
+        failing_since: failing_since
+      }
     end
   end
 

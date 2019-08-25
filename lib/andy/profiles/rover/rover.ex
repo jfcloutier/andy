@@ -2,10 +2,24 @@ defmodule Andy.GM.Profiles.Rover do
   @moduledoc "The cognition profile of a rover"
 
   alias Andy.GM.{Cognition}
-  alias Andy.GM.Profiles.Rover.GMDefs.{Being, Danger, Hunger, Freedom, Clearance, Lighting, ObstacleApproach,
-                                       AvoidingObstacle, ObstacleDistance,
-                                       CollisionCourseWithOtherRover, Eating, SeekingFood, BehaviorOfOtherRover,
-                                       ObservingOtherRover}
+
+  alias Andy.GM.Profiles.Rover.GMDefs.{
+    Being,
+    Danger,
+    Hunger,
+    Freedom,
+    Clearance,
+    Lighting,
+    ObstacleApproach,
+    AvoidingObstacle,
+    ObstacleDistance,
+    CollisionCourseWithOtherRover,
+    Eating,
+    SeekingFood,
+    BehaviorOfOtherRover,
+    ObservingOtherRover
+  }
+
   #
 
   def cognition() do

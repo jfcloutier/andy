@@ -68,5 +68,4 @@ defmodule Andy.GM.Perception do
   def increment_carry_over(perception) do
     Map.put(perception, :carry_overs, Perception.carry_overs(perception) + 1)
   end
-
 end

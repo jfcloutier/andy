@@ -59,8 +59,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleDistance do
   # Intention valuators
 
   defp opinion_about_distance() do
-    fn (%{is: distance}) when distance < 10 -> "Oops!" end
-    fn (_)  -> nil end
+    fn %{is: distance} when distance < 10 -> "Oops!" end
+    fn _ -> nil end
   end
-
- end
+end

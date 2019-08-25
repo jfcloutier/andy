@@ -76,18 +76,17 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
     end
   end
 
-
   # Conjecture predictors
 
   # Conjecture belief valuators
 
   defp thriving_belief_valuator() do
-    fn(conjecture_actuation, [round | _previous_rounds]) ->
-    about = conjecture_actuation.about
-    sated? = current_perceived_value(round, about, :sated, :is, default: false)
-    safe? = current_perceived_value(round, about, :safe, :is, default: false)
-    free? = current_perceived_value(round, about, :free, :is, default: false)
-    %{is: safe? and sated? and free?}
+    fn conjecture_actuation, [round | _previous_rounds] ->
+      about = conjecture_actuation.about
+      sated? = current_perceived_value(round, about, :sated, :is, default: false)
+      safe? = current_perceived_value(round, about, :safe, :is, default: false)
+      free? = current_perceived_value(round, about, :free, :is, default: false)
+      %{is: safe? and sated? and free?}
     end
   end
 

@@ -81,7 +81,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Danger do
     end
   end
 
-
   defp group_panic_activator() do
     fn conjecture, [round | _previous_rounds] ->
       other_panicking? =

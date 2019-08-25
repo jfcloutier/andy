@@ -88,8 +88,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   def distance_to_obstacle_predictor() do
     fn conjecture_activation, rounds ->
-    about = conjecture_activation.about
+      about = conjecture_activation.about
       expectation = expected_numerical_value(rounds, :distance_to_obstacle, about, :is)
+
       %Prediction{
         conjecture_name: :distance_to_obstacle,
         about: about,
@@ -104,7 +105,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
     fn conjecture_activation, [round, _previous_rounds] ->
       about = conjecture_activation.about
 
-      touched? = current_perceived_value(round, about, "*:*:touch", :detected, default: :released) == :touched
+      touched? =
+        current_perceived_value(round, about, "*:*:touch", :detected, default: :released) ==
+          :touched
 
       approaching_obstacle? =
         current_perceived_value(round, about, :approaching_obstacle, :is, default: false)
@@ -125,12 +128,11 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
 
       %{
         is:
-          not approaching_obstacle? and (distance_to_obstacle == :unknown or distance_to_obstacle > 10)
+          not approaching_obstacle? and
+            (distance_to_obstacle == :unknown or distance_to_obstacle > 10)
       }
     end
   end
 
   # Intention valuators
-
-
 end

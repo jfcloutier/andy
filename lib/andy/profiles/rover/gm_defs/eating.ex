@@ -44,7 +44,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Eating do
       predictors: [
         no_change_predictor(:chewing, default: %{is: false})
       ],
-      valuator: constant_valuator(%{is: true}), # always true if activated
+      # always true if activated
+      valuator: constant_valuator(%{is: true}),
       intention_domain: [:chew]
     }
   end
@@ -96,7 +97,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Eating do
     end
   end
 
-
   # Conjecture predictors
 
   # Conjecture belief valuators
@@ -132,5 +132,4 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Eating do
       nil
     end
   end
-
 end

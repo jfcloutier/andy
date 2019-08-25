@@ -66,7 +66,8 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
-      chewings_count = count_perceived_since(rounds, about, :chewing, %{is: true}, since: now() - 20_000)
+      chewings_count =
+        count_perceived_since(rounds, about, :chewing, %{is: true}, since: now() - 20_000)
 
       %{is: chewings_count >= 3}
     end

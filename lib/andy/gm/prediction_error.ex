@@ -41,10 +41,11 @@ defmodule Andy.GM.PredictionError do
   def carry_overs(%PredictionError{carry_overs: carry_overs}), do: carry_overs
 
   # The name of the conjecture that incorrectly predicted the belief
-  def prediction_conjecture_name(%PredictionError{prediction: %Prediction{conjecture_name: conjecture_name}}) do
+  def prediction_conjecture_name(%PredictionError{
+        prediction: %Prediction{conjecture_name: conjecture_name}
+      }) do
     conjecture_name
   end
 
   def values(%PredictionError{belief: %Belief{values: values}}), do: values
-
 end

@@ -32,7 +32,6 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleApproach do
 
   # Conjecture activators
 
-
   # Conjecture predictors
 
   # Conjecture belief valuators
@@ -41,12 +40,12 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleApproach do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
-       approaching? = numerical_value_trend(rounds, :distance_to_obstacle, about, :is) == :decreasing
+      approaching? =
+        numerical_value_trend(rounds, :distance_to_obstacle, about, :is) == :decreasing
+
       %{is: approaching?}
     end
   end
 
-
   # Intention valuators
-
- end
+end

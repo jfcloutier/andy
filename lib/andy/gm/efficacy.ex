@@ -7,11 +7,11 @@ defmodule Andy.GM.Efficacy do
 
   # degree of efficacy, float from 0 to 1.0
   defstruct degree: 0,
-              # the subject of a course of action
+            # the subject of a course of action
             conjecture_activation_subject: nil,
-              # the names of the sequence of intentions of a course of action
+            # the names of the sequence of intentions of a course of action
             intention_names: [],
-              # whether efficacy is for when a conjecture activation was satisfied (vs not) at the time of its execution
-              # a conjecture is satisfied if it's an achieved goal or a believed opinion
+            # whether efficacy is for when a conjecture activation was satisfied (vs not) at the time of its execution
+            # a conjecture is satisfied if it's an achieved goal or a believed opinion
             when_already_satisfied?: false
 end

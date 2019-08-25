@@ -108,15 +108,18 @@ defmodule Andy.GM.Detector do
   defp name_match?(conjecture_name, %State{device: device, sense: sense}) do
     case String.split(conjecture_name, ":") do
       [device_type_s, device_port_s, sense_name_s] ->
-      device_type = atomize_if_name(device_type_s)
-      device_port = atomize_if_name(device_port_s)
-      sense_name = case String.split(sense_name_s, "/") do
-        [sense_name_s] ->
-          atomize_if_name(sense_name_s)
-        [sense_name_s, number_s] ->
-          {number, _} = Integer.parse(number_s)
-          {atomize_if_name(sense_name_s), number}
-      end
+        device_type = atomize_if_name(device_type_s)
+        device_port = atomize_if_name(device_port_s)
+
+        sense_name =
+          case String.split(sense_name_s, "/") do
+            [sense_name_s] ->
+              atomize_if_name(sense_name_s)
+
+            [sense_name_s, number_s] ->
+              {number, _} = Integer.parse(number_s)
+              {atomize_if_name(sense_name_s), number}
+          end
 
         device_type in ["*", device.type] and device_port in ["*", device.port] and
           sense_name in ["*", sense]

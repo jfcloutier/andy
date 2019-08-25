@@ -10,8 +10,8 @@ defmodule Andy.GM.ConjectureActivation do
             # e.g. "robot1" vs "robot2"; two conjecture activations can be the same kind of conjecture
             # but about two different subjects
             about: nil,
-              # nil if the conjecture is an "opinion", else fn(belief_values)::boolean
-              # that evaluates if the conjecture-as-goal is achieved
+            # nil if the conjecture is an "opinion", else fn(belief_values)::boolean
+            # that evaluates if the conjecture-as-goal is achieved
             goal: nil
 
   @doc "Two conjecture activations are mutually exclusive if they are from the same conjecture
@@ -34,7 +34,8 @@ defmodule Andy.GM.ConjectureActivation do
         %ConjectureActivation{conjecture: %Conjecture{name: conjecture_name}, about: about},
         %ConjectureActivation{conjecture: %Conjecture{name: other_conjecture_name}, about: about},
         contradictions
-      ) when conjecture_name != other_conjecture_name do
+      )
+      when conjecture_name != other_conjecture_name do
     Enum.any?(contradictions, &(conjecture_name in &1 and other_conjecture_name in &1))
   end
 

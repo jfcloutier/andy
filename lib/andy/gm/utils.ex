@@ -350,8 +350,8 @@ defmodule Andy.GM.Utils do
       count =
         perceptions
         |> Enum.filter(
-             &(Perception.subject(&1) == subject_counted and Perception.values_match?(&1, values))
-           )
+          &(Perception.subject(&1) == subject_counted and Perception.values_match?(&1, values))
+        )
         |> Enum.count()
 
       count + count_perceived_since(previous_rounds, about, conjecture_name, values, since)

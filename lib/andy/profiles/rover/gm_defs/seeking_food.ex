@@ -26,12 +26,11 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
           valuator: tracking_valuator(),
           repeatable: true
         },
-        track_food:
-          %Intention{
-            intent_name: :roam,
-            valuator: tracking_valuator(),
-            repeatable: true
-          }
+        track_food: %Intention{
+          intent_name: :roam,
+          valuator: tracking_valuator(),
+          repeatable: true
+        }
       }
     }
   end
@@ -84,7 +83,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       other_homing_on_food? =
         current_perceived_value(round, :other, :other_homing_on_food, :is, default: false)
 
-       if other_homing_on_food?do
+      if other_homing_on_food? do
         [
           Conjecture.activate(conjecture,
             about: :other
@@ -109,7 +108,7 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
         [
           Conjecture.activate(conjecture,
             about: :self,
-            goal: fn(%{is: over_food?}) -> over_food? end
+            goal: fn %{is: over_food?} -> over_food? end
           )
         ]
       else
@@ -161,7 +160,9 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       other_eating? = current_perceived_value(round, about, :other_eating, :is, default: false)
 
       other_vector =
-        current_perceived_values(round, about, :other_eating, default: %{distance: -128, heading: 0})
+        current_perceived_values(round, about, :other_eating,
+          default: %{distance: -128, heading: 0}
+        )
 
       %{
         is: other_homing_on_food? or other_eating?,
@@ -178,32 +179,41 @@ defmodule Andy.GM.Profiles.Rover.GMDefs.SeekingFood do
       if distance == -128 do
         nil
       else
-      speed = cond do
-        distance < 5 -> :very_slow
-        distance < 10 -> :slow
-        distance < 20 -> :normal
-        true -> :fast
-      end
-      forward_time = cond do
-        distance < 5 -> 0
-        distance < 10 -> 0.5
-        distance < 20 -> 1
-        distance < 40 -> 2
-        true -> 3
-      end
-      turn_direction = if heading < 0, do: :left, else: :right
-      abs_heading = abs(heading)
-      turn_time = cond do
-        abs_heading == 0 -> 0
-        abs_heading < 10 -> 0.25
-        abs_heading < 10 -> 0.5
-        abs_heading < 20 -> 1
-        true -> 2
-      end
-      %{forward_speed: speed,
-        forward_time: forward_time,
-        turn_direction: turn_direction,
-        turn_time: turn_time}
+        speed =
+          cond do
+            distance < 5 -> :very_slow
+            distance < 10 -> :slow
+            distance < 20 -> :normal
+            true -> :fast
+          end
+
+        forward_time =
+          cond do
+            distance < 5 -> 0
+            distance < 10 -> 0.5
+            distance < 20 -> 1
+            distance < 40 -> 2
+            true -> 3
+          end
+
+        turn_direction = if heading < 0, do: :left, else: :right
+        abs_heading = abs(heading)
+
+        turn_time =
+          cond do
+            abs_heading == 0 -> 0
+            abs_heading < 10 -> 0.25
+            abs_heading < 10 -> 0.5
+            abs_heading < 20 -> 1
+            true -> 2
+          end
+
+        %{
+          forward_speed: speed,
+          forward_time: forward_time,
+          turn_direction: turn_direction,
+          turn_time: turn_time
+        }
       end
     end
   end

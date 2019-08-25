@@ -6,20 +6,20 @@ defmodule Andy.GM.Round do
   import Andy.Utils, only: [now: 0]
 
   defstruct started_on: nil,
-              # timestamp of when the round was completed. Nil if on-going
+            # timestamp of when the round was completed. Nil if on-going
             completed_on: nil,
-              # names of sub-GMs that reported a completed round
+            # names of sub-GMs that reported a completed round
             reported_in: [],
-              # Uncontested predictions made by the GM and prediction errors from sub-GMs and detectors
+            # Uncontested predictions made by the GM and prediction errors from sub-GMs and detectors
             perceptions: [],
-              # [prediction, ...] predictions reported by super-GMs about this GM's next beliefs
+            # [prediction, ...] predictions reported by super-GMs about this GM's next beliefs
             received_predictions: [],
-              # beliefs in this GM conjecture activations given perceptions (own predictions and prediction errors
-              # from sub-GMs and detectors)
+            # beliefs in this GM conjecture activations given perceptions (own predictions and prediction errors
+            # from sub-GMs and detectors)
             beliefs: [],
-              # [course_of_action, ...] - courses of action (to be) taken to achieve goals and/or shore up beliefs
+            # [course_of_action, ...] - courses of action (to be) taken to achieve goals and/or shore up beliefs
             courses_of_action: [],
-              # intents executed in the round
+            # intents executed in the round
             intents: []
 
   def new() do
@@ -30,4 +30,3 @@ defmodule Andy.GM.Round do
     %Round{Round.new() | beliefs: GenerativeModelDef.initial_beliefs(gm_def)}
   end
 end
-

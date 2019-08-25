@@ -44,7 +44,6 @@ defmodule Andy.GM.Belief do
     does_match?(Map.get(belief_values, value_name), value)
   end
 
-
   @doc "Is this belief from a generative model?"
   def from_generative_model?(%Belief{source: source}) do
     source not in [:detector, :prediction]

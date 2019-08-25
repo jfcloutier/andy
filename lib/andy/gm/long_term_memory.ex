@@ -45,8 +45,8 @@ defmodule Andy.GM.LongTermMemory do
   end
 
   def handle_cast(:forget_everything, %State{store: store} = state) do
-     :ok = :dets.delete_all_objects(store)
-     {:noreply, state}
+    :ok = :dets.delete_all_objects(store)
+    {:noreply, state}
   end
 
   def handle_call(
@@ -54,13 +54,10 @@ defmodule Andy.GM.LongTermMemory do
         _from,
         %State{store: store} = state
       ) do
-
     reply =
       case :dets.lookup(store, {gm_name, type}) do
         {:error, reason} ->
-          Logger.warn(
-            "Failed to lookup stored #{type} for GM #{gm_name}: #{inspect(reason)}"
-          )
+          Logger.warn("Failed to lookup stored #{type} for GM #{gm_name}: #{inspect(reason)}")
           nil
 
         [] ->
@@ -72,6 +69,4 @@ defmodule Andy.GM.LongTermMemory do
 
     {:reply, reply, state}
   end
-
-
 end

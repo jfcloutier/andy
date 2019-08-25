@@ -13,5 +13,4 @@ defmodule Andy.GM.Intention do
   def not_repeatable?(%Intention{repeatable: repeatable?}) do
     not repeatable?
   end
-
 end
