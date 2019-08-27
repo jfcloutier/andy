@@ -15,6 +15,10 @@ defmodule Andy.GM.Perception do
     {conjecture_name, about}
   end
 
+  def has_subject?(perception, subject) do
+    subject(perception) == subject
+  end
+
   def subject(perception) do
     {conjecture_name(perception), about(perception)}
   end

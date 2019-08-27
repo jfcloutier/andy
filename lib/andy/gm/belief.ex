@@ -11,6 +11,8 @@ defmodule Andy.GM.Belief do
             conjecture_name: nil,
             # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
             about: nil,
+            # the goal, if any, to be achieved
+            goal: nil,
             # value_name => value, or nil if disbelief
             values: nil
 
@@ -18,6 +20,7 @@ defmodule Andy.GM.Belief do
         source: source,
         conjecture_name: conjecture_name,
         about: about,
+        goal: goal,
         values: values
       ) do
     %Belief{
@@ -25,12 +28,29 @@ defmodule Andy.GM.Belief do
       source: source,
       conjecture_name: conjecture_name,
       about: about,
+      goal: goal,
       values: values
     }
   end
 
+  def values(%Belief{values: values}) do
+    values
+  end
+
   def believed?(%Belief{values: values}) do
     values != nil
+  end
+
+  def satisfies_conjecture?(%Belief{values: nil} ) do
+    false
+  end
+
+  def satisfies_conjecture?(%Belief{goal: nil, values: values}) do
+    values != nil
+  end
+
+  def satisfies_conjecture?(%Belief{goal: goal, values: values}) do
+    goal.(values)
   end
 
   def subject(%Belief{conjecture_name: conjecture_name, about: about}) do

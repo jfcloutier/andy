@@ -50,11 +50,6 @@ defmodule Andy.GM.PubSub do
     platform_dispatch(:shutdown)
   end
 
-  @doc "Notify of clock tick"
-  def notify_tick() do
-    notify(:tick)
-  end
-
   @doc "Notify of a new intent"
   def notify_intended(intent) do
     notify({:intended, intent})
@@ -66,20 +61,9 @@ defmodule Andy.GM.PubSub do
     notify({:actuated, intent})
   end
 
-  @doc "Notify of a belief"
-  def notify_believed(belief) do
-    notify({:believed, belief})
-  end
-
   @doc "The registry name"
   def registry_name() do
     @registry_name
-  end
-
-  @doc "Is the robot paused?"
-  def paused?() do
-    {:ok, paused?} = Registry.meta(@registry_name, :paused)
-    paused? == true
   end
 
   # Dispatch the handling of an event to all subscribing embodied cognition agents

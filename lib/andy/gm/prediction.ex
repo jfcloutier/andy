@@ -21,6 +21,8 @@ defmodule Andy.GM.Prediction do
             carry_overs: 0,
             # what the predicted belief is about, e.g. "robot1"
             about: nil,
+            # The goal, if any, that would be achieved if the prediction comes true in a certain way
+            goal: nil,
             # belief value name => predicted value distribution - the expected values for the predicted belief
             # Predictions about a detector => %{detected: value_distribution}
             # Either a single value, a range representing a normal distribution

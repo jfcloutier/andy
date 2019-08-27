@@ -76,7 +76,7 @@ defmodule Andy.GM.Detector do
       ) do
     if name_match?(conjecture_name, state) do
       {value, updated_state} = read_value(about, state)
-
+      Logger.info("#{inspect detector_name(state)}: Received prediction #{inspect prediction}")
       case maybe_prediction_error(prediction, value, conjecture_name, about, state) do
         nil ->
           :ok
@@ -103,6 +103,10 @@ defmodule Andy.GM.Detector do
 
   defp name(device, sense) do
     "#{device.type}:#{device.port}:#{sense}"
+  end
+
+  defp detector_name(%State{name: name}) do
+    name
   end
 
   defp name_match?(conjecture_name, %State{device: device, sense: sense}) do
@@ -142,16 +146,17 @@ defmodule Andy.GM.Detector do
       case previous_read(previous_reads, about, time_now) do
         nil ->
           value = read(device, sense)
+          Logger.info("#{inspect detector_name(state)}: Reading new value")
           %Read{value: value, timestamp: time_now}
 
         prior_read ->
           prior_read
       end
-
+    Logger.info("#{inspect detector_name(state)}: Read #{inspect read}")
     {read.value, %State{state | previous_reads: Map.put(previous_reads, about, read)}}
   end
 
-  # Unexpired previous rea,d else nil
+  # Unexpired previous read else nil
   def previous_read(previous_reads, about, time_now) do
     case Map.get(previous_reads, about) do
       nil ->
@@ -167,7 +172,8 @@ defmodule Andy.GM.Detector do
   end
 
   # Prediction error or nil
-  defp maybe_prediction_error(prediction, value, conjecture_name, about, %State{name: name}) do
+  defp maybe_prediction_error(%Prediction{goal: goal_or_nil} = prediction, value, conjecture_name, about, %State{name: name} = state) do
+    Logger.info("#{inspect detector_name(state)}: May be prediction error on #{inspect prediction}")
     values = %{detected: value}
     size = Prediction.prediction_error_size(prediction, values)
 
@@ -179,14 +185,17 @@ defmodule Andy.GM.Detector do
           source: name,
           conjecture_name: conjecture_name,
           about: about,
+          goal: goal_or_nil,
           values: values
         )
 
-      %PredictionError{
+      prediction_error = %PredictionError{
         prediction: prediction,
         size: size,
         belief: belief
       }
+      Logger.info("#{inspect detector_name(state)}: Prediction error #{inspect prediction_error}")
+      prediction_error
     end
   end
 
