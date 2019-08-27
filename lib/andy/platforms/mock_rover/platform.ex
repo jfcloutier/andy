@@ -48,10 +48,6 @@ defmodule Andy.MockRover.Platform do
     Andy.Rover.Actuation.actuator_configs()
   end
 
-  def cognition() do
-    Andy.GM.Profiles.Rover.cognition()
-  end
-
   def device_mode(_device_type) do
     "mock"
   end

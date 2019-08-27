@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.Freedom do
+defmodule Andy.Profiles.Rover.GMDefs.Freedom do
   @moduledoc "The GM definition for :danger"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}

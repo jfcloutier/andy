@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.Hunger do
+defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   @moduledoc "The GM definition for :hunger"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}

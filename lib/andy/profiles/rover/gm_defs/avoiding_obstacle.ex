@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.AvoidingObstacle do
+defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   @moduledoc "The GM definition for :avoiding_obstacle"
 
   alias Andy.GM.{GenerativeModelDef, Conjecture, Prediction}

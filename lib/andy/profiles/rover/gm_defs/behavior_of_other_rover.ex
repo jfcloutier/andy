@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.BehaviorOfOtherRover do
+defmodule Andy.Profiles.Rover.GMDefs.BehaviorOfOtherRover do
   @moduledoc "The GM definition for :behavior_of_other_rover"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}

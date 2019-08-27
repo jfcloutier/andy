@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleDistance do
+defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
   @moduledoc "The GM definition for :obstacle_distance"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}

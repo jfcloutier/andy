@@ -22,7 +22,7 @@ defmodule Andy do
   end
 
   def profile() do
-    profile_name = get_andy_env("ANDY_PROFILE", "puppy")
+    profile_name = get_andy_env("ANDY_PROFILE", "rover")
     profiles = Application.get_env(:andy, :profiles)
     Map.get(profiles, profile_name)
   end
@@ -41,7 +41,7 @@ defmodule Andy do
 
   # GM
   def cognition() do
-    platform_dispatch(:cognition)
+    profile_dispatch(:cognition)
   end
 
   def display(words) do

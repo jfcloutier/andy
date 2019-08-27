@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.Clearance do
+defmodule Andy.Profiles.Rover.GMDefs.Clearance do
   @moduledoc "The GM definition for :clearance"
 
   alias Andy.GM.{GenerativeModelDef, Conjecture}

@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.Lighting do
+defmodule Andy.Profiles.Rover.GMDefs.Lighting do
   @moduledoc "The GM definition for :lighting"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}

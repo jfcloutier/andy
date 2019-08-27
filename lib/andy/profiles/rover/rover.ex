@@ -1,9 +1,9 @@
-defmodule Andy.GM.Profiles.Rover do
+defmodule Andy.Profiles.Rover do
   @moduledoc "The cognition profile of a rover"
 
   alias Andy.GM.{Cognition}
 
-  alias Andy.GM.Profiles.Rover.GMDefs.{
+  alias Andy.Profiles.Rover.GMDefs.{
     Being,
     Danger,
     Hunger,

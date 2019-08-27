@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.ObstacleApproach do
+defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
   @moduledoc "The GM definition for :obstacle_approach"
 
   alias Andy.GM.{GenerativeModelDef, Conjecture}

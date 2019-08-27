@@ -4,7 +4,6 @@ defmodule Andy.Utils do
   alias Andy.GM.PubSub
   require Logger
 
-  @ttl 10_000
   @brickpi_port_pattern ~r/spi0.1:(.+)/
 
   def listen_to_events(pid, module) do
@@ -23,22 +22,6 @@ defmodule Andy.Utils do
 
   def timeout() do
     10000
-  end
-
-  def tick_interval() do
-    Application.fetch_env!(:andy, :tick_interval)
-  end
-
-  def max_percept_age() do
-    Application.fetch_env!(:andy, :max_percept_age)
-  end
-
-  def max_intent_age() do
-    Application.fetch_env!(:andy, :max_intent_age)
-  end
-
-  def strong_intent_factor() do
-    Application.fetch_env!(:andy, :strong_intent_factor)
   end
 
   def max_beacon_channels() do
@@ -63,11 +46,6 @@ defmodule Andy.Utils do
 
   def very_slow_rps() do
     Application.fetch_env!(:andy, :very_slow_rps)
-  end
-
-  def default_ttl(kind) do
-    Application.get_env(:andy, :ttl, [])
-    |> Keyword.get(kind, @ttl)
   end
 
   @doc "The time now in msecs"
@@ -116,10 +94,6 @@ defmodule Andy.Utils do
     platform_dispatch(:voice)
   end
 
-  def pg2_group() do
-    get_andy_env("ANDY_COMMUNITY") || "lego"
-  end
-
   def get_andy_env(variable) do
     get_andy_env(variable, nil)
   end
@@ -136,28 +110,6 @@ defmodule Andy.Utils do
   def choose_one(choices) do
     [choice] = Enum.take_random(choices, 1)
     choice
-  end
-
-  def as_percept_about(percept_specs) when is_map(percept_specs) do
-    percept_specs
-  end
-
-  def as_percept_about({class, type, sense} = _percept_specs) do
-    %{
-      class: class,
-      port: :any,
-      type: type,
-      sense: sense
-    }
-  end
-
-  def as_percept_about({class, port, type, sense} = _percept_specs) do
-    %{
-      class: class,
-      port: port,
-      type: type,
-      sense: sense
-    }
   end
 
   def translate_port(port_name) do

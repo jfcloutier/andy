@@ -1,4 +1,4 @@
-defmodule Andy.GM.Profiles.Rover.GMDefs.Being do
+defmodule Andy.Profiles.Rover.GMDefs.Being do
   @moduledoc "The GM definition for :being"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
