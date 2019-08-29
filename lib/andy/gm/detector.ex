@@ -93,9 +93,10 @@ defmodule Andy.GM.Detector do
 
   # ignore event
   def handle_event(
-        _event,
+        event,
         state
       ) do
+    Logger.info("#{inspect detector_name(state)}: Ignoring event #{inspect event}")
     state
   end
 

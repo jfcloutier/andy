@@ -53,7 +53,7 @@ defmodule Andy.GM.GenerativeModel do
   #           - Add a new round and start it
 
   require Logger
-  import Andy.Utils, only: [listen_to_events: 2, now: 0]
+  import Andy.Utils, only: [listen_to_events: 3, now: 0]
   alias Andy.Intent
 
   alias Andy.GM.{
@@ -84,6 +84,8 @@ defmodule Andy.GM.GenerativeModel do
               super_gm_names: [],
               # Names of the generative models that feed into this GM according to the GM graph
               sub_gm_names: [],
+              # Whether the GM has finished starting its first round
+              started: false,
               # Conjecture activations, some of which can be goals. One conjecture can lead to multiple activations,
               # each about a different object
               conjecture_activations: [],
@@ -98,10 +100,12 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   @doc "Child spec as supervised worker"
-  def child_spec(gm_def, super_gm_names, sub_gm_names) do
+  def child_spec([gm_def, super_gm_names, sub_gm_names]) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [gm_def, super_gm_names, sub_gm_names]}
+      start: {__MODULE__, :start_link, [gm_def, super_gm_names, sub_gm_names]},
+      type: :worker,
+      restart: :permanent
     }
   end
 
@@ -118,22 +122,34 @@ defmodule Andy.GM.GenerativeModel do
         fn ->
           %State{
             gm_def: gm_def,
+            started: false,
             rounds: [Round.initial_round(gm_def)],
             super_gm_names: super_gm_names,
             sub_gm_names: sub_gm_names,
             efficacies: efficacies,
             courses_of_action_indices: courses_of_action_indices
           }
-          |> start_round()
         end,
         name: name
       )
 
-    listen_to_events(pid, __MODULE__)
+    listen_to_events(pid, __MODULE__, gm_def.name)
     {:ok, pid}
   end
 
   ### Event handling by the agent
+
+  def handle_event(
+        {:listening, __MODULE__, name},
+        %State{} = state
+      ) do
+    if gm_name(state) == name do
+      updated_state = start_round(state)
+      %State{updated_state | started: true}
+    else
+      state
+    end
+  end
 
   # Is this round timeout event meant for this GM? If so, complete the current round.
   def handle_event(
@@ -141,7 +157,8 @@ defmodule Andy.GM.GenerativeModel do
         %State{
           gm_def: %GenerativeModelDef{
             name: name
-          }
+          },
+          started: true
         } = state
       ) do
     # could be an obsolete round timeout event meant for a previous round that completed early
@@ -149,6 +166,7 @@ defmodule Andy.GM.GenerativeModel do
       Logger.info("#{inspect(gm_name(state))}: Round timed out")
       complete_round(state)
     else
+      Logger.info("#{inspect(gm_name(state))}: Obsolete round timeout")
       state
     end
   end
@@ -156,18 +174,20 @@ defmodule Andy.GM.GenerativeModel do
   # Another GM completed a round - relevant is GM is sub-GM (a sub-believer that's also a GM)
   def handle_event(
         {:round_completed, name},
-        %State{rounds: [%Round{reported_in: reported_in} = round | previous_rounds]} = state
+        %State{
+          started: true,
+          gm_def: %GenerativeModelDef{
+            name: name
+          },
+          rounds: [%Round{reported_in: reported_in} = round | previous_rounds]
+        } = state
       ) do
-    if sub_gm?(name, state) do
-      Logger.info("#{inspect(gm_name(state))}: GM #{inspect(name)} reported in")
-      updated_round = %Round{round | reported_in: [name | reported_in]}
+    Logger.info("#{inspect(gm_name(state))}: GM #{inspect(name)} reported in")
+    updated_round = %Round{round | reported_in: [name | reported_in]}
 
-      %State{state | rounds: [updated_round | previous_rounds]}
-      # Complete the round if it is fully informed
-      |> maybe_complete_round()
-    else
-      state
-    end
+    %State{state | rounds: [updated_round | previous_rounds]}
+    # Complete the round if it is fully informed
+    |> maybe_complete_round()
   end
 
   # A GM reported a prediction error (a belief not aligned with a received prediction) - add to perceptions if relevant
@@ -176,7 +196,7 @@ defmodule Andy.GM.GenerativeModel do
           :prediction_error,
           %PredictionError{} = prediction_error
         },
-        state
+        %State{started: true} = state
       ) do
     if prediction_error_relevant?(prediction_error, state) do
       Logger.info(
@@ -191,13 +211,13 @@ defmodule Andy.GM.GenerativeModel do
 
   # Another GM made a new prediction - receive it if from a super-GM
   def handle_event(
-        {:prediction, %Prediction{source: gm_name} = prediction},
+        {:prediction, %Prediction{} = prediction},
         %State{
-          super_gm_names: super_gm_names,
+          started: true,
           rounds: [%Round{received_predictions: received_predictions} = round | previous_rounds]
         } = state
       ) do
-    if gm_name in super_gm_names do
+    if prediction_relevant?(prediction, state) do
       Logger.info("#{inspect(gm_name(state))}: Received prediction #{inspect(prediction)}")
       updated_round = %Round{round | received_predictions: [prediction | received_predictions]}
       %State{state | rounds: [updated_round | previous_rounds]}
@@ -212,6 +232,7 @@ defmodule Andy.GM.GenerativeModel do
 
   # Ignore any other event
   def handle_event(_event, state) do
+    # Logger.info("#{inspect(gm_name(state))}: Ignoring event #{inspect(event)}")
     state
   end
 
@@ -357,6 +378,8 @@ defmodule Andy.GM.GenerativeModel do
     updated_round = %Round{round | received_predictions: carried_over_predictions}
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
+
+  defp carry_over_beliefs(%State{rounds: [_round]} = state), do: state
 
   defp carry_over_beliefs(
          %State{
@@ -560,16 +583,20 @@ defmodule Andy.GM.GenerativeModel do
     round
   end
 
-  defp sub_gm?(name, %State{sub_gm_names: sub_gm_names}) do
-    name in sub_gm_names
-  end
-
   defp round_timed_out?(%State{gm_def: gm_def} = state) do
     round = current_round(state)
     now() - round.started_on >= gm_def.max_round_duration
   end
 
-  # This is a reported error to a prediction this GM made
+  # Can this prediction can be verified by this GM?
+  defp prediction_relevant?(%Prediction{source: gm_name,
+    conjecture_name: conjecture_name} ,
+         %State{gm_def: gm_def,
+           super_gm_names: super_gm_names}) do
+    gm_name in super_gm_names and GenerativeModelDef.has_conjecture?(gm_def, conjecture_name)
+  end
+
+  # Is this a reported error to a prediction this GM made?
   defp prediction_error_relevant?(
          %PredictionError{prediction: %Prediction{source: prediction_gm_name}},
          state
@@ -823,7 +850,7 @@ defmodule Andy.GM.GenerativeModel do
        ) do
     Logger.info("#{inspect(gm_name(state))}: Dropping least trusted competing perceptions")
 
-    updated_perceptions =
+    {updated_perceptions, _} =
       Enum.reduce(
         perceptions,
         {[], []},
@@ -869,14 +896,19 @@ defmodule Andy.GM.GenerativeModel do
            efficacies: efficacies
          } = state
        ) do
-    Logger.info("#{inspect(gm_name(state))}: Updating efficacies of courses of action")
     %Round{beliefs: beliefs} = current_round(state)
+
+    Logger.info(
+      "#{inspect(gm_name(state))}: Updating efficacies #{inspect(efficacies)} from beliefs #{
+        inspect(beliefs)
+      }"
+    )
 
     updated_efficacies =
       Enum.reduce(
         beliefs,
         efficacies,
-        &update_efficacies_from_belief(&1, efficacies, state)
+        &update_efficacies_from_belief(&1, &2, state)
       )
 
     Logger.info("#{inspect(gm_name(state))}: Updated efficacies #{inspect(updated_efficacies)}")
@@ -1011,7 +1043,9 @@ defmodule Andy.GM.GenerativeModel do
          } = state
        ) do
     Logger.info("#{inspect(gm_name(state))}: Setting courses of action")
-    {round_courses_of_action, updated_coa_indices, updated_efficacies} = results =
+
+    {round_courses_of_action, updated_coa_indices, updated_efficacies} =
+      results =
       Enum.reduce(
         conjecture_activations,
         [],
@@ -1053,7 +1087,13 @@ defmodule Andy.GM.GenerativeModel do
           }
         end
       )
-    Logger.info("#{inspect(gm_name(state))}: {round_coas, updated_coa_indices, updated_efficacies} = #{inspect results}")
+
+    Logger.info(
+      "#{inspect(gm_name(state))}: {round_coas, updated_coa_indices, updated_efficacies} = #{
+        inspect(results)
+      }"
+    )
+
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
 
@@ -1103,7 +1143,12 @@ defmodule Andy.GM.GenerativeModel do
            courses_of_action_indices: courses_of_action_indices
          } = state
        ) do
-    Logger.info("#{inspect(gm_name(state))}: Selecting a course of action for conjecture activation #{inspect conjecture_activation}")
+    Logger.info(
+      "#{inspect(gm_name(state))}: Selecting a course of action for conjecture activation #{
+        inspect(conjecture_activation)
+      }"
+    )
+
     conjecture_activation_subject = ConjectureActivation.subject(conjecture_activation)
 
     # Create an untried CoA (shortest possible), give it a hypothetical efficacy (= average efficacy) and add it to the candidates
@@ -1150,7 +1195,13 @@ defmodule Andy.GM.GenerativeModel do
     # Move the CoA index if we picked an untried CoA
     new_coa? = course_of_action == maybe_untried_coa
     updated_coa_index = if new_coa?, do: coa_index + 1, else: coa_index
-    Logger.info("#{inspect(gm_name(state))}: {course_of_action, updated_coa_index, new_coa?} = #{inspect {course_of_action, updated_coa_index, new_coa?}}")
+
+    Logger.info(
+      "#{inspect(gm_name(state))}: {course_of_action, updated_coa_index, new_coa?} = #{
+        inspect({course_of_action, updated_coa_index, new_coa?})
+      }"
+    )
+
     {course_of_action, updated_coa_index, new_coa?}
   end
 
@@ -1174,7 +1225,12 @@ defmodule Andy.GM.GenerativeModel do
          courses_of_action_index,
          %State{gm_def: gm_def} = state
        ) do
-    Logger.info("#{inspect(gm_name(state))}: Creating a candidate new COA for #{inspect conjecture_activation}")
+    Logger.info(
+      "#{inspect(gm_name(state))}: Creating a candidate new COA for #{
+        inspect(conjecture_activation)
+      }"
+    )
+
     # Convert the index into a list of indices e.g. 5 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
     index_list =
       Integer.to_string(courses_of_action_index, Enum.count(intention_domain))
@@ -1199,7 +1255,8 @@ defmodule Andy.GM.GenerativeModel do
       conjecture_activation: conjecture_activation,
       intention_names: unduplicated_intention_names
     }
-    Logger.info("#{inspect(gm_name(state))}: Candidate new COA #{inspect new_coa}")
+
+    Logger.info("#{inspect(gm_name(state))}: Candidate new COA #{inspect(new_coa)}")
     new_coa
   end
 
@@ -1229,7 +1286,10 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp pick_course_of_action(candidate_courses_of_action, state) do
-    Logger.info("#{inspect(gm_name(state))}: Picking a COA among #{inspect candidate_courses_of_action}")
+    Logger.info(
+      "#{inspect(gm_name(state))}: Picking a COA among #{inspect(candidate_courses_of_action)}"
+    )
+
     {ranges_reversed, _} =
       Enum.reduce(
         candidate_courses_of_action,
@@ -1248,7 +1308,7 @@ defmodule Andy.GM.GenerativeModel do
     random = Enum.random(0..999) / 1000
     index = Enum.find(0..(Enum.count(ranges) - 1), &(random < Enum.at(ranges, &1)))
     {coa, _efficacy} = Enum.at(candidate_courses_of_action, index)
-    Logger.info("#{inspect(gm_name(state))}: Picked COA #{inspect coa}")
+    Logger.info("#{inspect(gm_name(state))}: Picked COA #{inspect(coa)}")
     coa
   end
 
@@ -1257,19 +1317,24 @@ defmodule Andy.GM.GenerativeModel do
          %CourseOfAction{conjecture_activation: conjecture_activation} = coa,
          state
        ) do
-    Logger.info("#{inspect(gm_name(state))}: Updating efficacies with new COA #{inspect coa}")
+    Logger.info("#{inspect(gm_name(state))}: Updating efficacies with new COA #{inspect(coa)}")
     conjecture_activation_subject = ConjectureActivation.subject(conjecture_activation)
+
     new_efficacy = %Efficacy{
       conjecture_activation_subject: ConjectureActivation.subject(conjecture_activation),
       when_already_satisfied?: satisfied_now?(conjecture_activation, state),
       degree: 0
     }
-    Logger.info("#{inspect(gm_name(state))}: Adding efficacy #{inspect new_efficacy}")
-    updated_efficacies = Map.put(
-      efficacies,
-      conjecture_activation_subject,
-      [ new_efficacy | Map.get(efficacies, conjecture_activation_subject, [])]
-    )
+
+    Logger.info("#{inspect(gm_name(state))}: Adding efficacy #{inspect(new_efficacy)}")
+
+    updated_efficacies =
+      Map.put(
+        efficacies,
+        conjecture_activation_subject,
+        [new_efficacy | Map.get(efficacies, conjecture_activation_subject, [])]
+      )
+
     updated_efficacies
   end
 
@@ -1319,7 +1384,12 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp activate_intentions(intentions, belief_values, [round, _previous_rounds] = rounds, state) do
-    Logger.info("#{inspect(gm_name(state))}: Activating intentions #{inspect intentions} given belief values #{inspect belief_values}")
+    Logger.info(
+      "#{inspect(gm_name(state))}: Activating intentions #{inspect(intentions)} given belief values #{
+        inspect(belief_values)
+      }"
+    )
+
     Enum.reduce(
       intentions,
       round,
@@ -1377,11 +1447,13 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: do_drop_obsolete_rounds(rounds)}
   end
 
-  defp do_drop_obsolete_rounds([round | older_rounds] = rounds) do
+  defp do_drop_obsolete_rounds([]), do: []
+
+  defp do_drop_obsolete_rounds([round | older_rounds]) do
     cutoff = now() - @forget_round_after_secs * 1000
 
     if round.completed_on > cutoff do
-      [rounds | drop_obsolete_rounds(older_rounds)]
+      [round | do_drop_obsolete_rounds(older_rounds)]
     else
       # every other round is also necessarily obsolete
       []

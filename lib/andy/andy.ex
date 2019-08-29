@@ -65,27 +65,12 @@ defmodule Andy do
     port
   end
 
-  def rest_host() do
-    Application.get_env(:andy, AndyWeb.Endpoint)
-    |> Keyword.get(:url)
-    |> Keyword.get(:host)
+  def channel_of_other() do
+    get_andy_env("ANDY_OTHER_CHANNEL", 3)
   end
 
-  def rest_source() do
-    "http://#{rest_host()}:#{rest_port()}"
-  end
-
-  def parent_url() do
-    get_andy_env("ANDY_PARENT_URL", "")
-  end
-
-  def member_name() do
-    Node.self()
-  end
-
-  def peer() do
-    get_andy_env("ANDY_PEER", "???")
-    |> String.to_atom()
+  def name_of_other() do
+    get_andy_env("ANDY_OTHER_NAME", "marv")
   end
 
   def ports_config() do

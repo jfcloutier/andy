@@ -6,7 +6,7 @@ defmodule Andy.Utils do
 
   @brickpi_port_pattern ~r/spi0.1:(.+)/
 
-  def listen_to_events(pid, module) do
+  def listen_to_events(pid, module, name \\ nil) do
     spawn(fn ->
       Process.sleep(1000)
 
@@ -17,6 +17,7 @@ defmodule Andy.Utils do
           state
         end
       )
+      PubSub.notify({:listening, module, name})
     end)
   end
 

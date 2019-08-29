@@ -21,7 +21,6 @@ defmodule Andy.Application do
     wait_for_platform_ready(0)
 
     children = [
-      supervisor(AndyWeb.Endpoint, []),
       supervisor(EmbodiedCognitionSupervisor, []),
       Speaker
     ]

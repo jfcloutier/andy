@@ -31,7 +31,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       name: :not_seen,
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor("*:*:distance/#{channel_of_other()}", default: %{detected: -128})
+        no_change_predictor("*:*:distance/#{Andy.channel_of_other()}", default: %{detected: -128})
       ],
       valuator: not_seen_belief_valuator(),
       intention_domain: []
@@ -43,8 +43,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       name: :observed,
       activator: observed_activator(),
       predictors: [
-        no_change_predictor("*:*:distance/#{channel_of_other()}", default: %{detected: -128}),
-        no_change_predictor("*:*:heading/#{channel_of_other()}", default: %{detected: 0})
+        no_change_predictor("*:*:distance/#{Andy.channel_of_other()}", default: %{detected: -128}),
+        no_change_predictor("*:*:heading/#{Andy.channel_of_other()}", default: %{detected: 0})
       ],
       valuator: observed_belief_valuator(),
       intention_domain: [:face]
@@ -84,7 +84,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       about = conjecture_activation.about
 
       not_seen? =
-        current_perceived_value(round, about, "*:*:distance/#{channel_of_other()}", :detected,
+        current_perceived_value(round, about, "*:*:distance/#{Andy.channel_of_other()}", :detected,
           default: -128
         ) == -128
 
@@ -97,12 +97,12 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       about = conjecture_activation.about
 
       distance =
-        current_perceived_value(round, about, "*:*:distance/#{channel_of_other()}", :detected,
+        current_perceived_value(round, about, "*:*:distance/#{Andy.channel_of_other()}", :detected,
           default: -128
         )
 
       target_heading =
-        current_perceived_value(round, about, "*:*:heading/#{channel_of_other()}", :detected,
+        current_perceived_value(round, about, "*:*:heading/#{Andy.channel_of_other()}", :detected,
           default: 0
         )
 

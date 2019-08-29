@@ -1,6 +1,6 @@
 defmodule Andy.GM.Utils do
+
   alias Andy.GM.{Perception, Belief, Prediction, Round, Intention, Conjecture}
-  import Andy.Utils, only: [get_andy_env: 2]
 
   def always_activator(opinion_or_goal, about \\ :self)
 
@@ -120,14 +120,6 @@ defmodule Andy.GM.Utils do
     end
   end
 
-  def channel_of_other() do
-    get_andy_env("ANDY_OTHER_CHANNEL", 3)
-  end
-
-  def name_of_other() do
-    get_andy_env("ANDY_OTHER_NAME", "marv")
-  end
-
   def once_believed?([], _about, _conjecture_name, _value_name, _value, since: _since) do
     false
   end
@@ -201,7 +193,7 @@ defmodule Andy.GM.Utils do
            perceptions,
            &(Perception.subject(&1) ==
                Perception.make_subject(
-                 conjecture_name: predicted_conjecture_name.name,
+                 conjecture_name: predicted_conjecture_name,
                  about: about
                ))
          ) do

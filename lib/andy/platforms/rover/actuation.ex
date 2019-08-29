@@ -3,7 +3,7 @@ defmodule Andy.Rover.Actuation do
 
   require Logger
 
-  alias Andy.{ActuatorConfig, MotorSpec, LEDSpec, SoundSpec, CommSpec, Activation, Script}
+  alias Andy.{ActuatorConfig, MotorSpec, LEDSpec, SoundSpec, Activation, Script}
   import Andy.Utils
 
   @doc "Give the configurations of all Rover actuators"
@@ -98,27 +98,6 @@ defmodule Andy.Rover.Actuation do
             intent: :say,
             script: say()
           }
-        ]
-      ),
-      ActuatorConfig.new(
-        name: :communicators,
-        type: :comm,
-        specs: [
-          %CommSpec{name: :local, type: :pg2},
-          %CommSpec{name: :remote, type: :rest}
-        ],
-        activations: [
-          %Activation{
-            # intent value = %{info: info}
-            intent: :broadcast,
-            script: broadcast()
-          },
-          %Activation{
-            intent: :report,
-            script: report()
-          }
-
-          # intent value = %{info: info}
         ]
       )
     ]
@@ -317,21 +296,4 @@ defmodule Andy.Rover.Actuation do
     end
   end
 
-  # communications
-
-  defp broadcast() do
-    fn intent, communicators ->
-      Script.new(:broadcast, communicators)
-      |> Script.add_step(:local, :broadcast, [intent.value])
-    end
-  end
-
-  defp report() do
-    fn intent, communicators ->
-      url = Andy.parent_url()
-
-      Script.new(:report, communicators)
-      |> Script.add_step(:remote, :send_percept, [url, :report, intent.value])
-    end
-  end
 end

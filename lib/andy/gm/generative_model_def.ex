@@ -47,6 +47,10 @@ defmodule Andy.GM.GenerativeModelDef do
     )
   end
 
+  def has_conjecture?(%GenerativeModelDef{} = gm_def, conjecture_name) do
+    conjecture(gm_def, conjecture_name) != nil
+  end
+
   def conjecture(%GenerativeModelDef{conjectures: conjectures}, conjecture_name) do
     Enum.find(conjectures, &(&1.name == conjecture_name))
   end

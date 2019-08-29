@@ -80,6 +80,6 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
     Andy.cognition()
     |> Cognition.gm_defs_with_family()
-    |> Enum.each(&GenerativeModelsSupervisor.start_generative_model(&1))
+    |> Enum.each(&spawn(fn -> GenerativeModelsSupervisor.start_generative_model(&1) end))
   end
 end

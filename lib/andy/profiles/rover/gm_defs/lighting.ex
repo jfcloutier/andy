@@ -6,7 +6,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :ligting,
+      name: :lighting,
       conjectures: [
         conjecture(:in_well_lit_area)
       ],
@@ -31,7 +31,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
       name: :safe,
       activator: in_well_lit_area_activator(),
       predictors: [
-        no_change_predictor("*:*:ambient", %{detected: 100})
+        no_change_predictor("*:*:ambient", default: %{detected: 100})
       ],
       valuator: in_well_lit_area_valuator(),
       intention_domain: [:express_feeling_about_safety] ++ movement_domain()

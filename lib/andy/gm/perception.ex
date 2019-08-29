@@ -33,32 +33,32 @@ defmodule Andy.GM.Perception do
 
   def source(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :source, [])
+    apply(module, :source, [perception])
   end
 
   def conjecture_name(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :conjecture_name, [])
+    apply(module, :conjecture_name, [perception])
   end
 
   def about(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :about, [])
+    apply(module, :about, [perception])
   end
 
   def carry_overs(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :carry_overs, [])
+    apply(module, :carry_overs, [perception])
   end
 
   def prediction_conjecture_name(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :prediction_conjecture_name, [])
+    apply(module, :prediction_conjecture_name, [perception])
   end
 
   def values(perception) do
     module = Map.get(perception, :__struct__)
-    apply(module, :values, [])
+    apply(module, :values, [perception])
   end
 
   def prediction_error?(perception) do

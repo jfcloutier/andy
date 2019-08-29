@@ -13,11 +13,11 @@ defmodule Andy.Profiles.Rover do
     ObstacleApproach,
     AvoidingObstacle,
     ObstacleDistance,
-    CollisionCourseWithOtherRover,
+    CollisionCourseWithOther,
     Eating,
     SeekingFood,
-    BehaviorOfOtherRover,
-    ObservingOtherRover
+    IntentionsOfOther,
+    ObservingOther
   }
 
   #
