@@ -1,5 +1,5 @@
-defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOtherRover do
-  @moduledoc "The GM definition for :collision_course_with_other_rover"
+defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
+  @moduledoc "The GM definition for :collision_course_with_other"
 
   alias Andy.GM.{GenerativeModelDef, Conjecture}
   import Andy.GM.Utils
@@ -7,7 +7,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOtherRover do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :collision_course_with_other_rover,
+      name: :collision_course_with_other,
       conjectures: [
         conjecture(:on_collision_course)
       ],

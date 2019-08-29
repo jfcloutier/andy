@@ -34,27 +34,27 @@ defmodule Andy.Profiles.Rover do
         AvoidingObstacle.gm_def(),
         ObstacleDistance.gm_def(),
         ObstacleApproach.gm_def(),
-        CollisionCourseWithOtherRover.gm_def(),
+        CollisionCourseWithOther.gm_def(),
         Eating.gm_def(),
         SeekingFood.gm_def(),
-        BehaviorOfOtherRover.gm_def(),
-        ObservingOtherRover.gm_def()
+        IntentionsOfOther.gm_def(),
+        ObservingOther.gm_def()
       ],
       children: %{
         being: [:danger, :hunger, :freedom],
         danger: [:clearance, :lighting, :behavior_of_other_rover],
         hunger: [:eating],
         freedom: [],
-        clearance: [:avoiding_obstacle, :collision_course_with_other_rover],
+        clearance: [:avoiding_obstacle, :collision_course_with_other],
         avoiding_obstacle: [:obstacle_approach, :obstacle_distance],
         obstacle_approach: [],
         obstacle_distance: [],
-        collision_course_with_other_rover: [],
+        collision_course_with_other: [],
         lighting: [],
         eating: [:seeking_food],
-        seeking_food: [:behavior_of_other_rover],
-        behavior_of_other_rover: [:observing_other_rover],
-        observing_other_rover: []
+        seeking_food: [:intentions_of_other],
+        intentions_of_other: [:observing_other],
+        observing_other: []
       }
     }
   end

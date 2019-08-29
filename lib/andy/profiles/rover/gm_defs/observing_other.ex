@@ -1,5 +1,5 @@
-defmodule Andy.Profiles.Rover.GMDefs.ObservingOtherRover do
-  @moduledoc "The GM definition for :observing_other_rover"
+defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
+  @moduledoc "The GM definition for :observing_other"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
   import Andy.GM.Utils
@@ -7,7 +7,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOtherRover do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :observing_other_rover,
+      name: :observing_other,
       conjectures: [
         conjecture(:not_seen),
         conjecture(:observed)

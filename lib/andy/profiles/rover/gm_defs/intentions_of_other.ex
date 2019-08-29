@@ -1,5 +1,5 @@
-defmodule Andy.Profiles.Rover.GMDefs.BehaviorOfOtherRover do
-  @moduledoc "The GM definition for :behavior_of_other_rover"
+defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
+  @moduledoc "The GM definition for :intentions_of_other"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
   import Andy.GM.Utils
@@ -7,12 +7,10 @@ defmodule Andy.Profiles.Rover.GMDefs.BehaviorOfOtherRover do
 
   def gm_def() do
     %GenerativeModelDef{
-      name: :behavior_of_other_rover,
+      name: :intentions_of_other,
       conjectures: [
         conjecture(:other_panicking),
-        conjecture(:other_homing_on_food),
-        conjecture(:other_eating),
-        conjecture(:other_observing)
+        conjecture(:other_homing_on_food)
       ],
       # allow all conjectures to be activated
       contradictions: [],
