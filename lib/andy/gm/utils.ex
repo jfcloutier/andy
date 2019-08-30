@@ -346,7 +346,7 @@ defmodule Andy.GM.Utils do
         )
         |> Enum.count()
 
-      count + count_perceived_since(previous_rounds, about, conjecture_name, values, since)
+      count + count_perceived_since(previous_rounds, about, conjecture_name, values, since: since)
     end
   end
 

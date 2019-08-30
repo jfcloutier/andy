@@ -522,10 +522,14 @@ defmodule Andy.GM.GenerativeModel do
       )
 
     Logger.info(
-      "#{inspect(gm_name(state))}: After removing excluded perceptions: #{inspect updated_perceptions}"
+      "#{inspect(gm_name(state))}: After removing excluded perceptions: #{
+        inspect(updated_perceptions)
+      }"
     )
 
-    Logger.info("#{inspect(gm_name(state))}: After removing excluded beliefs: #{updated_beliefs}")
+    Logger.info(
+      "#{inspect(gm_name(state))}: After removing excluded beliefs: #{inspect(updated_beliefs)}"
+    )
 
     updated_round = %Round{round | perceptions: updated_perceptions, beliefs: updated_beliefs}
     %State{state | rounds: [updated_round | previous_rounds]}
@@ -661,7 +665,7 @@ defmodule Andy.GM.GenerativeModel do
         )
     ]
 
-    Logger.info("#{inspect(gm_name(state))}: Updated perceptions #{inspect updated_perceptions}")
+    Logger.info("#{inspect(gm_name(state))}: Updated perceptions #{inspect(updated_perceptions)}")
     %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
   end
 
@@ -850,7 +854,7 @@ defmodule Andy.GM.GenerativeModel do
 
   # No competition -> 1.0 (max) confidence in the source of a prediction error
   defp relative_confidence_levels([prediction_error]) do
-    {Perception.source(prediction_error), 1.0}
+    [{Perception.source(prediction_error), 1.0}]
   end
 
   # Spread 1.0 worth of confidence levels among sources with competing prediction errors about a same subject,
@@ -859,7 +863,7 @@ defmodule Andy.GM.GenerativeModel do
     # [{gm_name, confirmation_level}, ...]
     source_raw_levels =
       Enum.zip(
-        Enum.map(competing_prediction_errors, &Prediction.source(&1)),
+        Enum.map(competing_prediction_errors, &PredictionError.source(&1)),
         Enum.map(
           competing_prediction_errors,
           # Confidence grows as prediction error decreases (confirmation bias)
@@ -870,12 +874,16 @@ defmodule Andy.GM.GenerativeModel do
     # Normalize the confidence levels among competing sources of beliefs to within 0.0 and 1.0, incl.
     levels_sum = source_raw_levels |> Enum.map(&elem(&1, 1)) |> Enum.sum()
 
-    Enum.map(
-      source_raw_levels,
-      fn {source_name, raw_level} ->
-        {source_name, raw_level / levels_sum}
-      end
-    )
+    if levels_sum == 0 do
+      source_raw_levels
+    else
+      Enum.map(
+        source_raw_levels,
+        fn {source_name, raw_level} ->
+          {source_name, raw_level / levels_sum}
+        end
+      )
+    end
   end
 
   # When two perceptions are about the same thing, retain only the most trustworthy
@@ -1276,6 +1284,10 @@ defmodule Andy.GM.GenerativeModel do
     # Convert the index into a list of indices e.g. 5 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
     index_list = index_list(courses_of_action_index, intention_domain)
 
+    Logger.warn(
+      "index_list = #{inspect(index_list)}, intention_domain = #{inspect(intention_domain)}"
+    )
+
     intention_names =
       Enum.reduce(
         index_list,
@@ -1298,8 +1310,8 @@ defmodule Andy.GM.GenerativeModel do
     new_coa
   end
 
-  defp index_list(courses_of_action_index, [intention_name]) do
-    for _n <- 0..courses_of_action_index, do: intention_name
+  defp index_list(courses_of_action_index, [_intention_name]) do
+    for _n <- 0..courses_of_action_index, do: 0
   end
 
   defp index_list(courses_of_action_index, intention_domain) do
@@ -1311,22 +1323,30 @@ defmodule Andy.GM.GenerativeModel do
 
   # Return [{coa, efficacy}, ...] such that the sum of all efficacies == 1.0
   defp normalize_efficacies(candidate_courses_of_action) do
+    non_zeroized = Enum.map(candidate_courses_of_action,
+      fn({cao, degree}) ->
+        {cao, max(0.1, degree)}
+      end)
     sum =
       Enum.reduce(
-        candidate_courses_of_action,
+        non_zeroized,
         0,
         fn {_cao, degree}, acc ->
           degree + acc
         end
       )
 
-    Enum.reduce(
-      candidate_courses_of_action,
-      [],
-      fn {cao, degree}, acc ->
-        [{cao, degree / sum}, acc]
-      end
-    )
+    if sum == 0 do
+      non_zeroized
+    else
+      Enum.reduce(
+        non_zeroized,
+        [],
+        fn {cao, degree}, acc ->
+          [{cao, degree / sum} | acc]
+        end
+      )
+    end
   end
 
   # Randomly pick a course of action with a probability proportional to its degree of efficacy
@@ -1351,7 +1371,7 @@ defmodule Andy.GM.GenerativeModel do
     ranges = Enum.reverse(ranges_reversed)
 
     Logger.info(
-      "Ranges = #{inspect(ranges)} for courses of action #{candidate_courses_of_action}"
+      "Ranges = #{inspect(ranges)} for courses of action #{inspect(candidate_courses_of_action)}"
     )
 
     random = Enum.random(0..999) / 1000
