@@ -59,7 +59,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
   # Conjecture activators
 
   defp safe_activator() do
-    fn conjecture, [round | _previous_rounds] ->
+    fn conjecture, [round | _previous_rounds], _prediction_about ->
       other_panicking? =
         current_perceived_value(
           round,
@@ -82,7 +82,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
   end
 
   defp group_panic_activator() do
-    fn conjecture, [round | _previous_rounds] ->
+    fn conjecture, [round | _previous_rounds], _prediction_about ->
       other_panicking? =
         current_perceived_value(
           round,

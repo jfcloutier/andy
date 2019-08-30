@@ -41,14 +41,14 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
 
   # Always activate, and as opinion
   defp sated_activator() do
-    fn conjecture, [_round | previous_rounds] ->
+    fn conjecture, [_round | previous_rounds], prediction_about ->
       chewings_count =
-        count_perceived_since(previous_rounds, :self, :chewing, %{is: true}, since: now() - 20_000)
+        count_perceived_since(previous_rounds, prediction_about, :chewing, %{is: true}, since: now() - 20_000)
 
       if chewings_count < 3 do
         [
           Conjecture.activate(conjecture,
-            about: :self,
+            about: prediction_about,
             goal: fn %{is: sated?} -> sated? end
           )
         ]

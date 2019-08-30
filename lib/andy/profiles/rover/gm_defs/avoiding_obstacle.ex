@@ -47,13 +47,13 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   # Conjecture activators
 
   defp obstacle_not_hit_activator() do
-    fn conjecture, [round, _previous_rounds] ->
-      touched? = current_perceived_value(round, :self, :touched, :is, default: false)
+    fn conjecture, [round | _previous_rounds], prediction_about ->
+      touched? = current_perceived_value(round, prediction_about, :touched, :is, default: false)
 
       if touched? do
         [
           Conjecture.activate(conjecture,
-            about: :self,
+            about: prediction_about,
             goal: fn %{is: not_hit?} -> not_hit? end
           )
         ]
@@ -64,17 +64,17 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   end
 
   defp obstacle_avoided_activator() do
-    fn conjecture, [round, _previous_rounds] ->
+    fn conjecture, [round | _previous_rounds], prediction_about ->
       approaching_obstacle? =
-        current_perceived_value(round, :self, :approaching_obstacle, :is, default: false)
+        current_perceived_value(round, prediction_about, :approaching_obstacle, :is, default: false)
 
       distance_to_obstacle =
-        current_perceived_value(round, :self, :distance_to_obstacle, :is, default: :unknown)
+        current_perceived_value(round, prediction_about, :distance_to_obstacle, :is, default: :unknown)
 
       if approaching_obstacle? and distance_to_obstacle != :unknown and distance_to_obstacle <= 10 do
         [
           Conjecture.activate(conjecture,
-            about: :self,
+            about: prediction_about,
             goal: fn %{is: avoided?} -> avoided? end
           )
         ]
@@ -102,7 +102,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   # Conjecture belief valuators
 
   defp obstacle_not_hit_valuator() do
-    fn conjecture_activation, [round, _previous_rounds] ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
       touched? =
@@ -117,7 +117,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   end
 
   defp obstacle_avoided_valuator() do
-    fn conjecture_activation, [round, _previous_rounds] ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
       approaching_obstacle? =

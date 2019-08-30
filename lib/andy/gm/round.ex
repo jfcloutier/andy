@@ -3,9 +3,9 @@ defmodule Andy.GM.Round do
 
   alias __MODULE__
   alias Andy.GM.GenerativeModelDef
-  import Andy.Utils, only: [now: 0]
 
-  defstruct started_on: nil,
+  defstruct id: nil,
+            started_on: nil,
             # timestamp of when the round was completed. Nil if on-going
             completed_on: nil,
             # names of sub-GMs that reported a completed round
@@ -23,7 +23,7 @@ defmodule Andy.GM.Round do
             intents: []
 
   def new() do
-    %Round{started_on: now()}
+    %Round{id: UUID.uuid4()}
   end
 
   def initial_round(gm_def) do

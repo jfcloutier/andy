@@ -54,7 +54,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   # Conjecture activators
 
   defp observed_activator() do
-    fn conjecture, rounds ->
+    fn conjecture, rounds, _prediction_about ->
       recently_observed? =
         once_believed?(rounds, :other, :observed, :is, true, since: now() - 30_000)
 
@@ -80,7 +80,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   # Conjecture belief valuators
 
   defp not_seen_belief_valuator() do
-    fn conjecture_activation, [round, _previous_rounds] ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
       not_seen? =
@@ -93,7 +93,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   end
 
   defp observed_belief_valuator() do
-    fn conjecture_activation, [round, previous_rounds] ->
+    fn conjecture_activation, [round | previous_rounds] ->
       about = conjecture_activation.about
 
       distance =

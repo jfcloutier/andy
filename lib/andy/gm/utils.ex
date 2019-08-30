@@ -2,13 +2,13 @@ defmodule Andy.GM.Utils do
 
   alias Andy.GM.{Perception, Belief, Prediction, Round, Intention, Conjecture}
 
-  def always_activator(opinion_or_goal, about \\ :self)
+  def always_activator(opinion_or_goal, about \\ nil)
 
   def always_activator(:opinion, about) do
-    fn conjecture, _rounds ->
+    fn conjecture, _rounds, prediction_about ->
       [
         Conjecture.activate(conjecture,
-          about: about,
+          about: about || prediction_about,
           goal: nil
         )
       ]
@@ -16,10 +16,10 @@ defmodule Andy.GM.Utils do
   end
 
   def always_activator(:goal, about) do
-    fn conjecture, _rounds ->
+    fn conjecture, _rounds, prediction_about ->
       [
         Conjecture.activate(conjecture,
-          about: about,
+          about: about || prediction_about,
           goal: fn _belief_values -> true end
         )
       ]

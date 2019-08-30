@@ -4,9 +4,7 @@ defmodule Andy.GM.Belief do
   alias __MODULE__
   import Andy.Utils, only: [does_match?: 2]
 
-  defstruct id: nil,
-            # GM name or detector name
-            source: nil,
+  defstruct source: nil, # GM name or detector name
             # conjecture name if from a GM, else detector name is from a detector
             conjecture_name: nil,
             # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
@@ -24,7 +22,6 @@ defmodule Andy.GM.Belief do
         values: values
       ) do
     %Belief{
-      id: UUID.uuid4(),
       source: source,
       conjecture_name: conjecture_name,
       about: about,

@@ -56,4 +56,10 @@ defmodule Andy.GM.ConjectureActivation do
   def goal?(%ConjectureActivation{goal: goal}) do
     goal != nil
   end
+
+  def intention_domain_empty?(%ConjectureActivation{
+        conjecture: %Conjecture{intention_domain: intention_domain}
+      }) do
+    Enum.count(intention_domain) == 0
+  end
 end

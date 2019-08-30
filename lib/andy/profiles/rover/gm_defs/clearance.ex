@@ -51,7 +51,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
   # Conjecture belief valuators
 
   defp clear_of_obstacle_valuator() do
-    fn conjecture_activation, [round, _previous_rounds] ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
       obstacle_not_hit? =
@@ -65,7 +65,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
   end
 
   defp clear_of_other_valuator() do
-    fn conjecture_activation, [round, _previous_rounds] ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
       on_collision_course? =

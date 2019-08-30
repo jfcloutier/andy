@@ -8,9 +8,7 @@ defmodule Andy.Utils do
 
   def listen_to_events(pid, module, name \\ nil) do
     spawn(fn ->
-      Process.sleep(1000)
-
-      Agent.cast(
+      Agent.get(
         pid,
         fn state ->
           PubSub.register(module)

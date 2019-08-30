@@ -10,7 +10,7 @@ defmodule Andy.GM.Conjecture do
             # A function on a GM's rounds that activates a conjecture for the next round,
             # typically based on the history of prior beliefs,
             # setting the expected domain value ranges and possibly making it a goal.
-            # fn(conjecture, rounds) => [conjecture_activation] - can be empty
+            # fn(conjecture, rounds, about) => [conjecture_activation] - can be empty
             activator: nil,
             # Functions fn(conjecture_activation, rounds) :: prediction || nil.
             # A predictor produces a prediction (or none) about perceptions given the (activated) conjecture.
@@ -30,4 +30,13 @@ defmodule Andy.GM.Conjecture do
       goal: goal
     }
   end
+
+  def activate(%Conjecture{} = conjecture, about: about) do
+    %ConjectureActivation{
+      conjecture: conjecture,
+      about: about,
+      goal: nil
+    }
+  end
+
 end

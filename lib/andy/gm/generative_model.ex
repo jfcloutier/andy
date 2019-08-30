@@ -1,34 +1,33 @@
 defmodule Andy.GM.GenerativeModel do
   @moduledoc "A generative model agent"
 
-  # Round start:
-  #           - Start timer on round timeout
+  # Round initialization:
   #           - Copy over all the perceptions from the previous round that have not already been copied too often
   #             (a GM's perceptions are prediction errors from sub-GMs and detectors,
   #             and predictions made by the GM that are not contradicted by prediction errors)
-  #           - Copy over all the received predictions from the previous round that have not already been copied
-  #             too often
   #           - Carry over beliefs from the previous round (they will all be replaced upon completing this round
   #             by new beliefs)
-  #           - Activate conjectures (as goals or not, avoiding mutual exclusions) given current and previous beliefs
+  #           - Carry over conjecture activation for non-achieved goals.
+  #           - (Re)activate the conjectures of a hyper prior GM
   #           - Remove prior perceptions that are attributable to conjectures that are mutually exclusive of this
   #             round's conjecture activations
   #           - Make predictions about perceptions in this round from the conjecture activations, given carried-over
   #             beliefs and perceptions. Add them to perceptions, replacing obsoleted perceptions.
+  #           - If any prediction was made, start the round timeout clock
   #           - Report these predictions
   #               - Sub-GMs accumulate them as received predictions (may lead to them producing prediction errors)
   #               - Any detector that could directly verify a prediction is triggered
-  #           - If there is no conjecture activation for this round, remove the carried-over beliefs
-  #           - and complete the round right away
   #
-  # During round (until complete):
-  #           - Receive inactive round and completed round notifications from sub-GMs; mark them as reported-in
+  # Started round (handles events until it times out or completes):
+  #           - Receive completed round notifications from sub-GMs; mark them as reported-in
   #             (i.e. they made their contributions to this round)
   #                 - Check if the round ready for completion (all considered sub-GMs reported in - with precision weight > 0).
   #                 - If so complete it.
   #           - Receive predictions from super-GMs and replace overridden received predictions
   #             (overridden if the have the same subject - conjecture name and object it is about -
   #             and are from the same GM)
+  #           - Activate conjectures associated with the received perceptions, making predictions and starting the
+  #             timeout clock if it had not yet been started
   #           - Receive prediction errors from sub-GMs and detectors as perceptions and replace overridden perceptions
   #             (a prediction error overrides the prediction it corrects)
   #
@@ -50,7 +49,7 @@ defmodule Andy.GM.GenerativeModel do
   #           - Execute the chosen courses of action by reporting valued intents from each one's sequence of intentions
   #           - Mark round completed and report completion
   #           - Drop obsolete rounds (from too distant past)
-  #           - Add a new round and start it
+  #           - Add a new round and initialize it
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 3, now: 0]
@@ -144,7 +143,7 @@ defmodule Andy.GM.GenerativeModel do
         %State{} = state
       ) do
     if gm_name(state) == name do
-      updated_state = start_round(state)
+      updated_state = initialize_round(state)
       %State{updated_state | started: true}
     else
       state
@@ -153,7 +152,7 @@ defmodule Andy.GM.GenerativeModel do
 
   # Is this round timeout event meant for this GM? If so, complete the current round.
   def handle_event(
-        {:round_timed_out, name},
+        {:round_timed_out, name, round_id},
         %State{
           gm_def: %GenerativeModelDef{
             name: name
@@ -162,7 +161,7 @@ defmodule Andy.GM.GenerativeModel do
         } = state
       ) do
     # could be an obsolete round timeout event meant for a previous round that completed early
-    if round_timed_out?(state) do
+    if round_timed_out?(round_id, state) do
       Logger.info("#{inspect(gm_name(state))}: Round timed out")
       complete_round(state)
     else
@@ -190,6 +189,49 @@ defmodule Andy.GM.GenerativeModel do
     |> maybe_complete_round()
   end
 
+  # Another GM made a new prediction - receive it if relevant (from a super-GM and names a conjecture of this GM)
+  # Start the round clock if not already started
+  # 	Activate the applicable conjecture if not yet activated
+  # 	Remove mutually excluded activations and their associated predictions made
+  # 	Make predictions from the activated conjecture
+  def handle_event(
+        {:prediction, %Prediction{} = prediction},
+        %State{
+          started: true,
+          gm_def: gm_def,
+          conjecture_activations: conjecture_activations,
+          rounds: [%Round{received_predictions: received_predictions} = round | previous_rounds]
+        } = state
+      ) do
+    if prediction_relevant?(prediction, state) do
+      Logger.info("#{inspect(gm_name(state))}: Received prediction #{inspect(prediction)}")
+      updated_round = %Round{round | received_predictions: [prediction | received_predictions]}
+
+      updated_state =
+        %State{state | rounds: [updated_round | previous_rounds]} |> start_round_if_not_started()
+
+      # Activate associated conjectures
+      new_conjecture_activations = activate_conjectures_from_prediction(updated_state, prediction)
+      # The new activations are added to prior ones minus priors that are mutually excluded
+      updated_conjecture_activations =
+        rationalize_conjecture_activations(
+          new_conjecture_activations ++ conjecture_activations,
+          gm_def
+        )
+
+      Logger.info(
+        "#{inspect(gm_name(state))}: Conjecture activations #{
+          inspect(updated_conjecture_activations)
+        } after receiving prediction #{inspect(prediction)}"
+      )
+
+      final_state = remove_excluded_perceptions_and_beliefs(updated_state)
+      make_predictions(final_state, updated_conjecture_activations)
+    else
+      state
+    end
+  end
+
   # A GM reported a prediction error (a belief not aligned with a received prediction) - add to perceptions if relevant
   def handle_event(
         {
@@ -209,23 +251,6 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
-  # Another GM made a new prediction - receive it if from a super-GM
-  def handle_event(
-        {:prediction, %Prediction{} = prediction},
-        %State{
-          started: true,
-          rounds: [%Round{received_predictions: received_predictions} = round | previous_rounds]
-        } = state
-      ) do
-    if prediction_relevant?(prediction, state) do
-      Logger.info("#{inspect(gm_name(state))}: Received prediction #{inspect(prediction)}")
-      updated_round = %Round{round | received_predictions: [prediction | received_predictions]}
-      %State{state | rounds: [updated_round | previous_rounds]}
-    else
-      state
-    end
-  end
-
   def handle_event(:shutdown, state) do
     shutdown(state)
   end
@@ -237,6 +262,24 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   ### PRIVATE
+
+  # Activate not-yet activated conjectures from the prediction
+  defp activate_conjectures_from_prediction(
+         %State{gm_def: gm_def, conjecture_activations: conjecture_activations, rounds: rounds},
+         %Prediction{conjecture_name: conjecture_name, about: prediction_about}
+       ) do
+    conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
+
+    Enum.reject(
+      candidate_conjecture_activations([conjecture], rounds, prediction_about),
+      fn candidate_activation ->
+        Enum.any?(
+          conjecture_activations,
+          &(ConjectureActivation.subject(candidate_activation) == ConjectureActivation.subject(&1))
+        )
+      end
+    )
+  end
 
   # Recall what was remembered, if anything, after the last run
   defp recall_experience(gm_name) do
@@ -252,30 +295,21 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Start the current round
-  defp start_round(%State{gm_def: gm_def} = state) do
-    Logger.info("#{inspect(gm_name(state))}: Starting new round")
-
-    PubSub.notify_after(
-      {:round_timed_out, gm_name(state)},
-      gm_def.max_round_duration
-    )
+  defp initialize_round(%State{} = state) do
+    Logger.info("#{inspect(gm_name(state))}: Initializing new round")
 
     state
     # Carry over perceptions from previous round unless they've been carried over already too many times
     |> carry_over_perceptions()
-    # Carry over received predictions from previous round unless they've been carried over already too many times
-    |> carry_over_received_predictions()
     # Carry over the beliefs from the previous round
     |> carry_over_beliefs()
-    # Activate conjectures
-    |> activate_conjectures()
-    # Remove carried-over perceptions mutually exclusive with the new conjecture activations
-    |> remove_excluded_perceptions()
+    # Carry over unachieved goal conjecture activations, activate conjectures if hyper-prior # TODO - activate conjectures upon receiving predictions
+    |> reset_conjecture_activations()
+    # Remove perceptions and beliefs that are from conjectures mutually excluded from the current ones
+    |> remove_excluded_perceptions_and_beliefs()
     # Make predictions about this round of perceptions given beliefs from previous round (possibly none)
     # Add them as new perceptions, possibly overriding carried-over perceptions
     |> make_predictions()
-    # If there is no conjecture activation for this round, remove the carried-over beliefs and complete it right away
-    |> check_if_inactive()
   end
 
   # Complete the current round if fully informed
@@ -289,7 +323,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Complete execution of the current round and set up the next round
-  defp complete_round(%State{gm_def: gm_def} = state) do
+  defp complete_round(%State{} = state) do
     Logger.info("#{inspect(gm_name(state))}: Completing round")
 
     new_state =
@@ -319,11 +353,6 @@ defmodule Andy.GM.GenerativeModel do
       # Add the next round
       |> add_new_round()
 
-    PubSub.notify_after(
-      {:round_timed_out, gm_def.name},
-      gm_def.max_round_duration
-    )
-
     new_state
   end
 
@@ -352,33 +381,6 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
-  defp carry_over_received_predictions(%State{rounds: [_round]} = state) do
-    state
-  end
-
-  defp carry_over_received_predictions(
-         %State{
-           rounds: [
-             round,
-             %Round{received_predictions: prior_received_predictions} = previous_round
-             | other_rounds
-           ]
-         } = state
-       ) do
-    carried_over_predictions =
-      Enum.reject(prior_received_predictions, &(Perception.carry_overs(&1) > @max_carry_overs))
-      |> Enum.map(&Perception.increment_carry_over(&1))
-
-    Logger.info(
-      "#{inspect(gm_name(state))}: Carrying over received predictions #{
-        inspect(carried_over_predictions)
-      }"
-    )
-
-    updated_round = %Round{round | received_predictions: carried_over_predictions}
-    %State{state | rounds: [updated_round, previous_round | other_rounds]}
-  end
-
   defp carry_over_beliefs(%State{rounds: [_round]} = state), do: state
 
   defp carry_over_beliefs(
@@ -398,96 +400,89 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
-  # Activate conjectures only if predictions were received in previous round (attention),
-  # or the GM is a "hyper-prior".
-  # If so, carry over goal activations of conjectures not yet achieved
-  # and activate as many conjectures as possible that do not conflict with carried-over goal activation
-  # or mutually exclude one another.
-  # Goal conjecture activations win over other mutually exclusive activations.
-  # If no activation, report immediately that the round has completed (it won't produce beliefs).
-  defp activate_conjectures(
+  # Keep unachieved goal conjecture activations. A goal conjecture activation lives until goal is achieved
+  # or a mutually exclusive conjecture is activated via prediction received.
+  # If the GM is a hyper-prior, in addition, (re)activate as many non-mutually exclusive conjectures as possible.
+  defp reset_conjecture_activations(
          %State{
            gm_def: gm_def,
            conjecture_activations: prior_conjecture_activations,
-           rounds:
-             [%Round{received_predictions: received_predictions} | _previous_rounds] = rounds
+           rounds: rounds
          } = state
        ) do
     Logger.info("#{inspect(gm_name(state))}: Activating conjectures")
 
-    if GenerativeModelDef.hyper_prior?(gm_def) or Enum.count(received_predictions) > 0 do
-      preserved_goal_activations =
-        Enum.filter(
-          prior_conjecture_activations,
-          &(ConjectureActivation.goal?(&1) and not believed_now?(&1, state))
-        )
-
-      Logger.info(
-        "#{inspect(gm_name(state))}: Preserving goal activations #{
-          inspect(preserved_goal_activations)
-        }"
+    preserved_goal_activations =
+      Enum.filter(
+        prior_conjecture_activations,
+        &(ConjectureActivation.goal?(&1) and not achieved_now?(&1, state))
       )
 
-      # Get as many conjecture activation candidates as possible
-      candidates_for_activation =
-        Enum.map(gm_def.conjectures, & &1.activator.(&1, rounds))
-        |> List.flatten()
-        # Reject those that conflict with carried-over goal activations
-        |> Enum.reject(fn candidate ->
-          Enum.any?(
-            preserved_goal_activations,
-            &(ConjectureActivation.subject(&1) == ConjectureActivation.subject(candidate))
-          )
-        end)
-        # Shuffle the remaining candidates
-        |> random_permutation()
-        # Pull goals in front so they are the ones excluding others for being mutually exclusive
-        |> Enum.sort(fn ca1, _ca2 -> ConjectureActivation.goal?(ca1) end)
+    Logger.info(
+      "#{inspect(gm_name(state))}: Preserving goal activations #{
+        inspect(preserved_goal_activations)
+      }"
+    )
 
-      Logger.info(
-        "#{inspect(gm_name(state))}: Candidate conjecture activations #{
-          inspect(candidates_for_activation)
-        }"
+    # Get conjecture activation candidates if hyper prior
+    candidates_for_activation =
+      if GenerativeModelDef.hyper_prior?(gm_def) do
+        candidate_conjecture_activations(gm_def.conjectures, rounds)
+      else
+        []
+      end
+
+    conjecture_activations =
+      rationalize_conjecture_activations(
+        preserved_goal_activations ++ candidates_for_activation,
+        gm_def
       )
 
-      conjecture_activations =
-        Enum.reduce(
-          preserved_goal_activations ++ candidates_for_activation,
-          [],
-          fn candidate, acc ->
-            if Enum.any?(
-                 acc,
-                 &ConjectureActivation.mutually_exclusive?(candidate, &1, gm_def.contradictions)
-               ) do
-              acc
-            else
-              [candidate | acc]
-            end
-          end
-        )
+    Logger.info(
+      "#{inspect(gm_name(state))}: Activations of non-mutually exclusive conjectures #{
+        inspect(conjecture_activations)
+      }"
+    )
 
-      Logger.info(
-        "#{inspect(gm_name(state))}: Activations of non-mutually exclusive conjectures #{
-          inspect(conjecture_activations)
-        }"
-      )
-
-      %State{state | conjecture_activations: conjecture_activations}
-    else
-      Logger.info("#{inspect(gm_name(state))}: No conjectures activated")
-      %State{state | conjecture_activations: []}
-    end
+    %State{state | conjecture_activations: conjecture_activations}
   end
 
-  # Remove perceptions that are mutually exclusive with the activated conjectures.
+  defp candidate_conjecture_activations(conjectures, rounds, prediction_about \\ nil) do
+    Enum.map(conjectures, & &1.activator.(&1, rounds, prediction_about))
+    |> List.flatten()
+    # Shuffle the candidates
+    |> random_permutation()
+    # Pull goals in front so they are the ones excluding others for being mutually exclusive
+    |> Enum.sort(fn ca1, _ca2 -> ConjectureActivation.goal?(ca1) end)
+  end
+
+  defp rationalize_conjecture_activations(conjecture_activations, gm_def) do
+    Enum.reduce(
+      conjecture_activations,
+      [],
+      fn candidate, acc ->
+        if Enum.any?(
+             acc,
+             &ConjectureActivation.mutually_exclusive?(candidate, &1, gm_def.contradictions)
+           ) do
+          acc
+        else
+          [candidate | acc]
+        end
+      end
+    )
+  end
+
+  # Remove perceptions and beliefs that are mutually exclusive with the activated conjectures.
   # If a prediction: it was instantiated by a mutually exclusive conjecture
   # If a prediction error: it is an error about a prediction instantiated by a mutually exclusive conjecture
-  defp remove_excluded_perceptions(
+  # If a belief: it is a belief about a mutually exclusive conjecture
+  defp remove_excluded_perceptions_and_beliefs(
          %State{
            gm_def: gm_def,
            conjecture_activations: conjecture_activations,
            rounds: [
-             %Round{perceptions: perceptions} = round
+             %Round{perceptions: perceptions, beliefs: beliefs} = round
              | previous_rounds
            ]
          } = state
@@ -509,28 +504,40 @@ defmodule Andy.GM.GenerativeModel do
         end
       )
 
+    updated_beliefs =
+      Enum.reject(
+        beliefs,
+        fn %Belief{conjecture_name: belief_conjecture_name} ->
+          Enum.any?(
+            conjecture_activations,
+            fn %ConjectureActivation{conjecture: conjecture} ->
+              GenerativeModelDef.mutually_exclusive?(
+                gm_def,
+                conjecture.name,
+                belief_conjecture_name
+              )
+            end
+          )
+        end
+      )
+
     Logger.info(
-      "#{inspect(gm_name(state))}: After removing excluded perceptions: #{updated_perceptions}"
+      "#{inspect(gm_name(state))}: After removing excluded perceptions: #{inspect updated_perceptions}"
     )
 
-    updated_round = %Round{round | perceptions: updated_perceptions}
+    Logger.info("#{inspect(gm_name(state))}: After removing excluded beliefs: #{updated_beliefs}")
+
+    updated_round = %Round{round | perceptions: updated_perceptions, beliefs: updated_beliefs}
     %State{state | rounds: [updated_round | previous_rounds]}
   end
 
-  defp check_if_inactive(
-         %State{conjecture_activations: conjecture_activations, rounds: [round | previous_rounds]} =
-           state
+  # Make predictions for all conjecture activations in the GM
+  defp make_predictions(
+         %State{
+           conjecture_activations: conjecture_activations
+         } = state
        ) do
-    # No point processing events if no conjecture was activated, go straight to round completion without beliefs
-    if conjecture_activations == [] do
-      Logger.info("#{inspect(gm_name(state))}: Is inactive. Emptying beliefs")
-      updated_round = %Round{round | beliefs: []}
-
-      %State{state | rounds: [updated_round | previous_rounds]}
-      |> complete_round()
-    else
-      state
-    end
+    make_predictions(state, conjecture_activations)
   end
 
   # For each conjecture activations, make predictions about the GM's incoming perceptions.
@@ -538,9 +545,11 @@ defmodule Andy.GM.GenerativeModel do
   # (I see what I expect to see unless my lying eyes tell me otherwise)
   defp make_predictions(
          %State{
-           conjecture_activations: conjecture_activations,
-           rounds: [%Round{perceptions: perceptions} = round | previous_rounds]
-         } = state
+           rounds: [
+             %Round{perceptions: perceptions} = round | previous_rounds
+           ]
+         } = state,
+         conjecture_activations
        ) do
     Logger.info("#{inspect(gm_name(state))}: Making predictions")
 
@@ -560,14 +569,43 @@ defmodule Andy.GM.GenerativeModel do
         end
       ) ++ predictions
 
-    Enum.each(predictions, &PubSub.notify({:prediction, &1}))
-
     Logger.info(
       "#{inspect(gm_name(state))}: Updated perceptions to #{inspect(updated_perceptions)}"
     )
 
-    updated_round = %Round{round | perceptions: updated_perceptions}
-    %State{state | rounds: [updated_round | previous_rounds]}
+    updated_state = %State{
+      state
+      | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]
+    }
+
+    final_state =
+      if Enum.count(predictions) > 0 do
+        start_round_if_not_started(updated_state)
+      else
+        updated_state
+      end
+
+    Enum.each(predictions, &PubSub.notify({:prediction, &1}))
+
+    final_state
+  end
+
+  defp start_round_if_not_started(
+         %State{
+           gm_def: gm_def,
+           rounds: [%Round{started_on: started_on, id: round_id} = round | previous_rounds]
+         } = state
+       ) do
+    if started_on == nil do
+      PubSub.notify_after(
+        {:round_timed_out, gm_name(state), round_id},
+        gm_def.max_round_duration
+      )
+
+      %State{state | rounds: [%Round{round | started_on: now()} | previous_rounds]}
+    else
+      state
+    end
   end
 
   defp make_predictions_from_conjecture(
@@ -583,16 +621,16 @@ defmodule Andy.GM.GenerativeModel do
     round
   end
 
-  defp round_timed_out?(%State{gm_def: gm_def} = state) do
-    round = current_round(state)
-    now() - round.started_on >= gm_def.max_round_duration
+  defp round_timed_out?(round_id, %State{gm_def: gm_def} = state) do
+    %Round{id: id, started_on: started_on} = current_round(state)
+    id == round_id and now() - started_on >= gm_def.max_round_duration
   end
 
   # Can this prediction can be verified by this GM?
-  defp prediction_relevant?(%Prediction{source: gm_name,
-    conjecture_name: conjecture_name} ,
-         %State{gm_def: gm_def,
-           super_gm_names: super_gm_names}) do
+  defp prediction_relevant?(
+         %Prediction{source: gm_name, conjecture_name: conjecture_name},
+         %State{gm_def: gm_def, super_gm_names: super_gm_names}
+       ) do
     gm_name in super_gm_names and GenerativeModelDef.has_conjecture?(gm_def, conjecture_name)
   end
 
@@ -604,8 +642,8 @@ defmodule Andy.GM.GenerativeModel do
     prediction_gm_name == gm_name(state)
   end
 
-  # Add a prediction error to the perceptions (a mix of beliefs as predictions by this GM
-  # and prediction errors from sub-GMs and detectors). Remove any created redundancies.
+  # Add a prediction error to the perceptions if error > 0 and there's a matching
+  # prediction in the perceptions. Remove any created redundancies.
   defp add_prediction_error_to_round(
          %PredictionError{} = prediction_error,
          %State{rounds: [%Round{perceptions: perceptions} = round | previous_rounds]} = state
@@ -623,7 +661,7 @@ defmodule Andy.GM.GenerativeModel do
         )
     ]
 
-    Logger.info("#{inspect(gm_name(state))}: Updated perceptions #{updated_perceptions}")
+    Logger.info("#{inspect(gm_name(state))}: Updated perceptions #{inspect updated_perceptions}")
     %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
   end
 
@@ -929,7 +967,7 @@ defmodule Andy.GM.GenerativeModel do
       |> revise_conjecture_efficacies(conjecture_satisfied?, state)
 
     Logger.info(
-      "#{inspect(gm_name(state))}: Efficacies for #{subject_of_belief} given conjecture satisfied is #{
+      "#{inspect(gm_name(state))}: Efficacies for #{inspect(subject_of_belief)} given conjecture satisfied is #{
         conjecture_satisfied?
       } updated #{inspect(updated_conjecture_efficacies)}"
     )
@@ -1050,21 +1088,25 @@ defmodule Andy.GM.GenerativeModel do
         conjecture_activations,
         [],
         fn conjecture_activation, acc ->
-          if ConjectureActivation.goal?(conjecture_activation) do
-            if achieved_now?(conjecture_activation, state) do
-              acc
-            else
-              # keep trying to achieve the goal
-              [select_course_of_action(conjecture_activation, state) | acc]
-            end
-
-            # opinion
+          if ConjectureActivation.intention_domain_empty?(conjecture_activation) do
+            acc
           else
-            if believed_now?(conjecture_activation, state) do
-              # keep trying to confirm the opinion
-              [select_course_of_action(conjecture_activation, state) | acc]
+            if ConjectureActivation.goal?(conjecture_activation) do
+              if achieved_now?(conjecture_activation, state) do
+                acc
+              else
+                # keep trying to achieve the goal
+                [select_course_of_action(conjecture_activation, state) | acc]
+              end
+
+              # opinion
             else
-              acc
+              if believed_now?(conjecture_activation, state) do
+                # keep trying to confirm the opinion
+                [select_course_of_action(conjecture_activation, state) | acc]
+              else
+                acc
+              end
             end
           end
         end
@@ -1232,11 +1274,7 @@ defmodule Andy.GM.GenerativeModel do
     )
 
     # Convert the index into a list of indices e.g. 5 -> [1,1] , 5th CoA (0-based index) in an intention domain of 3 actions
-    index_list =
-      Integer.to_string(courses_of_action_index, Enum.count(intention_domain))
-      |> String.to_charlist()
-      |> Enum.map(&List.to_string([&1]))
-      |> Enum.map(&String.to_integer(&1))
+    index_list = index_list(courses_of_action_index, intention_domain)
 
     intention_names =
       Enum.reduce(
@@ -1258,6 +1296,17 @@ defmodule Andy.GM.GenerativeModel do
 
     Logger.info("#{inspect(gm_name(state))}: Candidate new COA #{inspect(new_coa)}")
     new_coa
+  end
+
+  defp index_list(courses_of_action_index, [intention_name]) do
+    for _n <- 0..courses_of_action_index, do: intention_name
+  end
+
+  defp index_list(courses_of_action_index, intention_domain) do
+    Integer.to_string(courses_of_action_index, Enum.count(intention_domain))
+    |> String.to_charlist()
+    |> Enum.map(&List.to_string([&1]))
+    |> Enum.map(&String.to_integer(&1))
   end
 
   # Return [{coa, efficacy}, ...] such that the sum of all efficacies == 1.0
@@ -1383,7 +1432,7 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round | previous_rounds]}
   end
 
-  defp activate_intentions(intentions, belief_values, [round, _previous_rounds] = rounds, state) do
+  defp activate_intentions(intentions, belief_values, [round | _previous_rounds] = rounds, state) do
     Logger.info(
       "#{inspect(gm_name(state))}: Activating intentions #{inspect(intentions)} given belief values #{
         inspect(belief_values)
@@ -1462,7 +1511,8 @@ defmodule Andy.GM.GenerativeModel do
 
   defp add_new_round(%State{rounds: rounds} = state) do
     Logger.info("#{inspect(gm_name(state))}: Adding new round")
-    %State{state | rounds: [Round.new() | rounds]}
+    updated_state = %State{state | rounds: [Round.new() | rounds]}
+    initialize_round(updated_state)
   end
 
   defp random_permutation([]) do
