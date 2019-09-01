@@ -5,6 +5,8 @@ defmodule Andy.GM.Round do
   alias Andy.GM.GenerativeModelDef
 
   defstruct id: nil,
+            # = the Nth round
+            index: nil,
             started_on: nil,
             # timestamp of when the round was completed. Nil if on-going
             completed_on: nil,
@@ -22,11 +24,19 @@ defmodule Andy.GM.Round do
             # intents executed in the round
             intents: []
 
-  def new() do
-    %Round{id: UUID.uuid4()}
+  def new(index \\ 0) do
+    %Round{id: UUID.uuid4(), index: index}
   end
 
   def initial_round(gm_def) do
     %Round{Round.new() | beliefs: GenerativeModelDef.initial_beliefs(gm_def)}
+  end
+
+  def next_round_index([round | _]) do
+    round.index + 1
+  end
+
+  def started?(%Round{started_on: started_on}) do
+    started_on != nil
   end
 end

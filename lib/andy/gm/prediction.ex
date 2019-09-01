@@ -54,6 +54,8 @@ defmodule Andy.GM.Prediction do
     compute_prediction_error_size(values, expectations)
   end
 
+  ### PRIVATE
+
   # A "complete disbelief" has nil as parameter values
   defp compute_prediction_error_size(nil, _expectations) do
     1.0

@@ -37,7 +37,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
       name: :clear_of_other,
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor(:on_collision_course, default: false)
+        no_change_predictor(:on_collision_course, default: %{is: false})
       ],
       valuator: clear_of_other_valuator(),
       intention_domain: []

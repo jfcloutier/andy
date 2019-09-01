@@ -1,5 +1,4 @@
 defmodule Andy.GM.Utils do
-
   alias Andy.GM.{Perception, Belief, Prediction, Round, Intention, Conjecture}
 
   def always_activator(opinion_or_goal, about \\ nil)
@@ -47,8 +46,9 @@ defmodule Andy.GM.Utils do
         conjecture_name: predicted_conjecture_name,
         about: about,
         expectations:
-          current_perceived_values(round, about, predicted_conjecture_name, default: nil) ||
-            default_expectations
+          current_perceived_values(round, about, predicted_conjecture_name,
+            default: nil
+          ) || default_expectations
       }
     end
   end
@@ -164,13 +164,13 @@ defmodule Andy.GM.Utils do
            round,
            about,
            predicted_conjecture_name,
-           default: nil
+           default: %{}
          ) do
       nil ->
         default
 
       values ->
-        Map.get(values, value_name)
+        Map.get(values, value_name, default)
     end
   end
 

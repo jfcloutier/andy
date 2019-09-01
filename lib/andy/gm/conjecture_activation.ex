@@ -62,4 +62,10 @@ defmodule Andy.GM.ConjectureActivation do
       }) do
     Enum.count(intention_domain) == 0
   end
+
+  def intention_domain(%ConjectureActivation{
+        conjecture: %Conjecture{intention_domain: intention_domain}
+      }) do
+    intention_domain
+  end
 end

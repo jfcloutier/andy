@@ -2,7 +2,7 @@ defmodule Andy.GM.Detector do
   @moduledoc "A detector as generator of prediction errors from reading sense values"
 
   alias Andy.GM.{PubSub, Prediction, PredictionError, Belief}
-  import Andy.Utils, only: [listen_to_events: 2, now: 0, platform_dispatch: 2]
+  import Andy.Utils, only: [listen_to_events: 3, now: 0, platform_dispatch: 2]
   require Logger
 
   # wait at least half a second to read a new value - TODO - use device TTL?
@@ -43,6 +43,7 @@ defmodule Andy.GM.Detector do
   @doc "Start a named detector on a sensing device"
   def start_link(device, sense) do
     name = name(device, sense)
+    Logger.info("Starting detector #{inspect(name)}")
 
     {:ok, pid} =
       Agent.start_link(
@@ -56,8 +57,8 @@ defmodule Andy.GM.Detector do
         name: name
       )
 
-    listen_to_events(pid, __MODULE__)
     Logger.info("#{__MODULE__} started detector named #{name}")
+    listen_to_events(pid, __MODULE__, name)
     {:ok, pid}
   end
 
@@ -76,7 +77,8 @@ defmodule Andy.GM.Detector do
       ) do
     if name_match?(conjecture_name, state) do
       {value, updated_state} = read_value(about, state)
-      Logger.info("#{inspect detector_name(state)}: Received prediction #{inspect prediction}")
+      Logger.info("#{inspect(detector_name(state))}: Received prediction #{inspect(prediction)}")
+
       case maybe_prediction_error(prediction, value, conjecture_name, about, state) do
         nil ->
           :ok
@@ -93,17 +95,16 @@ defmodule Andy.GM.Detector do
 
   # ignore event
   def handle_event(
-        event,
+        _event,
         state
       ) do
-    Logger.info("#{inspect detector_name(state)}: Ignoring event #{inspect event}")
     state
   end
 
   ### PRIVATE
 
   defp name(device, sense) do
-    "#{device.type}:#{device.port}:#{sense}"
+    "#{device.type}:#{device.port}:#{sense}" |> String.to_atom()
   end
 
   defp detector_name(%State{name: name}) do
@@ -147,13 +148,14 @@ defmodule Andy.GM.Detector do
       case previous_read(previous_reads, about, time_now) do
         nil ->
           value = read(device, sense)
-          Logger.info("#{inspect detector_name(state)}: Reading new value")
+          Logger.info("#{inspect(detector_name(state))}: Reading new value")
           %Read{value: value, timestamp: time_now}
 
         prior_read ->
           prior_read
       end
-    Logger.info("#{inspect detector_name(state)}: Read #{inspect read}")
+
+    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(read)}")
     {read.value, %State{state | previous_reads: Map.put(previous_reads, about, read)}}
   end
 
@@ -173,8 +175,17 @@ defmodule Andy.GM.Detector do
   end
 
   # Prediction error or nil
-  defp maybe_prediction_error(%Prediction{goal: goal_or_nil} = prediction, value, conjecture_name, about, %State{name: name} = state) do
-    Logger.info("#{inspect detector_name(state)}: May be prediction error on #{inspect prediction}")
+  defp maybe_prediction_error(
+         %Prediction{goal: goal_or_nil} = prediction,
+         value,
+         conjecture_name,
+         about,
+         %State{name: name} = state
+       ) do
+    Logger.info(
+      "#{inspect(detector_name(state))}: May be prediction error on #{inspect(prediction)}"
+    )
+
     values = %{detected: value}
     size = Prediction.prediction_error_size(prediction, values)
 
@@ -195,7 +206,11 @@ defmodule Andy.GM.Detector do
         size: size,
         belief: belief
       }
-      Logger.info("#{inspect detector_name(state)}: Prediction error #{inspect prediction_error}")
+
+      Logger.info(
+        "#{inspect(detector_name(state))}: Prediction error #{inspect(prediction_error)}"
+      )
+
       prediction_error
     end
   end

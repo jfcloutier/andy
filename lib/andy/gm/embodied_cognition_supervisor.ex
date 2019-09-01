@@ -57,8 +57,6 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
   # Start a (not-yet-polling) detector for each sense of each sensor
   defp start_detectors() do
-    Logger.info("Starting detectors")
-
     for sensor <- Andy.sensors() do
       for sense <- Device.senses(sensor) do
         DetectorsSupervisor.start_detector(sensor, sense)

@@ -72,7 +72,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       if not other_panicking? do
         [
           Conjecture.activate(conjecture,
-            about: :other
+            about: :self
           )
         ]
       else
@@ -95,7 +95,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       if other_panicking? do
         [
           Conjecture.activate(conjecture,
-            about: :other
+            about: :self
           )
         ]
       else

@@ -26,7 +26,7 @@ defmodule Andy.Actuator do
 
   @doc "Start an actuator from a configuration"
   def start_link(actuator_config) do
-    Logger.info("Starting #{__MODULE__} #{actuator_config.name}")
+    Logger.info("Starting #{__MODULE__} #{inspect actuator_config.name}")
 
     {:ok, pid} =
       Agent.start_link(
@@ -52,7 +52,7 @@ defmodule Andy.Actuator do
         name: actuator_config.name
       )
 
-    listen_to_events(pid, __MODULE__)
+    listen_to_events(pid, __MODULE__, actuator_config.name)
     {:ok, pid}
   end
 

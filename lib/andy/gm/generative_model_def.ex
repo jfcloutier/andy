@@ -5,7 +5,7 @@ defmodule Andy.GM.GenerativeModelDef do
   @default_max_round_duration 500
 
   alias __MODULE__
-  alias Andy.GM.Belief
+  alias Andy.GM.{Belief, Intention}
 
   defstruct name: nil,
             # GM conjectures
@@ -88,5 +88,9 @@ defmodule Andy.GM.GenerativeModelDef do
         if not_repeatable? and intention_name in acc, do: acc, else: [intention_name | acc]
       end
     )
+  end
+
+  def non_repeatable_intentions?(gm_def, intention_name) do
+    intentions(gm_def, intention_name) |> Enum.all?(&(Intention.not_repeatable?(&1)))
   end
 end
