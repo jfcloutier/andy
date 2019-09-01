@@ -89,7 +89,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
           :other,
           :other_panicking,
           :is,
-          default: false
+          default: true
         )
 
       if other_panicking? do

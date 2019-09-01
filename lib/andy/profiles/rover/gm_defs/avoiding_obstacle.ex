@@ -48,7 +48,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   defp obstacle_not_hit_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
-      touched? = current_perceived_value(round, prediction_about, :touched, :is, default: false)
+      touched? = current_perceived_value(round, prediction_about, :touched, :is, default: true)
 
       if touched? do
         [
@@ -66,10 +66,10 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   defp obstacle_avoided_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
       approaching_obstacle? =
-        current_perceived_value(round, prediction_about, :approaching_obstacle, :is, default: false)
+        current_perceived_value(round, prediction_about, :approaching_obstacle, :is, default: true)
 
       distance_to_obstacle =
-        current_perceived_value(round, prediction_about, :distance_to_obstacle, :is, default: :unknown)
+        current_perceived_value(round, prediction_about, :distance_to_obstacle, :is, default: 0)
 
       if approaching_obstacle? and distance_to_obstacle != :unknown and distance_to_obstacle <= 10 do
         [
@@ -94,7 +94,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       %Prediction{
         conjecture_name: :distance_to_obstacle,
         about: about,
-        expectations: Map.new({:is, expectation})
+        expectations: Map.new([{:is, expectation}])
       }
     end
   end

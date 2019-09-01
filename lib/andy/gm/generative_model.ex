@@ -296,7 +296,7 @@ defmodule Andy.GM.GenerativeModel do
     # Carry over the beliefs from the previous round
     |> carry_over_beliefs()
     # Carry over unachieved goal conjecture activations, activate conjectures if hyper-prior # TODO - activate conjectures upon receiving predictions
-    |> reset_conjecture_activations()
+    |> initial_conjecture_activations()
     # Remove perceptions and beliefs that are from conjectures mutually excluded from the current ones
     |> remove_excluded_perceptions_and_beliefs()
     # Make predictions about this round of perceptions given beliefs from previous round (possibly none)
@@ -363,7 +363,7 @@ defmodule Andy.GM.GenerativeModel do
        ) do
     carried_over_perceptions =
       Enum.reject(prior_perceptions, &(Perception.carry_overs(&1) > @max_carry_overs))
-      |> Enum.map(&Perception.increment_carry_over(&1))
+      |> Enum.map(&Perception.increment_carry_overs(&1))
 
     Logger.info("#{info(state)}: Carrying over perceptions #{inspect(carried_over_perceptions)}")
 
@@ -388,10 +388,10 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
-  # Keep unachieved goal conjecture activations. A goal conjecture activation lives until goal is achieved
+  # Keep unachieved goal conjecture activations for a number of rounds. A goal conjecture activation lives until goal is achieved
   # or a mutually exclusive conjecture is activated via prediction received.
   # If the GM is a hyper-prior, in addition, (re)activate as many non-mutually exclusive conjectures as possible.
-  defp reset_conjecture_activations(
+  defp initial_conjecture_activations(
          %State{
            gm_def: gm_def,
            conjecture_activations: prior_conjecture_activations,
@@ -403,8 +403,9 @@ defmodule Andy.GM.GenerativeModel do
     preserved_goal_activations =
       Enum.filter(
         prior_conjecture_activations,
-        &(ConjectureActivation.goal?(&1) and not achieved_now?(&1, state))
+        &(ConjectureActivation.goal?(&1) and ConjectureActivation.carry_overs(&1) <= @max_carry_overs and not achieved_now?(&1, state))
       )
+      |> Enum.map(&ConjectureActivation.increment_carry_overs(&1))
 
     Logger.info(
       "#{info(state)}: Preserving goal activations #{inspect(preserved_goal_activations)}"

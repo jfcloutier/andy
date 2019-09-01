@@ -69,7 +69,7 @@ defmodule Andy.GM.Perception do
     Map.get(perception, :__struct__) == Prediction
   end
 
-  def increment_carry_over(perception) do
+  def increment_carry_overs(perception) do
     Map.put(perception, :carry_overs, Perception.carry_overs(perception) + 1)
   end
 end

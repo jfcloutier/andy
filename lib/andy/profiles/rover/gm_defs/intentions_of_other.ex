@@ -65,7 +65,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
 
   defp behavior_activator() do
     fn conjecture, [round | _previous_rounds], _prediction_about ->
-      observed? = current_perceived_value(round, :other, :observed, :is, defaut: false)
+      observed? = current_perceived_value(round, :other, :observed, :is, defaut: true)
 
       if observed? do
         [

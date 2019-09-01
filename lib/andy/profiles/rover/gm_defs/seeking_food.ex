@@ -81,7 +81,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   defp other_found_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
       other_homing_on_food? =
-        current_perceived_value(round, prediction_about, :other_homing_on_food, :is, default: false)
+        current_perceived_value(round, prediction_about, :other_homing_on_food, :is, default: true)
 
       if other_homing_on_food? do
         [
@@ -98,7 +98,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   defp over_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
       white? =
-        current_perceived_value(round, prediction_about, "*:*:color", :detected, default: :mystery) == :white
+        current_perceived_value(round, prediction_about, "*:*:color", :detected, default: :mystery) == :black
 
       food_detected? =
         current_perceived_value(round, prediction_about, "*:*:beacon_distance/1", :detected, default: -128) !=

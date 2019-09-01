@@ -38,7 +38,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
     fn conjecture, [round | _previous_rounds], _prediction_about ->
       distance =
         current_perceived_value(round, :other, "*:*:distance/#{Andy.channel_of_other()}", :detected,
-          default: -128
+          default: 0
         )
 
       if distance != -128 and distance < 100 do

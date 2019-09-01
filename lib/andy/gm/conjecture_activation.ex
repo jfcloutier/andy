@@ -12,7 +12,9 @@ defmodule Andy.GM.ConjectureActivation do
             about: nil,
             # nil if the conjecture is an "opinion", else fn(belief_values)::boolean
             # that evaluates if the conjecture-as-goal is achieved
-            goal: nil
+            goal: nil,
+            # the number of times this has been carried over from a previous round
+            carry_overs: 0
 
   @doc "Two conjecture activations are mutually exclusive if they are from the same conjecture
   and are about the same object, or they are about the same object and from mutually
@@ -67,5 +69,15 @@ defmodule Andy.GM.ConjectureActivation do
         conjecture: %Conjecture{intention_domain: intention_domain}
       }) do
     intention_domain
+  end
+
+  def carry_overs(%ConjectureActivation{carry_overs: carry_overs}) do
+    carry_overs
+  end
+
+  def increment_carry_overs(
+        %ConjectureActivation{carry_overs: carry_overs} = conjecture_activation
+      ) do
+    %ConjectureActivation{conjecture_activation | carry_overs: carry_overs + 1}
   end
 end
