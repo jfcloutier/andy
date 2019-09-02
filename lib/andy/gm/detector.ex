@@ -76,8 +76,8 @@ defmodule Andy.GM.Detector do
         state
       ) do
     if name_match?(conjecture_name, state) do
-      {value, updated_state} = read_value(about, state)
       Logger.info("#{inspect(detector_name(state))}: Received prediction #{inspect(prediction)}")
+      {value, updated_state} = read_value(about, state)
 
       case maybe_prediction_error(prediction, value, conjecture_name, about, state) do
         nil ->
@@ -155,8 +155,9 @@ defmodule Andy.GM.Detector do
           prior_read
       end
 
-    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(read)}")
-    {read.value, %State{state | previous_reads: Map.put(previous_reads, about, read)}}
+    {reading, _device} = read.value
+    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(reading)}")
+    {reading, %State{state | previous_reads: Map.put(previous_reads, about, read)}}
   end
 
   # Unexpired previous read else nil

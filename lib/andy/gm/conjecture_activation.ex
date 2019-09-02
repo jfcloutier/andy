@@ -81,3 +81,11 @@ defmodule Andy.GM.ConjectureActivation do
     %ConjectureActivation{conjecture_activation | carry_overs: carry_overs + 1}
   end
 end
+
+defimpl Inspect, for: Andy.GM.ConjectureActivation do
+
+  def inspect(activation, _opts) do
+    "<Activation of #{(if activation.goal == nil, do: "opinion", else: "goal")} #{inspect activation.conjecture.name} about #{inspect activation.about}>"
+  end
+end
+

@@ -66,3 +66,11 @@ defmodule Andy.GM.Belief do
     source not in [:detector, :prediction]
   end
 end
+
+defimpl Inspect, for: Andy.GM.Belief do
+
+  def inspect(belief, _opts) do
+    "<Belief that #{(if belief.goal == nil, do: "opinion", else: "goal")} #{inspect belief.conjecture_name} of #{inspect belief.about} is #{inspect belief.values}>"
+  end
+end
+
