@@ -4,7 +4,8 @@ defmodule Andy.GM.Belief do
   alias __MODULE__
   import Andy.Utils, only: [does_match?: 2]
 
-  defstruct source: nil, # GM name or detector name
+  # GM name or detector name
+  defstruct source: nil,
             # conjecture name if from a GM, else detector name is from a detector
             conjecture_name: nil,
             # what the conjecture is about, e.g. "robot1" or nil if N/A (e.g. detectors)
@@ -38,7 +39,7 @@ defmodule Andy.GM.Belief do
     values != nil
   end
 
-  def satisfies_conjecture?(%Belief{values: nil} ) do
+  def satisfies_conjecture?(%Belief{values: nil}) do
     false
   end
 
@@ -68,9 +69,9 @@ defmodule Andy.GM.Belief do
 end
 
 defimpl Inspect, for: Andy.GM.Belief do
-
   def inspect(belief, _opts) do
-    "<Belief that #{(if belief.goal == nil, do: "opinion", else: "goal")} #{inspect belief.conjecture_name} of #{inspect belief.about} is #{inspect belief.values}>"
+    "<Belief that #{if belief.goal == nil, do: "opinion", else: "goal"} #{
+      inspect(belief.conjecture_name)
+    } of #{inspect(belief.about)} is #{inspect(belief.values)}>"
   end
 end
-

@@ -10,6 +10,7 @@ defmodule Andy.GM.Prediction do
   """
 
   alias __MODULE__
+  require Logger
 
   @behaviour Andy.GM.Perception
 
@@ -39,6 +40,11 @@ defmodule Andy.GM.Prediction do
 
   def prediction_conjecture_name(prediction) do
     source(prediction)
+  end
+
+  def values(%Prediction{expectations: nil} = prediction) do
+    Logger.warn("nil expectations for #{inspect(prediction)}")
+    %{}
   end
 
   def values(%Prediction{expectations: expectations}) do
@@ -151,8 +157,9 @@ defmodule Andy.GM.Prediction do
 end
 
 defimpl Inspect, for: Andy.GM.Prediction do
-
   def inspect(prediction, _opts) do
-    "<#{(if prediction.goal == nil, do: "Opinion", else: "Goal")} #{inspect prediction.conjecture_name} of #{inspect prediction.about} will be #{inspect prediction.expectations}>"
+    "<#{if prediction.goal == nil, do: "Opinion", else: "Goal"} #{
+      inspect(prediction.conjecture_name)
+    } of #{inspect(prediction.about)} will be #{inspect(prediction.expectations)}>"
   end
 end

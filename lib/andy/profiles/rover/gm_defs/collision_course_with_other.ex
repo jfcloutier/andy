@@ -37,7 +37,11 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
   defp on_collision_course_activator() do
     fn conjecture, [round | _previous_rounds], _prediction_about ->
       distance =
-        current_perceived_value(round, :other, "*:*:distance/#{Andy.channel_of_other()}", :detected,
+        current_perceived_value(
+          round,
+          :other,
+          "*:*:distance/#{Andy.channel_of_other()}",
+          :detected,
           default: 0
         )
 
@@ -62,7 +66,11 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
       about = conjecture_activation.about
 
       distance =
-        current_perceived_value(round, :other, "*:*:distance/#{Andy.channel_of_other()}", :detected,
+        current_perceived_value(
+          round,
+          :other,
+          "*:*:distance/#{Andy.channel_of_other()}",
+          :detected,
           default: -128
         )
 

@@ -295,5 +295,4 @@ defmodule Andy.Rover.Actuation do
       |> Script.add_step(:loud_speech, :speak, [intent.value])
     end
   end
-
 end

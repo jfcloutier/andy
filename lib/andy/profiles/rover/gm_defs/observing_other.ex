@@ -34,7 +34,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         no_change_predictor("*:*:distance/#{Andy.channel_of_other()}", default: %{detected: -128})
       ],
       valuator: not_seen_belief_valuator(),
-      intention_domain: []
+      intention_domain: [],
+      self_activated: true
     }
   end
 
@@ -84,7 +85,11 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       about = conjecture_activation.about
 
       not_seen? =
-        current_perceived_value(round, about, "*:*:distance/#{Andy.channel_of_other()}", :detected,
+        current_perceived_value(
+          round,
+          about,
+          "*:*:distance/#{Andy.channel_of_other()}",
+          :detected,
           default: -128
         ) == -128
 
@@ -97,7 +102,11 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       about = conjecture_activation.about
 
       distance =
-        current_perceived_value(round, about, "*:*:distance/#{Andy.channel_of_other()}", :detected,
+        current_perceived_value(
+          round,
+          about,
+          "*:*:distance/#{Andy.channel_of_other()}",
+          :detected,
           default: -128
         )
 

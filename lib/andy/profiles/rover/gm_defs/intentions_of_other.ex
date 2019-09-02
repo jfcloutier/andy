@@ -10,7 +10,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       name: :intentions_of_other,
       conjectures: [
         conjecture(:other_panicking),
-        conjecture(:other_homing_on_food)
+        conjecture(:other_panicking)
       ],
       # allow all conjectures to be activated
       contradictions: [],

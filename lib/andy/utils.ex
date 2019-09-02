@@ -15,6 +15,7 @@ defmodule Andy.Utils do
           state
         end
       )
+
       PubSub.notify({:listening, module, name})
     end)
   end

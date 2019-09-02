@@ -21,7 +21,9 @@ defmodule Andy.GM.Conjecture do
             # fn(conjecture_activation, rounds) -> param_values (if believed) or nil (if disbelieved)
             valuator: nil,
             # Names of intentions from the GM definition from which courses of action can be composed and executed to realize the conjecture
-            intention_domain: []
+            intention_domain: [],
+            # Runs activator even if no related prediction received
+            self_activated: false
 
   def activate(%Conjecture{} = conjecture, about: about, goal: goal) do
     %ConjectureActivation{
@@ -39,4 +41,15 @@ defmodule Andy.GM.Conjecture do
     }
   end
 
+  def self_activated?(%Conjecture{self_activated: self_activated}) do
+    self_activated
+  end
+end
+
+defimpl Inspect, for: Andy.GM.Conjecture do
+  def inspect(conjecture, _opts) do
+    "<Conjecture #{inspect(conjecture.name)} with intention domain #{
+      inspect(conjecture.intention_domain)
+    }#{if conjecture.self_activated, do: " (self-activated)", else: ""}>"
+  end
 end

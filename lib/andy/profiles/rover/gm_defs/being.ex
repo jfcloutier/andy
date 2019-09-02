@@ -11,7 +11,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
         conjecture(:thriving)
       ],
       contradictions: [],
-      hyper_prior: true,
       priors: %{thriving: %{is: true}},
       intentions: %{
         express_opinion_about_life: %Intention{
@@ -35,7 +34,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
         free_predictor()
       ],
       valuator: thriving_belief_valuator(),
-      intention_domain: [:express_opinion_about_life]
+      intention_domain: [:express_opinion_about_life],
+      self_activated: true
     }
   end
 

@@ -51,8 +51,9 @@ defmodule Andy.GM.PredictionError do
 end
 
 defimpl Inspect, for: Andy.GM.PredictionError do
-
   def inspect(prediction_error, _opts) do
-    "<<Error of #{prediction_error.size} predicting #{inspect prediction_error.prediction}: Got #{inspect prediction_error.belief.values}>>"
+    "<<Error of #{prediction_error.size} predicting #{inspect(prediction_error.prediction)}: Got #{
+      inspect(prediction_error.belief.values)
+    }>>"
   end
 end

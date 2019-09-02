@@ -41,14 +41,12 @@ defmodule Andy.GM.Utils do
   def no_change_predictor(predicted_conjecture_name, default: default_expectations) do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
+      current = current_perceived_values(round, about, predicted_conjecture_name, default: %{})
 
       %Prediction{
         conjecture_name: predicted_conjecture_name,
         about: about,
-        expectations:
-          current_perceived_values(round, about, predicted_conjecture_name,
-            default: nil
-          ) || default_expectations
+        expectations: Map.merge(default_expectations, current)
       }
     end
   end
@@ -84,7 +82,7 @@ defmodule Andy.GM.Utils do
       min_value = Enum.min(all_values)
       max_value = Enum.max(all_values)
       min_deviation = min(average - min_value, max_value - average)
-      [(average - min_deviation)..(average + min_deviation)]
+      [round(average - min_deviation)..round(average + min_deviation)]
     end
   end
 
@@ -201,7 +199,7 @@ defmodule Andy.GM.Utils do
         default_values
 
       perception ->
-        Perception.values(perception)
+        Perception.values(perception) || default_values
     end
   end
 
@@ -435,10 +433,10 @@ defmodule Andy.GM.Utils do
 
   defp turn_valuator() do
     # seconds
-    2
+    fn(_) ->  2 end
   end
 
   defp move_valuator() do
-    %{speed: :normal, time: 2}
+    fn(_) -> %{speed: :normal, time: 2} end
   end
 end

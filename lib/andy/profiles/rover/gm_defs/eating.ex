@@ -66,7 +66,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
 
   defp chewing_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
-      over_food? = current_perceived_value(round, prediction_about, :over_food, :is, default: false)
+      over_food? =
+        current_perceived_value(round, prediction_about, :over_food, :is, default: false)
 
       if over_food? do
         [
@@ -82,7 +83,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
 
   defp found_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
-      over_food? = current_perceived_value(round, prediction_about, :over_food, :is, default: false)
+      over_food? =
+        current_perceived_value(round, prediction_about, :over_food, :is, default: false)
 
       if not over_food? do
         [

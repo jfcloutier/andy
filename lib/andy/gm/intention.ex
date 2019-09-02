@@ -14,3 +14,11 @@ defmodule Andy.GM.Intention do
     not repeatable?
   end
 end
+
+defimpl Inspect, for: Andy.GM.Intention do
+  def inspect(intention, _opts) do
+    "<Intention to #{inspect(intention.intent_name)} (#{
+      if intention.repeatable, do: "", else: "not "
+    }repeatable)>"
+  end
+end

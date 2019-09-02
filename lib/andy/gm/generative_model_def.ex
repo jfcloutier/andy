@@ -12,7 +12,7 @@ defmodule Andy.GM.GenerativeModelDef do
             max_round_duration: @default_max_round_duration,
             # the maximum duration of a round for the GM
             conjectures: [],
-            # sets of mutually-exclusive conjectures (by name) - hyper-prior
+            # sets of mutually-exclusive conjectures (by name)
             contradictions: [],
             # conjecture_name => %{} parameter values of initial conjecture beliefs
             priors: %{},
@@ -20,9 +20,7 @@ defmodule Andy.GM.GenerativeModelDef do
             # Intentions are taken either to achieve a goal (to believe in a goal conjecture)
             # or to reinforce belief in an active conjecture (active = conjecture not silenced by a mutually exclusive, more believable one)
             # name => intention or [intention, ...] # either single intention or a group of combined intentions
-            intentions: %{},
-            # Whether this GM is always activating conjectures
-            hyper_prior: false
+            intentions: %{}
 
   def initial_beliefs(gm_def) do
     Enum.reduce(
@@ -75,10 +73,6 @@ defmodule Andy.GM.GenerativeModelDef do
     end
   end
 
-  def hyper_prior?(%GenerativeModelDef{hyper_prior: hyper_prior?}) do
-    hyper_prior?
-  end
-
   def unduplicate_non_repeatables(gm_def, intention_names) do
     Enum.reduce(
       intention_names,
@@ -91,6 +85,6 @@ defmodule Andy.GM.GenerativeModelDef do
   end
 
   def non_repeatable_intentions?(gm_def, intention_name) do
-    intentions(gm_def, intention_name) |> Enum.all?(&(Intention.not_repeatable?(&1)))
+    intentions(gm_def, intention_name) |> Enum.all?(&Intention.not_repeatable?(&1))
   end
 end

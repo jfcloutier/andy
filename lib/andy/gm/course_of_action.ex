@@ -21,3 +21,9 @@ defmodule Andy.GM.CourseOfAction do
     coa_conjecture_name == conjecture_name and coa_intention_names == intention_names
   end
 end
+
+defimpl Inspect, for: Andy.GM.CourseOfAction do
+  def inspect(coa, _opts) do
+    "<CoA #{inspect(coa.intention_names)} for #{inspect(coa.conjecture_activation)}>"
+  end
+end
