@@ -7,8 +7,7 @@ defmodule Andy.Intent do
   @type t :: %__MODULE__{
           about: atom,
           value: any,
-          since: number,
-          strong: boolean
+          since: number
         }
 
   @doc """
@@ -16,12 +15,10 @@ defmodule Andy.Intent do
   value: The measure of the intent (a number, atom...)
   since: When the intent was created
   source: The source of the intent
-  strong: If true, the intent takes longer to become stale
   """
   defstruct about: nil,
             value: nil,
-            since: nil,
-            strong: false
+            since: nil
 
   @doc "Create an intent"
   def new(about: about, value: params) do
@@ -32,25 +29,16 @@ defmodule Andy.Intent do
     }
   end
 
-  @doc "Create a strong intent"
-  def new_strong(about: about, value: params) do
-    %Intent{
-      about: about,
-      since: now(),
-      value: params,
-      strong: true
-    }
-  end
-
   @doc "The age of an intent"
   def age(intent) do
     now() - intent.since
   end
 
-  @doc "Describe the strength of an intent"
-  def strength(intent) do
-    if intent.strong, do: :strong, else: :weak
-  end
-
-  # A "memorable" - must have about, since and value fields
 end
+
+defimpl Inspect, for: Andy.Intent do
+  def inspect(intent, _opts) do
+    "<Intent #{inspect(intent.about)} #{inspect intent.value}>"
+  end
+end
+

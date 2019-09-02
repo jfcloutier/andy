@@ -212,7 +212,14 @@ defmodule Andy.GM.GenerativeModel do
       ) do
     if prediction_relevant?(prediction, state) do
       Logger.info("#{info(state)}: Received prediction #{inspect(prediction)}")
-      updated_round = %Round{round | received_predictions: [prediction | received_predictions]}
+
+      updated_round = %Round{
+        round
+        | received_predictions: [
+            prediction
+            | Enum.reject(received_predictions, &Perception.same_subject?(&1, prediction))
+          ]
+      }
 
       updated_state =
         %State{state | rounds: [updated_round | previous_rounds]} |> start_round_if_not_started()
@@ -231,6 +238,7 @@ defmodule Andy.GM.GenerativeModel do
           inspect(prediction)
         }"
       )
+
       %State{updated_state | conjecture_activations: updated_conjecture_activations}
       |> remove_excluded_perceptions_and_beliefs()
       |> make_predictions(updated_conjecture_activations)
@@ -404,8 +412,6 @@ defmodule Andy.GM.GenerativeModel do
            rounds: rounds
          } = state
        ) do
-    Logger.info("#{info(state)}: Maybe preserving #{inspect(prior_conjecture_activations)}")
-
     preserved_goal_activations =
       Enum.filter(
         prior_conjecture_activations,
@@ -416,12 +422,15 @@ defmodule Andy.GM.GenerativeModel do
       |> Enum.map(&ConjectureActivation.increment_carry_overs(&1))
 
     Logger.info(
-      "#{info(state)}: Preserving goal activations #{inspect(preserved_goal_activations)}"
+      "#{info(state)}: Preserving unachieved goal activations #{
+        inspect(preserved_goal_activations)
+      }"
     )
 
     # Get conjecture self-activations
-    self_activations = Enum.filter(gm_def.conjectures, &Conjecture.self_activated?(&1))
-    |> candidate_conjecture_activations(rounds)
+    self_activations =
+      Enum.filter(gm_def.conjectures, &Conjecture.self_activated?(&1))
+      |> candidate_conjecture_activations(rounds)
 
     conjecture_activations =
       rationalize_conjecture_activations(
@@ -961,7 +970,7 @@ defmodule Andy.GM.GenerativeModel do
     Logger.info(
       "#{info(state)}: Efficacies for #{inspect(subject_of_belief)} given conjecture satisfied is #{
         conjecture_satisfied?
-      } updated #{inspect(updated_conjecture_efficacies)}"
+      } updated to #{inspect(updated_conjecture_efficacies)}"
     )
 
     Map.put(efficacies, subject_of_belief, updated_conjecture_efficacies)
