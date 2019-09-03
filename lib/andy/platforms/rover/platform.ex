@@ -51,6 +51,7 @@ defmodule Andy.Rover.Platform do
       :gyro -> "ev3-uart"
       :color -> "ev3-uart"
       :ultrasonic -> "ev3-uart"
+      :ir_seeker -> "nxt-i2c"
       :large -> "tacho-motor"
       :medium -> "tacho-motor"
       :led -> "led"
@@ -65,6 +66,7 @@ defmodule Andy.Rover.Platform do
       :gyro -> "lego-ev3-gyro"
       :color -> "lego-ev3-color"
       :ultrasonic -> "lego-ev3-us"
+      :ir_seeker -> "ht-nxt-ir-seek-v2"
       :large -> "lego-ev3-l-motor"
       :medium -> "lego-ev3-m-motor"
     end

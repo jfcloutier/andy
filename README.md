@@ -22,6 +22,9 @@ Setup:
 To connect:
 
     > ssh robot@ev3dev.local
+    > ssh robot@andy.local (latest)
+    
+    password: maker
 
 Before doing `use apt-get`:
 
@@ -37,14 +40,15 @@ If you use asdf to install erlang and elixir, first do:
     > sudo apt-get install build-essentials
     > sudo apt-get install autoconf
     > sudo apt-get install libncurses5-dev
+    > sudo apt-get install libssl-dev
 
 To install Erlang and Elixir via asdf:
 
     Install asdf -- See https://asdf-vm.com/#/core-manage-asdf-vm
 
-    > echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bash_profile
-    > echo -e '\n. $HOME/.asdf/completions/asdf.bash' >>  ~/.bash_profile # optional
-    > source ~/.bash_profile
+    > echo -e '\n. $HOME/.asdf/asdf.sh' >> ~/.bashrc
+    > echo -e '\n. $HOME/.asdf/completions/asdf.bash' >>  ~/.bashrc # optional
+    > source ~/.bashrc
 
     Then:
 
@@ -69,7 +73,7 @@ To update the source code:
     
 To reset the robot (erase its accumulated experience)
 
-    > rm experience/*
+    > rm memory.dets
 
 To launch on the robot:
 
