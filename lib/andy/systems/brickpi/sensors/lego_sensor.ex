@@ -4,7 +4,7 @@ defmodule Andy.BrickPi.LegoSensor do
   require Logger
   import Andy.BrickPi.Sysfs
   alias Andy.Device
-  alias Andy.BrickPi.{ColorSensor, TouchSensor, InfraredSensor, UltrasonicSensor, GyroSensor}
+  alias Andy.BrickPi.{ColorSensor, TouchSensor, InfraredSensor, UltrasonicSensor, GyroSensor, IRSeekerSensor}
 
   @sys_path "/sys/class/lego-sensor"
   @prefix "sensor"
@@ -30,7 +30,7 @@ defmodule Andy.BrickPi.LegoSensor do
 
   @doc "Is this type of device a sensor?"
   def sensor?(device_type) do
-    device_type in [:touch, :infrared, :color, :ultrasonic, :gyro]
+    device_type in [:touch, :infrared, :color, :ultrasonic, :gyro, :ir_seeker]
   end
 
   @doc "Get the list of senses from a sensor"
@@ -85,6 +85,11 @@ defmodule Andy.BrickPi.LegoSensor do
     sensor.type == :infrared
   end
 
+  @doc "Is this the IR seeker sensor?"
+  def ir_seeker?(sensor) do
+    sensor.type == :ir_seeker
+  end
+
   @doc "Set the sensor's mode"
   def set_mode(sensor, mode) do
     if mode(sensor) != mode do
@@ -115,6 +120,7 @@ defmodule Andy.BrickPi.LegoSensor do
       :color -> ColorSensor
       :infrared -> InfraredSensor
       :ultrasonic -> UltrasonicSensor
+      :ir_seeker -> IRSeekerSensor
       :gyro -> GyroSensor
     end
   end
@@ -131,6 +137,7 @@ defmodule Andy.BrickPi.LegoSensor do
         "color" -> :color
         "touch" -> :touch
         "ir" -> :infrared
+        "seek" -> :ir_seeker # TODO - check
       end
 
     sensor = %Device{

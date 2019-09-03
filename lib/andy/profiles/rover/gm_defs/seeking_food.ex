@@ -23,12 +23,12 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       intentions: %{
         track_other: %Intention{
           intent_name: :roam,
-          valuator: tracking_valuator(),
+          valuator: tracking_other_valuator(),
           repeatable: true
         },
         track_food: %Intention{
           intent_name: :roam,
-          valuator: tracking_valuator(),
+          valuator: tracking_food_valuator(),
           repeatable: true
         }
       }
@@ -161,24 +161,22 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       other_homing_on_food? =
         current_perceived_value(round, about, :other_homing_on_food, :is, default: false)
 
-      other_eating? = current_perceived_value(round, about, :other_eating, :is, default: false)
-
       other_vector =
-        current_perceived_values(round, about, :other_eating,
-          default: %{distance: -128, heading: 0}
+        current_perceived_values(round, about, :other_homing_on_food,
+          default: %{proximity: :unknown, direction: :unknown}
         )
 
       %{
-        is: other_homing_on_food? or other_eating?,
-        distance: other_vector.distance,
-        heading: other_vector.heading
+        is: other_homing_on_food?,
+        proximity: other_vector.proximity,
+        direction: other_vector.direction
       }
     end
   end
 
   # Intention valuators
 
-  defp tracking_valuator() do
+  defp tracking_food_valuator() do
     fn %{distance: distance, heading: heading} ->
       if distance == -128 do
         nil
@@ -221,4 +219,49 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       end
     end
   end
+
+  defp tracking_other_valuator() do
+    fn %{proximity: proximity, direction: direction} ->
+      if proximity == :unknown do
+        nil
+      else
+        speed =
+          cond do
+            proximity < 2 -> :very_slow
+            proximity < 5 -> :slow
+            proximity < 7 -> :normal
+            true -> :fast
+          end
+
+        forward_time =
+          cond do
+            proximity == 0 -> 0
+            proximity < 3 -> 0.5
+            proximity < 5 -> 1
+            proximity < 7 -> 2
+            true -> 3
+          end
+
+        turn_direction = if direction < 0, do: :left, else: :right
+        abs_direction = abs(direction)
+
+        turn_time =
+          cond do
+            abs_direction == 0 -> 0
+            abs_direction <= 30 -> 0.25
+            abs_direction <= 60 -> 0.5
+            abs_direction <= 90 -> 1
+            true -> 2
+          end
+
+        %{
+          forward_speed: speed,
+          forward_time: forward_time,
+          turn_direction: turn_direction,
+          turn_time: turn_time
+        }
+      end
+    end
+  end
+
 end

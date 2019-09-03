@@ -22,7 +22,7 @@ defmodule Andy.Rover.Platform do
 
   def ports_config() do
     [
-      %{port: :in1, device: :touch},
+      %{port: :in1, device: :ir_seeker},
       %{port: :in2, device: :color},
       %{port: :in3, device: :infrared},
       %{port: :in4, device: :ultrasonic},

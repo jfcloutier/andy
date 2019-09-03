@@ -24,7 +24,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       name: :obstacle_not_hit,
       activator: obstacle_not_hit_activator(),
       predictors: [
-        no_change_predictor("*:*:touch", default: %{detected: :released})
+        no_change_predictor("*:*:distance", default: %{detected: -128})
       ],
       valuator: obstacle_not_hit_valuator(),
       intention_domain: movement_domain()
@@ -106,8 +106,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       about = conjecture_activation.about
 
       touched? =
-        current_perceived_value(round, about, "*:*:touch", :detected, default: :released) ==
-          :touched
+        current_perceived_value(round, about, "*:*:distance", :detected, default: -128) <= 2
 
       approaching_obstacle? =
         current_perceived_value(round, about, :approaching_obstacle, :is, default: false)

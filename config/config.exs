@@ -31,7 +31,7 @@ config :andy,
   profiles: %{
     "rover" => Andy.Profiles.Rover
   },
-  max_beacon_channels: 3,
+  max_beacon_channels: 1,
   #       very_fast_rps: 3,
   #       fast_rps: 2,
   #       normal_rps: 1,

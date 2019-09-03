@@ -41,7 +41,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       # Only activate if actively observing the robot
       activator: behavior_activator(),
       predictors: [
-        no_change_predictor(:observed, default: %{is: false, distance: -128, heading: 0})
+        no_change_predictor(:observed, default: %{is: false, proximity: :unknown, direction: :unknown})
       ],
       valuator: other_panicking_belief_valuator(),
       intention_domain: [:say_other_panicking]
@@ -54,7 +54,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       # Only activate if actively observing the robot
       activator: behavior_activator(),
       predictors: [
-        no_change_predictor(:observed, default: %{is: false, distance: -128, heading: 0})
+        no_change_predictor(:observed, default: %{is: false, proximity: :unknown, direction: :unknown})
       ],
       valuator: other_homing_on_food_belief_valuator(),
       intention_domain: [:say_other_homing_on_food]
@@ -93,20 +93,20 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           since: now() - 10_000
         )
 
-      distances = Enum.map(observations, &Map.get(&1, :distance, 0))
-      headings = Enum.map(observations, &Map.get(&1, :heading, 0))
+      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
+      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
 
       panicking? =
         Enum.count(observations) > 4 and
-          variability(distances) > 3 and
-          variability(headings) > 3
+          reversals(proximities) > 3 and
+          reversals(directions) > 3
 
       %{is: panicking?}
     end
   end
 
   defp other_homing_on_food_belief_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [round | _previous_rounds] = rounds ->
       about = conjecture_activation.about
 
       observations =
@@ -115,16 +115,20 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           since: now() - 10_000
         )
 
-      distances = Enum.map(observations, &Map.get(&1, :distance, 0))
-      headings = Enum.map(observations, &Map.get(&1, :heading, 0))
+      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
+      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
 
       homing? =
         Enum.count(observations) > 4 and
-          count_changes(distances) > 4 and
-          variability(distances) <= 1 and
-          variability(headings) <= 1
+          count_changes(proximities) > 4 and
+          reversals(proximities) <= 1 and
+          reversals(directions) <= 1
 
-      %{is: homing?}
+      proximity = current_perceived_value(round, about, :proximity, :detected, defaut: :unknown)
+      direction = current_perceived_value(round, about, :direction, :detected, defaut: :unknown)
+      %{is: homing?,
+        proximity: proximity,
+        direction: direction}
     end
   end
 

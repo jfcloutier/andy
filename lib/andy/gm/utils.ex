@@ -300,7 +300,7 @@ defmodule Andy.GM.Utils do
   end
 
   # The number of times the value went from decreasing to increasing, increasing to decreasing, increasing to none etc.
-  def variability(values) do
+  def reversals(values) do
     changes_of_direction = find_changes_of_directions(values)
     count_changes(changes_of_direction)
   end
@@ -366,6 +366,7 @@ defmodule Andy.GM.Utils do
     change_of_direction =
       cond do
         val1 == val2 -> :none
+        not is_number(val1) or not is_number(val2) -> :none
         val1 < val2 -> :decreasing
         val1 > val2 -> :increasing
       end

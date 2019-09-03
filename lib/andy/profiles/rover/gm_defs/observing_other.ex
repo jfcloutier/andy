@@ -31,7 +31,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       name: :not_seen,
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor("*:*:distance/#{Andy.channel_of_other()}", default: %{detected: -128})
+        no_change_predictor("*:*:direction", default: %{detected: :unknown})
       ],
       valuator: not_seen_belief_valuator(),
       intention_domain: [],
@@ -44,8 +44,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       name: :observed,
       activator: observed_activator(),
       predictors: [
-        no_change_predictor("*:*:distance/#{Andy.channel_of_other()}", default: %{detected: -128}),
-        no_change_predictor("*:*:heading/#{Andy.channel_of_other()}", default: %{detected: 0})
+        no_change_predictor("*:*:proximity", default: %{detected: :unknown}),
+        no_change_predictor("*:*:direction", default: %{detected: :unknown})
       ],
       valuator: observed_belief_valuator(),
       intention_domain: [:face]
@@ -88,10 +88,10 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         current_perceived_value(
           round,
           about,
-          "*:*:distance/#{Andy.channel_of_other()}",
+          "*:*:direction",
           :detected,
-          default: -128
-        ) == -128
+          default: :unknown
+        ) == :unknown
 
       %{is: not_seen?}
     end
@@ -101,30 +101,30 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
     fn conjecture_activation, [round | previous_rounds] ->
       about = conjecture_activation.about
 
-      distance =
+      proximity =
         current_perceived_value(
           round,
           about,
-          "*:*:distance/#{Andy.channel_of_other()}",
+          "*:*:proximity",
           :detected,
-          default: -128
+          default: :unknown
         )
 
-      target_heading =
-        current_perceived_value(round, about, "*:*:heading/#{Andy.channel_of_other()}", :detected,
-          default: 0
+      direction =
+        current_perceived_value(round, about, "*:*:direction", :detected,
+          default: :unknown
         )
 
-      seen? = distance != -128
-      facing? = abs(target_heading) < 15
+      seen? = direction != :unknown
+      facing? = direction == 0
 
       since = duration_believed_since(previous_rounds, about, :observed, :is, true)
       failing_since = duration_believed_since(previous_rounds, about, :observed, :is, false)
 
       %{
         is: seen? and facing?,
-        heading: target_heading,
-        distance: distance,
+        direction: direction,
+        proximity: proximity,
         since: since,
         failing_since: failing_since
       }
@@ -134,20 +134,20 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   # Intention valuators
 
   defp face_valuator() do
-    fn %{distance: -128} ->
+    fn %{direction: :unknown} ->
       turn_direction = Enum.random([:right, :left])
       %{turn_direction: turn_direction, turn_time: 1}
     end
 
-    fn %{heading: 0} ->
+    fn %{direction: 0} ->
       nil
     end
 
-    fn %{heading: heading} ->
-      if abs(heading < 10) do
+    fn %{direction: direction} ->
+      if abs(direction == 0) do
         nil
       else
-        turn_direction = if heading < 0, do: :left, else: :right
+        turn_direction = if direction < 0, do: :left, else: :right
         %{turn_direction: turn_direction, turn_time: 0.5}
       end
     end

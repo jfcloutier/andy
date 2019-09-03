@@ -24,8 +24,8 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
       name: :on_collision_course,
       activator: on_collision_course_activator(),
       predictors: [
-        no_change_predictor("*:*:heading/#{Andy.channel_of_other()}", default: %{is: 0}),
-        no_change_predictor("*:*:distance/#{Andy.channel_of_other()}", default: %{detected: -128})
+        no_change_predictor("*:*:direction}", default: %{is: :unknown}),
+        no_change_predictor("*:*:proximity}", default: %{is: :unknown})
       ],
       valuator: on_collision_course_belief_valuator(),
       intention_domain: []
@@ -36,16 +36,16 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
 
   defp on_collision_course_activator() do
     fn conjecture, [round | _previous_rounds], _prediction_about ->
-      distance =
+      proximity =
         current_perceived_value(
           round,
           :other,
-          "*:*:distance/#{Andy.channel_of_other()}",
+          "*:*:proximity",
           :detected,
-          default: 0
+          default: :unknown
         )
 
-      if distance != -128 and distance < 100 do
+      if proximity != :unknown and proximity < 3 do
         [
           Conjecture.activate(conjecture,
             about: :other
@@ -65,31 +65,31 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
     fn conjecture_activation, [round | previous_rounds] ->
       about = conjecture_activation.about
 
-      distance =
+      proximity =
         current_perceived_value(
           round,
           :other,
-          "*:*:distance/#{Andy.channel_of_other()}",
+          "*:*:proximity",
           :detected,
-          default: -128
+          default: :unknown
         )
 
       bee_line? =
         case perceived_value_range(
                previous_rounds,
                about,
-               "*:*:heading/#{Andy.channel_of_other()}",
+               "*:*:direction",
                :detected,
                since: now() - 10_000
              ) do
           nil ->
             false
 
-          [min_heading..max_heading] ->
-            max_heading - min_heading < 5
+          [min_direction..max_direction] ->
+            (max_direction - min_direction) < 2
         end
 
-      close? = distance != -128 or distance < 100
+      close? = proximity != :unknown or proximity > 7
       %{is: close? and bee_line?}
     end
   end

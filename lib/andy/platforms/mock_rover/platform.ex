@@ -7,6 +7,7 @@ defmodule Andy.MockRover.Platform do
     TouchSensor,
     ColorSensor,
     InfraredSensor,
+    IRSeekerSensor,
     UltrasonicSensor,
     GyroSensor,
     Tachomotor,
@@ -55,6 +56,7 @@ defmodule Andy.MockRover.Platform do
   def device_code(device_type) do
     case device_type do
       :infrared -> "mock-ir"
+      :ir_seeker -> "mock-seek"
       :touch -> "mock-touch"
       :gyro -> "mock-gyro"
       :color -> "mock-color"
@@ -74,6 +76,7 @@ defmodule Andy.MockRover.Platform do
       TouchSensor.new(),
       ColorSensor.new(),
       InfraredSensor.new(),
+      IRSeekerSensor.new(),
       UltrasonicSensor.new(),
       GyroSensor.new()
     ]
