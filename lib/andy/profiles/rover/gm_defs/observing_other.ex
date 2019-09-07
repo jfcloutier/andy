@@ -31,7 +31,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       name: :not_seen,
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor("*:*:direction", default: %{detected: :unknown})
+        no_change_predictor("*:*:direction_mod", default: %{detected: :unknown})
       ],
       valuator: not_seen_belief_valuator(),
       intention_domain: [],
@@ -44,8 +44,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       name: :observed,
       activator: observed_activator(),
       predictors: [
-        no_change_predictor("*:*:proximity", default: %{detected: :unknown}),
-        no_change_predictor("*:*:direction", default: %{detected: :unknown})
+        no_change_predictor("*:*:proximity_mod", default: %{detected: :unknown}),
+        no_change_predictor("*:*:direction_mod", default: %{detected: :unknown})
       ],
       valuator: observed_belief_valuator(),
       intention_domain: [:face]
@@ -88,7 +88,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         current_perceived_value(
           round,
           about,
-          "*:*:direction",
+          "*:*:direction_mod",
           :detected,
           default: :unknown
         ) == :unknown
@@ -105,13 +105,13 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         current_perceived_value(
           round,
           about,
-          "*:*:proximity",
+          "*:*:proximity_mod",
           :detected,
           default: :unknown
         )
 
       direction =
-        current_perceived_value(round, about, "*:*:direction", :detected,
+        current_perceived_value(round, about, "*:*:direction_mod", :detected,
           default: :unknown
         )
 

@@ -93,8 +93,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           since: now() - 10_000
         )
 
-      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
-      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
+      proximities = Enum.map(observations, &Map.get(&1, :proximity_mod, :unknown))
+      directions = Enum.map(observations, &Map.get(&1, :direction_mod, :unknown))
 
       panicking? =
         Enum.count(observations) > 4 and
@@ -115,8 +115,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           since: now() - 10_000
         )
 
-      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
-      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
+      proximities = Enum.map(observations, &Map.get(&1, :proximity_mod, :unknown))
+      directions = Enum.map(observations, &Map.get(&1, :direction_mod, :unknown))
 
       homing? =
         Enum.count(observations) > 4 and
@@ -124,8 +124,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           reversals(proximities) <= 1 and
           reversals(directions) <= 1
 
-      proximity = current_perceived_value(round, about, :proximity, :detected, defaut: :unknown)
-      direction = current_perceived_value(round, about, :direction, :detected, defaut: :unknown)
+      proximity = current_perceived_value(round, about, :proximity_mod, :detected, defaut: :unknown)
+      direction = current_perceived_value(round, about, :direction_mod, :detected, defaut: :unknown)
       %{is: homing?,
         proximity: proximity,
         direction: direction}

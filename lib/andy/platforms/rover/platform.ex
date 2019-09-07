@@ -66,7 +66,7 @@ defmodule Andy.Rover.Platform do
       :gyro -> "lego-ev3-gyro"
       :color -> "lego-ev3-color"
       :ultrasonic -> "lego-ev3-us"
-      :ir_seeker -> "ht-nxt-ir-seek-v2"
+      :ir_seeker -> "ht-nxt-ir-seek-v2 0x08"
       :large -> "lego-ev3-l-motor"
       :medium -> "lego-ev3-m-motor"
     end

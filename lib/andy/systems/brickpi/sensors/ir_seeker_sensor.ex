@@ -59,13 +59,25 @@ defmodule Andy.BrickPi.IRSeekerSensor do
     else
         if dir_value == 0 do
           {:unknown, updated_sensor}
+          # Direction	Strength Source
+          #1	Channel 1
+          #2	Channel 1 and 2
+          #3	Channel 2
+          #4	Channel 2 and 3
+          #5	Channel 3
+          #6	Channel 3 and 4
+          #7	Channel 4
+          #8	Channel 4 and 5
+          #9	Channel 5
         else
           signal_strength =
             if dir_value in [1, 3, 5, 7, 9] do
-              get_attribute(updated_sensor, "dir_value#{dir_value}", :integer)
+              index = Enum.find_index([1,3,5,7,9], fn(x) -> x == dir_value end)
+              get_attribute(updated_sensor, "value#{index}", :integer)
             else
-              val1 = get_attribute(updated_sensor, "dir_value#{dir_value - 1}", :integer)
-              val2 = get_attribute(updated_sensor, "dir_value#{dir_value}", :integer)
+              index = Enum.find_index([2,4,6,8], fn(x) -> x == dir_value end)
+              val1 = get_attribute(updated_sensor, "value#{index}", :integer)
+              val2 = get_attribute(updated_sensor, "value#{index + 1}", :integer)
               round((val1 + val2) / 2)
             end
           {signal_strength, updated_sensor}

@@ -24,8 +24,8 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
       name: :on_collision_course,
       activator: on_collision_course_activator(),
       predictors: [
-        no_change_predictor("*:*:direction}", default: %{is: :unknown}),
-        no_change_predictor("*:*:proximity}", default: %{is: :unknown})
+        no_change_predictor("*:*:direction_mod}", default: %{is: :unknown}),
+        no_change_predictor("*:*:proximity_mod}", default: %{is: :unknown})
       ],
       valuator: on_collision_course_belief_valuator(),
       intention_domain: []
@@ -40,7 +40,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
         current_perceived_value(
           round,
           :other,
-          "*:*:proximity",
+          "*:*:proximity_mod",
           :detected,
           default: :unknown
         )
@@ -69,7 +69,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
         current_perceived_value(
           round,
           :other,
-          "*:*:proximity",
+          "*:*:proximity_mod",
           :detected,
           default: :unknown
         )
@@ -78,7 +78,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
         case perceived_value_range(
                previous_rounds,
                about,
-               "*:*:direction",
+               "*:*:direction_mod",
                :detected,
                since: now() - 10_000
              ) do

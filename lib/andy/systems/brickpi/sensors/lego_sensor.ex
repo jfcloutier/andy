@@ -8,7 +8,7 @@ defmodule Andy.BrickPi.LegoSensor do
 
   @sys_path "/sys/class/lego-sensor"
   @prefix "sensor"
-  @driver_regex ~r/lego-ev3-(\w+)/i
+  @driver_regex ~r/(lego-ev3|ht-nxt)-(?<sensor>.+)/i
   @mode_switch_delay 100
 
   @doc "Get the currently connected lego sensors"
@@ -128,7 +128,7 @@ defmodule Andy.BrickPi.LegoSensor do
   defp init_sensor(path) do
     port_name = read_sys(path, "address")
     driver_name = read_sys(path, "driver_name")
-    [_, type_name] = Regex.run(@driver_regex, driver_name)
+    %{"sensor" => type_name} = Regex.named_captures(@driver_regex, driver_name)
 
     type =
       case type_name do
@@ -137,7 +137,7 @@ defmodule Andy.BrickPi.LegoSensor do
         "color" -> :color
         "touch" -> :touch
         "ir" -> :infrared
-        "seek" -> :ir_seeker # TODO - check
+        "ir-seek-v2" -> :ir_seeker
       end
 
     sensor = %Device{
