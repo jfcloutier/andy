@@ -65,12 +65,8 @@ defmodule Andy do
     port
   end
 
-  def channel_of_other() do
-    get_andy_env("ANDY_OTHER_CHANNEL", 3)
-  end
-
   def name_of_other() do
-    get_andy_env("ANDY_OTHER_NAME", "marv")
+    get_andy_env("ANDY_OTHER_NAME", "the other guy")
   end
 
   def ports_config() do

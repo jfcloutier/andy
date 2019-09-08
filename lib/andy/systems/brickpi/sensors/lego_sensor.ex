@@ -4,7 +4,15 @@ defmodule Andy.BrickPi.LegoSensor do
   require Logger
   import Andy.BrickPi.Sysfs
   alias Andy.Device
-  alias Andy.BrickPi.{ColorSensor, TouchSensor, InfraredSensor, UltrasonicSensor, GyroSensor, IRSeekerSensor}
+
+  alias Andy.BrickPi.{
+    ColorSensor,
+    TouchSensor,
+    InfraredSensor,
+    UltrasonicSensor,
+    GyroSensor,
+    IRSeekerSensor
+  }
 
   @sys_path "/sys/class/lego-sensor"
   @prefix "sensor"
@@ -97,7 +105,14 @@ defmodule Andy.BrickPi.LegoSensor do
       # Logger.debug("Switched #{sensor.path} mode to #{mode}")
       # Give time for the mode switch
       :timer.sleep(@mode_switch_delay)
-      %Device{sensor | props: %{sensor.props | mode: mode}}
+
+      if get_attribute(sensor, "mode", :string) != mode do
+        Logger.warn("Retrying to set mode to #{mode}")
+        :timer.sleep(@mode_switch_delay)
+        set_mode(sensor, mode)
+      else
+        %Device{sensor | props: %{sensor.props | mode: mode}}
+      end
     else
       sensor
     end
