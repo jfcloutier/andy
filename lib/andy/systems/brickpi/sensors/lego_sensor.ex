@@ -106,7 +106,7 @@ defmodule Andy.BrickPi.LegoSensor do
       # Give time for the mode switch
       :timer.sleep(@mode_switch_delay)
 
-      case get_attribute(sensor, "mode", :string) != mode do
+      case get_attribute(sensor, "mode", :string) do
         same_mode when same_mode == mode->
           %Device{sensor | props: %{sensor.props | mode: mode}}
 
