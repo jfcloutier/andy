@@ -101,7 +101,7 @@ defmodule Andy.BrickPi.LegoSensor do
   @doc "Set the sensor's mode"
   def set_mode(sensor, mode) do
     if mode(sensor) != mode do
-      Logger.info("Switching mode of #{sensor.path} to #{mode}")
+      Logger.info("Switching mode of #{sensor.path} to #{inspect mode} from #{inspect mode(sensor)}")
       set_attribute(sensor, "mode", mode)
       # Give time for the mode switch
       :timer.sleep(@mode_switch_delay)

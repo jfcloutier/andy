@@ -156,9 +156,9 @@ defmodule Andy.GM.Detector do
           prior_read
       end
 
-    {reading, _device} = read.value
+    {reading, updated_device} = read.value
     Logger.info("#{inspect(detector_name(state))}: Read #{inspect(reading)}")
-    {reading, %State{state | previous_reads: Map.put(previous_reads, about, read)}}
+    {reading, %State{state | device: updated_device, previous_reads: Map.put(previous_reads, about, read)}}
   end
 
   # Unexpired previous read else nil

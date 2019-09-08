@@ -75,10 +75,13 @@ defmodule Andy.BrickPi.IRSeekerSensor do
           signal_strength =
             if dir_value in [1, 3, 5, 7, 9] do
               index = Enum.find_index([1, 3, 5, 7, 9], fn x -> x == dir_value end)
+              Logger.info("IR_SEEKER: getting attribute value#{index} for dir_value = #{dir_value}")
               get_attribute(updated_sensor, "value#{index}", :integer)
             else
               index = Enum.find_index([2, 4, 6, 8], fn x -> x == dir_value end)
+              Logger.info("IR_SEEKER: getting attribute value#{index} for dir_value = #{dir_value}")
               val1 = get_attribute(updated_sensor, "value#{index}", :integer)
+              Logger.info("IR_SEEKER: getting attribute value#{index + 1} for dir_value = #{dir_value}")
               val2 = get_attribute(updated_sensor, "value#{index + 1}", :integer)
               round((val1 + val2) / 2)
             end
