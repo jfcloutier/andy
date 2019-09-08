@@ -104,7 +104,8 @@ defmodule Andy.GM.Detector do
   ### PRIVATE
 
   defp name(device, sense) do
-    "#{device.type}:#{device.port}:#{sense}" |> String.to_atom()
+    [clean_port | _] = String.split(device.port, ":") |> Enum.reverse()
+    "#{device.type}:#{clean_port}:#{sense}" |> String.to_atom()
   end
 
   defp detector_name(%State{name: name}) do

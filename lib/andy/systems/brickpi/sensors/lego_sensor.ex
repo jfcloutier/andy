@@ -101,17 +101,19 @@ defmodule Andy.BrickPi.LegoSensor do
   @doc "Set the sensor's mode"
   def set_mode(sensor, mode) do
     if mode(sensor) != mode do
+      Logger.info("Switching mode of #{sensor.path} to #{mode}")
       set_attribute(sensor, "mode", mode)
-      # Logger.debug("Switched #{sensor.path} mode to #{mode}")
       # Give time for the mode switch
       :timer.sleep(@mode_switch_delay)
 
-      if get_attribute(sensor, "mode", :string) != mode do
-        Logger.warn("Retrying to set mode to #{mode}")
-        :timer.sleep(@mode_switch_delay)
-        set_mode(sensor, mode)
-      else
-        %Device{sensor | props: %{sensor.props | mode: mode}}
+      case get_attribute(sensor, "mode", :string) != mode do
+        same_mode when same_mode == mode->
+          %Device{sensor | props: %{sensor.props | mode: mode}}
+
+        other ->
+          Logger.warn("Mode is still #{other}. Retrying to set mode to #{mode}")
+          :timer.sleep(@mode_switch_delay)
+          set_mode(sensor, mode)
       end
     else
       sensor
