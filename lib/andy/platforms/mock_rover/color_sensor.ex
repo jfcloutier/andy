@@ -43,7 +43,7 @@ defmodule Andy.MockRover.ColorSensor do
   def color(sensor) do
     value =
       case :rand.uniform(8) - 1 do
-        0 -> nil
+        0 -> :unknown
         1 -> :black
         2 -> :blue
         3 -> :green

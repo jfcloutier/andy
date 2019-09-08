@@ -58,7 +58,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
     end
 
     fn _other ->
-      "I feel trapped"
+      nil
     end
   end
 

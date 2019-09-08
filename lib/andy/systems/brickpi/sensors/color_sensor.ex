@@ -1,5 +1,9 @@
 defmodule Andy.BrickPi.ColorSensor do
-  @moduledoc "Color sensor"
+  @moduledoc """
+    Color sensor.
+    Ambient and reflected values are 0%-100%.
+    Color values are :unknown, :black, :blue, :green, :yellow, :red, :white or :brown
+  """
   @behaviour Andy.Sensing
 
   import Andy.BrickPi.Sysfs
@@ -48,7 +52,7 @@ defmodule Andy.BrickPi.ColorSensor do
     value =
       case get_attribute(updated_sensor, "value0", :integer) do
         0 ->
-          nil
+          :unknown
 
         1 ->
           :black

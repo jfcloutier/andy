@@ -111,18 +111,15 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         )
 
       direction =
-        current_perceived_value(round, about, "*:*:direction_mod", :detected,
-          default: :unknown
-        )
+        current_perceived_value(round, about, "*:*:direction_mod", :detected, default: :unknown)
 
-      seen? = direction != :unknown
-      facing? = direction == 0
+      facing? = less_than?(absolute(direction), 60)
 
-      since = duration_believed_since(previous_rounds, about, :observed, :is, true)
-      failing_since = duration_believed_since(previous_rounds, about, :observed, :is, false)
+      since = duration_believed(previous_rounds, about, :observed, :is, true)
+      failing_since = duration_believed(previous_rounds, about, :observed, :is, false)
 
       %{
-        is: seen? and facing?,
+        is: facing?,
         direction: direction,
         proximity: proximity,
         since: since,
@@ -139,17 +136,13 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       %{turn_direction: turn_direction, turn_time: 1}
     end
 
-    fn %{direction: 0} ->
+    fn %{direction: direction} when abs(direction) <= 60->
       nil
     end
 
     fn %{direction: direction} ->
-      if abs(direction == 0) do
-        nil
-      else
-        turn_direction = if direction < 0, do: :left, else: :right
-        %{turn_direction: turn_direction, turn_time: 0.5}
-      end
+      turn_direction = if direction < 0, do: :left, else: :right
+      %{turn_direction: turn_direction, turn_time: 0.5}
     end
   end
 end

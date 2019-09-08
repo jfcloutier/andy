@@ -53,9 +53,10 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
   defp conjecture(:found_food) do
     %Conjecture{
       name: :found_food,
-      activator: found_food_activator(),
+      activator: always_activator(:goal),
       predictors: [
-        no_change_predictor(:over_food, default: %{is: false})
+        no_change_predictor(:over_food, default: %{is: false}),
+        no_change_predictor(:other_found_food, default: %{is: false})
       ],
       valuator: found_food_belief_valuator(),
       intention_domain: [:declare_looking_for_food]
@@ -73,24 +74,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
         [
           Conjecture.activate(conjecture,
             about: prediction_about
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
-
-  defp found_food_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      over_food? =
-        current_perceived_value(round, prediction_about, :over_food, :is, default: false)
-
-      if not over_food? do
-        [
-          Conjecture.activate(conjecture,
-            about: prediction_about,
-            goal: fn %{is: found_food?} -> found_food? end
           )
         ]
       else

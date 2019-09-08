@@ -1,5 +1,13 @@
 defmodule Andy.BrickPi.InfraredSensor do
-  @moduledoc "Infrared sensor"
+  @moduledoc """
+  Infrared sensor to detect a beacon on any of channels 1-4.
+  :proximity - 0 to 70 cm, or :unknown
+  {:beacon_distance, channel} -  distance is 0 to 70 cm, or :unknown
+  {:beacon_heading, channel} - -25 (far left) to 25 (far right), 0 is either straight ahead or unknown
+  {:beacon_on, channel} - true or false
+  {:remote_button, channel} - %{red: status, blue: status} where status is one of nil, :up, :down, :up_down
+  """
+
   @behaviour Andy.Sensing
 
   import Andy.Utils
@@ -29,7 +37,7 @@ defmodule Andy.BrickPi.InfraredSensor do
         end
       )
 
-    [:proximity | beacon_senses]
+    [:beacon_proximity | beacon_senses]
   end
 
   def beacon_senses_for(channel) do
@@ -42,8 +50,8 @@ defmodule Andy.BrickPi.InfraredSensor do
     do_read(updated_sensor, sense)
   end
 
-  defp do_read(sensor, :proximity) do
-    proximity(sensor)
+  defp do_read(sensor, :beacon_proximity) do
+    beacon_proximity(sensor)
   end
 
   defp do_read(sensor, {:remote_buttons, channel}) do
@@ -64,7 +72,7 @@ defmodule Andy.BrickPi.InfraredSensor do
 
   def sensitivity(_sensor, sense) do
     case sense do
-      :proximity -> 2
+      :beacon_proximity -> 2
       {:beacon_heading, _} -> 2
       {:beacon_distance, _} -> 2
       {:beacon_on, _} -> nil
@@ -75,9 +83,15 @@ defmodule Andy.BrickPi.InfraredSensor do
   ####
 
   @doc "Get proximity as a percent - 70+cm ~> 100, 0cm ~> 1"
-  def proximity(sensor) do
+  def beacon_proximity(sensor) do
     updated_sensor = set_proximity_mode(sensor)
-    value = get_attribute(updated_sensor, "value0", :integer)
+
+    value =
+      case get_attribute(updated_sensor, "value0", :integer) do
+        100 -> :unknown
+        percent -> round(percent / 100 * 70)
+      end
+
     {value, updated_sensor}
   end
 
@@ -88,11 +102,12 @@ defmodule Andy.BrickPi.InfraredSensor do
     {value, updated_sensor}
   end
 
-  @doc "Get beacon distance on a channel (as percentage - 0 means immediate proximity, 100 means outside of range)"
+  @doc "Get beacon distance on a channel (as percentage - 0 means immediate proximity, 100 means 70cm, -128 means unknown)"
   def seek_distance(sensor, channel) do
     updated_sensor = set_seek_mode(sensor)
-    value = get_attribute(updated_sensor, "value#{(channel - 1) * 2 + 1}", :integer)
-    {min(100, abs(value)), updated_sensor}
+    raw = get_attribute(updated_sensor, "value#{(channel - 1) * 2 + 1}", :integer)
+    value = if raw == -128, do: :unknown, else: round(raw / 100 * 70)
+    {value, updated_sensor}
   end
 
   @doc "Is the beacon on in seek mode?"

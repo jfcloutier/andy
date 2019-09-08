@@ -158,15 +158,14 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
 
   defp panic_valuator() do
     fn %{is: true, well_lit: well_lit?} ->
-      intensity =
+      {intensity, times} =
         if well_lit? do
-          :low
+          {:low, 3}
         else
-          :high
+          {:high, 6}
         end
 
-      turn_direction = Enum.random([:right, :left])
-      %{intensity: intensity, turn_direction: turn_direction}
+      %{intensity: intensity, times: times}
     end
 
     fn _other ->

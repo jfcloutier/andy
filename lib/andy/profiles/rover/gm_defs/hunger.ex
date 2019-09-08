@@ -28,7 +28,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   defp conjecture(:sated) do
     %Conjecture{
       name: :sated,
-      activator: sated_activator(),
+      activator: always_activator(:goal),
       predictors: [
         no_change_predictor(:chewing, default: %{is: false}),
         no_change_predictor(:found_food, default: %{is: false})
@@ -39,27 +39,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   end
 
   # Conjecture activators
-
-  # Always activate, and as opinion
-  defp sated_activator() do
-    fn conjecture, [_round | previous_rounds], prediction_about ->
-      chewings_count =
-        count_perceived_since(previous_rounds, prediction_about, :chewing, %{is: true},
-          since: now() - 20_000
-        )
-
-      if chewings_count < 3 do
-        [
-          Conjecture.activate(conjecture,
-            about: prediction_about,
-            goal: fn %{is: sated?} -> sated? end
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
 
   # Conjecture predictors
 

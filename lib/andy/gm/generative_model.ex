@@ -75,6 +75,7 @@ defmodule Andy.GM.GenerativeModel do
   @forget_round_after_secs 60
   # How many rounds a perception/received prediction be carried over (short-term memory)
   @max_carry_overs 3
+  @max_coa_index 6
 
   defmodule State do
     defstruct gm_def: nil,
@@ -1273,6 +1274,16 @@ defmodule Andy.GM.GenerativeModel do
   defp average_efficacy(tried) do
     (Enum.map(tried, &elem(&1, 1))
      |> Enum.sum()) / Enum.count(tried)
+  end
+
+  defp new_course_of_action(
+         conjecture_activation,
+         courses_of_action_index,
+         state
+       )
+       when courses_of_action_index >= @max_coa_index do
+    Logger.info("#{info(state)}: Max COA index reached for #{inspect(conjecture_activation)}")
+    nil
   end
 
   defp new_course_of_action(

@@ -39,7 +39,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
     %Conjecture{
       name: :other_panicking,
       # Only activate if actively observing the robot
-      activator: behavior_activator(),
+      activator: always_activator(:opinion, :other),
       predictors: [
         no_change_predictor(:observed, default: %{is: false, proximity: :unknown, direction: :unknown})
       ],
@@ -52,7 +52,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
     %Conjecture{
       name: :other_homing_on_food,
       # Only activate if actively observing the robot
-      activator: behavior_activator(),
+      activator: always_activator(:opinion, :other),
       predictors: [
         no_change_predictor(:observed, default: %{is: false, proximity: :unknown, direction: :unknown})
       ],
@@ -62,22 +62,6 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   end
 
   # Conjecture activators
-
-  defp behavior_activator() do
-    fn conjecture, [round | _previous_rounds], _prediction_about ->
-      observed? = current_perceived_value(round, :other, :observed, :is, defaut: true)
-
-      if observed? do
-        [
-          Conjecture.activate(conjecture,
-            about: :other
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
 
   # Conjecture predictors
 

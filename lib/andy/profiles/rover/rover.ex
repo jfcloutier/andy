@@ -42,7 +42,7 @@ defmodule Andy.Profiles.Rover do
       ],
       children: %{
         being: [:danger, :hunger, :freedom],
-        danger: [:clearance, :lighting, :behavior_of_other_rover],
+        danger: [:clearance, :lighting, :intentions_of_other],
         hunger: [:eating],
         freedom: [],
         clearance: [:avoiding_obstacle, :collision_course_with_other],

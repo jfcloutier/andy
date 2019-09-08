@@ -22,7 +22,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
   defp conjecture(:on_collision_course) do
     %Conjecture{
       name: :on_collision_course,
-      activator: on_collision_course_activator(),
+      activator: always_activator(:opinion),
       predictors: [
         no_change_predictor("*:*:direction_mod}", default: %{is: :unknown}),
         no_change_predictor("*:*:proximity_mod}", default: %{is: :unknown})
@@ -33,29 +33,6 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
   end
 
   # Conjecture activators
-
-  defp on_collision_course_activator() do
-    fn conjecture, [round | _previous_rounds], _prediction_about ->
-      proximity =
-        current_perceived_value(
-          round,
-          :other,
-          "*:*:proximity_mod",
-          :detected,
-          default: :unknown
-        )
-
-      if proximity != :unknown and proximity < 3 do
-        [
-          Conjecture.activate(conjecture,
-            about: :other
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
 
   # Conjecture predictors
 
@@ -68,7 +45,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
       proximity =
         current_perceived_value(
           round,
-          :other,
+          about,
           "*:*:proximity_mod",
           :detected,
           default: :unknown
@@ -86,10 +63,10 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
             false
 
           [min_direction..max_direction] ->
-            (max_direction - min_direction) < 2
+            min_direction == max_direction # in same 30 degrees range
         end
 
-      close? = proximity != :unknown or proximity > 7
+      close? = greater_than?(proximity, 7) # closest == 9
       %{is: close? and bee_line?}
     end
   end

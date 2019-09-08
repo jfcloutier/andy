@@ -139,13 +139,13 @@ defmodule Andy.GM.Utils do
 
       case Enum.find(beliefs, &(Belief.subject(&1) == subject)) do
         nil ->
-          once_believed?(conjecture_name, about, value_name, value, since, previous_rounds)
+          once_believed?(previous_rounds, about, conjecture_name, value_name, value, since: since)
 
         %Belief{values: values} ->
           if Map.get(values, value_name) == value do
             true
           else
-            once_believed?(conjecture_name, about, value_name, value, since, previous_rounds)
+            once_believed?(previous_rounds, about, conjecture_name, value_name, value, since: since)
           end
       end
     end
@@ -234,19 +234,19 @@ defmodule Andy.GM.Utils do
   end
 
   # The number of msecs a belief's value has been held without interruption
-  def duration_believed_since(rounds, about, conjecture_name, value_name, value, latest \\ 0)
+  def duration_believed(rounds, about, conjecture_name, value_name, value, since \\ 0)
 
-  def duration_believed_since([], _about, _conjecture_name, _value_name, _value, latest) do
-    latest
+  def duration_believed([], _about, _conjecture_name, _value_name, _value, since) do
+    since
   end
 
-  def duration_believed_since(
+  def duration_believed(
         [%Round{completed_on: completed_on, beliefs: beliefs} | previous_rounds],
         about,
         conjecture_name,
         value_name,
         value,
-        latest
+        since
       ) do
     subject = Perception.make_subject(conjecture_name: conjecture_name, about: about)
 
@@ -257,7 +257,7 @@ defmodule Andy.GM.Utils do
       )
 
     if value_believed? do
-      duration_believed_since(
+      duration_believed(
         previous_rounds,
         about,
         conjecture_name,
@@ -266,7 +266,7 @@ defmodule Andy.GM.Utils do
         completed_on
       )
     else
-      latest
+      since
     end
   end
 
@@ -346,6 +346,26 @@ defmodule Andy.GM.Utils do
 
       count + count_perceived_since(previous_rounds, about, conjecture_name, values, since: since)
     end
+  end
+
+  def less_than?(val1, val2) when is_number(val1) and is_number(val2) do
+    val1 < val2
+  end
+
+  def less_than?(_val1, _val2), do: false
+
+  def greater_than?(val1, val2) when is_number(val1) and is_number(val2) do
+    val1 > val2
+  end
+
+  def greater_than?(_val1, _val2), do: false
+
+  def absolute(value) when is_number(value) do
+    abs(value)
+  end
+
+  def absolute(value) do
+    value
   end
 
   ### PRIVATE

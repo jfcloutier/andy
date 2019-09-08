@@ -29,7 +29,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
       name: :distance_to_obstacle,
       activator: always_activator(:opinion),
       predictors: [
-        no_change_predictor("*:*:distance", default: %{detected: -128})
+        no_change_predictor("*:*:distance", default: %{detected: :unknown})
       ],
       valuator: distance_to_obstacle_valuator(),
       intention_domain: [:express_opinion_about_distance]
@@ -46,20 +46,16 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
-      distance = current_perceived_value(round, about, "*:*:distance", :detected, default: -128)
+      distance = current_perceived_value(round, about, "*:*:distance", :detected, default: :unknown)
 
-      if distance == -128 do
-        %{is: :unknown}
-      else
-        %{is: distance}
-      end
+      %{is: distance}
     end
   end
 
   # Intention valuators
 
   defp opinion_about_distance() do
-    fn %{is: distance} when distance < 10 -> "Oops!" end
+    fn %{is: distance} -> if less_than?(distance, 10), do: "Oops!", else: nil end
     fn _ -> nil end
   end
 end

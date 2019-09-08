@@ -32,11 +32,16 @@ defmodule Andy.BrickPi.UltrasonicSensor do
 
   ####
 
-  @doc "Get distance in centimeters - 0 to 2550"
+  @doc "Get distance in centimeters - 0 to 250.0"
   def distance(sensor) do
     updated_sensor = set_distance_mode(sensor)
     value = get_attribute(updated_sensor, "value0", :integer)
-    {round(value / 10), updated_sensor}
+
+    if value > 2500 do
+      :unknown
+    else
+      {round(value / 10), updated_sensor}
+    end
   end
 
   defp set_distance_mode(sensor) do

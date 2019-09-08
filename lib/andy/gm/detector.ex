@@ -74,7 +74,7 @@ defmodule Andy.GM.Detector do
            expectations: %{detected: _expectation}
          } = prediction},
         state
-      ) do
+      ) when is_binary(conjecture_name) do
     if name_match?(conjecture_name, state) do
       Logger.info("#{inspect(detector_name(state))}: Received prediction #{inspect(prediction)}")
       {value, updated_state} = read_value(about, state)

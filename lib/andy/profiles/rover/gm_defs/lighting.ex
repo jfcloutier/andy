@@ -29,9 +29,9 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
   defp conjecture(:in_well_lit_area) do
     %Conjecture{
       name: :in_well_lit_area,
-      activator: in_well_lit_area_activator(),
+      activator: always_activator(:goal),
       predictors: [
-        no_change_predictor("*:*:ambient", default: %{detected: 0})
+        no_change_predictor("*:*:ambient", default: %{detected: 100})
       ],
       valuator: in_well_lit_area_valuator(),
       intention_domain: [:express_feeling_about_safety] ++ movement_domain()
@@ -39,24 +39,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
   end
 
   # Conjecture activators
-
-  defp in_well_lit_area_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      ambient_light =
-        current_perceived_value(round, prediction_about, "*:*:ambient", :detected, default: 0)
-
-      if ambient_light < 10 do
-        [
-          Conjecture.activate(conjecture,
-            about: prediction_about,
-            goal: fn %{is: well_lit?} -> well_lit? end
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
 
   # Conjecture predictors
 
@@ -67,7 +49,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
       about = conjecture_activation.about
 
       in_well_lit_area? =
-        current_perceived_value(round, about, "*:*:ambient", :detected, default: 0) >= 10
+        current_perceived_value(round, about, "*:*:ambient", :detected, default: 100) |> greater_than?(10)
 
       %{is: in_well_lit_area?}
     end

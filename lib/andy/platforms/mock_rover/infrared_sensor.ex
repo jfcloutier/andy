@@ -6,8 +6,8 @@ defmodule Andy.MockRover.InfraredSensor do
   alias Andy.Device
   import Andy.Utils
 
-  @max_distance 100
-  @nudge_distance 10
+  @max_distance 70
+  @nudge_distance 5
   @max_heading 25
   @nudge_heading 5
 
@@ -39,14 +39,14 @@ defmodule Andy.MockRover.InfraredSensor do
         end
       )
 
-    [:proximity | beacon_senses]
+    [:beacon_proximity | beacon_senses]
   end
 
   def beacon_senses_for(channel) do
     [{:beacon_heading, channel}, {:beacon_distance, channel}, {:beacon_on, channel}]
   end
 
-  def read(sensor, :proximity) do
+  def read(sensor, :beacon_proximity) do
     proximity(sensor)
   end
 

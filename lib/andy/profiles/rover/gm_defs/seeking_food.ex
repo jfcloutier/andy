@@ -13,7 +13,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         conjecture(:other_found_food)
       ],
       contradictions: [
-        [:over_food, :no_food]
+        [:over_food, :no_food, :other_found_food]
       ],
       priors: %{
         over_food: %{is: false},
@@ -37,31 +37,31 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   # Conjectures
 
-  defp conjecture(:over_food) do
-    %Conjecture{
-      name: :over_food,
-      activator: over_food_activator(),
-      predictors: [
-        no_change_predictor("*:*:color", default: %{detected: :mystery}),
-        no_change_predictor("*:*:beacon_heading/1", default: %{detected: 0}),
-        no_change_predictor("*:*:beacon_distance/1", default: %{detected: -128})
-      ],
-      valuator: over_food_belief_valuator(),
-      intention_domain: [:track_food]
-    }
-  end
-
   defp conjecture(:no_food) do
     %Conjecture{
       name: :no_food,
       activator: always_activator(:opinion, :self),
       predictors: [
         no_change_predictor("*:*:beacon_heading/1", default: %{detected: 0}),
-        no_change_predictor("*:*:beacon_distance/1", default: %{detected: -128})
+        no_change_predictor("*:*:beacon_distance/1", default: %{detected: :unknown})
       ],
       valuator: no_food_belief_valuator(),
       intention_domain: [],
       self_activated: true
+    }
+  end
+
+  defp conjecture(:over_food) do
+    %Conjecture{
+      name: :over_food,
+      activator: over_food_activator(),
+      predictors: [
+        no_change_predictor("*:*:color", default: %{detected: :unknown}),
+        no_change_predictor("*:*:beacon_heading/1", default: %{detected: 0}),
+        no_change_predictor("*:*:beacon_distance/1", default: %{detected: :unknown})
+      ],
+      valuator: over_food_belief_valuator(),
+      intention_domain: [:track_food]
     }
   end
 
@@ -70,7 +70,9 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       name: :other_found_food,
       activator: other_found_food_activator(),
       predictors: [
-        no_change_predictor(:other_homing_on_food, default: %{is: false})
+        no_change_predictor(:other_homing_on_food,
+          default: %{is: false, proximity: :unknown, direction: :unknown}
+        )
       ],
       valuator: other_found_food_belief_valuator(),
       intention_domain: [:track_other]
@@ -81,10 +83,10 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   defp other_found_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
-      other_homing_on_food? =
-        current_perceived_value(round, prediction_about, :other_homing_on_food, :is, default: true)
+      food_detected? = food_detected?(round, prediction_about)
+      over_food? = over_food?(round, prediction_about)
 
-      if other_homing_on_food? do
+      if not over_food? and not food_detected? do
         [
           Conjecture.activate(conjecture,
             about: prediction_about
@@ -98,17 +100,11 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   defp over_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
-      white? =
-        current_perceived_value(round, prediction_about, "*:*:color", :detected, default: :mystery) ==
-          :white
+      over_food? = over_food?(round, prediction_about)
 
-      food_detected? =
-        current_perceived_value(round, prediction_about, "*:*:beacon_distance/1", :detected,
-          default: -128
-        ) !=
-          -128
+      food_detected? = food_detected?(round, prediction_about)
 
-      if not white? and food_detected? do
+      if not over_food? and food_detected? do
         [
           Conjecture.activate(conjecture,
             about: prediction_about,
@@ -129,16 +125,17 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
-      white? =
-        current_perceived_value(round, about, "*:*:color", :detected, default: :mystery) == :white
+      over_food? = over_food?(round, about)
 
       distance =
-        current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: -128)
+        current_perceived_value(round, about, "*:*:beacon_distance/1", :detected,
+          default: :unknown
+        )
 
       heading =
         current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: 0)
 
-      %{is: white?, distance: distance, heading: heading}
+      %{is: over_food?, distance: distance, heading: heading}
     end
   end
 
@@ -146,11 +143,9 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
-      no_food_detected? =
-        current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: -128) ==
-          -128
+      food_detected? = food_detected?(round, about)
 
-      %{is: no_food_detected?}
+      %{is: not food_detected?}
     end
   end
 
@@ -178,7 +173,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   defp tracking_food_valuator() do
     fn %{distance: distance, heading: heading} ->
-      if distance == -128 do
+      if distance == :unknown or heading == :unknown do
         nil
       else
         speed =
@@ -264,4 +259,14 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     end
   end
 
+  #
+
+  defp over_food?(round, about) do
+    current_perceived_value(round, about, "*:*:color", :detected, default: :unknown) == :white
+  end
+
+  defp food_detected?(round, about) do
+    current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: :unknown) !=
+      :unknown
+  end
 end
