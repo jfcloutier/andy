@@ -74,7 +74,8 @@ defmodule Andy.GM.Detector do
            expectations: %{detected: _expectation}
          } = prediction},
         state
-      ) when is_binary(conjecture_name) do
+      )
+      when is_binary(conjecture_name) do
     if name_match?(conjecture_name, state) do
       Logger.info("#{inspect(detector_name(state))}: Received prediction #{inspect(prediction)}")
       {value, updated_state} = read_value(about, state)
@@ -104,7 +105,19 @@ defmodule Andy.GM.Detector do
   ### PRIVATE
 
   defp name(device, sense) do
-    [clean_port | _] = String.split(device.port, ":") |> Enum.reverse()
+    clean_port =
+      case String.split(device.port, ":") do
+        [port] ->
+          port
+
+        [_, port, _] ->
+          port
+
+        other ->
+          [port | _] = Enum.reverse(other)
+          port
+      end
+
     "#{device.type}:#{clean_port}:#{sense}" |> String.to_atom()
   end
 
@@ -158,7 +171,9 @@ defmodule Andy.GM.Detector do
 
     {reading, updated_device} = read.value
     Logger.info("#{inspect(detector_name(state))}: Read #{inspect(reading)}")
-    {reading, %State{state | device: updated_device, previous_reads: Map.put(previous_reads, about, read)}}
+
+    {reading,
+     %State{state | device: updated_device, previous_reads: Map.put(previous_reads, about, read)}}
   end
 
   # Unexpired previous read else nil
