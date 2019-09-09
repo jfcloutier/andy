@@ -490,9 +490,11 @@ defmodule Andy.GM.GenerativeModel do
            ]
          } = state
        ) do
-    updated_perceptions = reject_mutually_excluded_perceptions(gm_def, perceptions, conjecture_activations)
+    updated_perceptions =
+      reject_mutually_excluded_perceptions(gm_def, perceptions, conjecture_activations)
 
     updated_beliefs = reject_mutually_excluded_beliefs(gm_def, beliefs, conjecture_activations)
+
     Logger.info(
       "#{info(state)}: After removing excluded perceptions: #{inspect(updated_perceptions)}"
     )
@@ -740,33 +742,17 @@ defmodule Andy.GM.GenerativeModel do
       Enum.reduce(
         predictions,
         [],
-        fn %Prediction{conjecture_name: conjecture_name, about: about, goal: goal_or_nil} =
-             prediction,
-           acc ->
+        fn %Prediction{conjecture_name: conjecture_name, about: about} = prediction, acc ->
           case Enum.find(beliefs, &(&1.conjecture_name == conjecture_name and &1.about == about)) do
-            # If no belief matches the received prediction, then there's a "no predicted belief" prediction error
+            # If no belief matches the subject of the received prediction, then there's no prediction error (just don't know)
             nil ->
               Logger.info(
-                "#{info(state)}: Prediction error - no belief matches prediction #{
+                "#{info(state)}: No prediction error. No belief matches prediction #{
                   inspect(prediction)
-                }"
+                }."
               )
 
-              prediction_error = %PredictionError{
-                prediction: prediction,
-                size: 1.0,
-                belief:
-                  Belief.new(
-                    source: gm_name(state),
-                    conjecture_name: conjecture_name,
-                    about: about,
-                    goal: goal_or_nil,
-                    # nil -> not believed
-                    values: nil
-                  )
-              }
-
-              [prediction_error | acc]
+              acc
 
             %Belief{values: values} = belief ->
               size = Prediction.prediction_error_size(prediction, values)
@@ -986,17 +972,22 @@ defmodule Andy.GM.GenerativeModel do
     conjecture_satisfied? = Belief.satisfies_conjecture?(belief)
     subject_of_belief = Belief.subject(belief)
 
-    updated_conjecture_efficacies =
-      Map.get(efficacies, subject_of_belief, [])
-      |> revise_conjecture_efficacies(conjecture_satisfied?, state)
+    case Map.get(efficacies, subject_of_belief) do
+      nil ->
+        efficacies
 
-    Logger.info(
-      "#{info(state)}: Efficacies for #{inspect(subject_of_belief)} given conjecture satisfied is #{
-        conjecture_satisfied?
-      } updated to #{inspect(updated_conjecture_efficacies)}"
-    )
+      conjecture_efficacies ->
+        revised =
+          revise_conjecture_efficacies(conjecture_efficacies, conjecture_satisfied?, state)
 
-    Map.put(efficacies, subject_of_belief, updated_conjecture_efficacies)
+        Logger.info(
+          "#{info(state)}: Efficacies for #{inspect(subject_of_belief)} given conjecture satisfied is #{
+            conjecture_satisfied?
+          } updated to #{inspect(revised)}"
+        )
+
+        Map.put(efficacies, subject_of_belief, revised)
+    end
   end
 
   # Revise the efficacies of various CoAs executed in all rounds to validate a conjecture as they correlate
@@ -1104,10 +1095,9 @@ defmodule Andy.GM.GenerativeModel do
            efficacies: efficacies
          } = state
        ) do
-    Logger.info("#{info(state)}: Setting courses of action")
+    Logger.info("#{info(state)}: Setting CoAs")
 
-    {round_courses_of_action, updated_coa_indices, updated_efficacies} =
-      results =
+    coa_selections =
       Enum.reduce(
         conjecture_activations,
         [],
@@ -1135,8 +1125,13 @@ defmodule Andy.GM.GenerativeModel do
           end
         end
       )
-      # reducing [{selected_course_of_action, updated_coa_index, new_coa?}, ...]
-      |> Enum.reduce(
+
+    Logger.info("#{info(state)}: CoA selections #{inspect(coa_selections)}")
+    # reducing [{selected_course_of_action, updated_coa_index, new_coa?}, ...]
+    {round_courses_of_action, updated_coa_indices, updated_efficacies} =
+      results =
+      Enum.reduce(
+        coa_selections,
         {[], courses_of_action_indices, efficacies},
         fn {%CourseOfAction{conjecture_activation: conjecture_activation} = course_of_action,
             maybe_updated_coa_index, new_coa?},
@@ -1154,9 +1149,7 @@ defmodule Andy.GM.GenerativeModel do
         end
       )
 
-    Logger.info(
-      "#{info(state)}: {round_coas, updated_coa_indices, updated_efficacies} = #{inspect(results)}"
-    )
+    Logger.info("#{info(state)}: CoAs set to #{inspect(results)}")
 
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
@@ -1232,7 +1225,7 @@ defmodule Andy.GM.GenerativeModel do
     satisfied? = satisfied_now?(conjecture_activation, state)
 
     tried =
-      Map.get(efficacies, conjecture_activation_subject)
+      Map.get(efficacies, conjecture_activation_subject, [])
       |> Enum.filter(fn %Efficacy{when_already_satisfied?: when_already_satisfied?} ->
         when_already_satisfied? == satisfied?
       end)
@@ -1247,7 +1240,11 @@ defmodule Andy.GM.GenerativeModel do
 
     # Candidates CoA are the previously tried CoAs plus a new one given the average efficacy of the other candidates.
     candidates =
-      if maybe_untried_coa == nil or course_of_action_already_tried?(maybe_untried_coa, tried) do
+      if maybe_untried_coa == nil or CourseOfAction.empty?(maybe_untried_coa) or
+           course_of_action_already_tried?(maybe_untried_coa, tried) do
+        if tried == [],
+          do: Logger.warn("#{info(state)}: Empty tried CoAs and no new untried CoA!")
+
         tried
       else
         [{maybe_untried_coa, average_efficacy} | tried]
@@ -1269,12 +1266,6 @@ defmodule Andy.GM.GenerativeModel do
       else
         coa_index
       end
-
-    Logger.info(
-      "#{info(state)}: {course_of_action, updated_coa_index, new_coa?} = #{
-        inspect({course_of_action, updated_coa_index, new_coa?})
-      }"
-    )
 
     {course_of_action, updated_coa_index, new_coa?}
   end
@@ -1337,6 +1328,9 @@ defmodule Andy.GM.GenerativeModel do
     unduplicated_intention_names =
       GenerativeModelDef.unduplicate_non_repeatables(gm_def, intention_names)
       |> Enum.reverse()
+
+    if Enum.count(unduplicated_intention_names) == 0,
+      do: Logger.warn("#{info(state)}: Empty intention names for new CoA")
 
     index_of_coa = index_of_coa(unduplicated_intention_names, intention_names)
 
@@ -1448,7 +1442,10 @@ defmodule Andy.GM.GenerativeModel do
 
   defp update_efficacies_with_new_coa(
          efficacies,
-         %CourseOfAction{conjecture_activation: conjecture_activation} = coa,
+         %CourseOfAction{
+           conjecture_activation: conjecture_activation,
+           intention_names: intention_names
+         } = coa,
          state
        ) do
     Logger.info("#{info(state)}: Updating efficacies with new COA #{inspect(coa)}")
@@ -1457,7 +1454,8 @@ defmodule Andy.GM.GenerativeModel do
     new_efficacy = %Efficacy{
       conjecture_activation_subject: ConjectureActivation.subject(conjecture_activation),
       when_already_satisfied?: satisfied_now?(conjecture_activation, state),
-      degree: 0
+      degree: 0,
+      intention_names: intention_names
     }
 
     Logger.info("#{info(state)}: Adding efficacy #{inspect(new_efficacy)}")
@@ -1484,12 +1482,11 @@ defmodule Andy.GM.GenerativeModel do
         round,
         fn %CourseOfAction{
              intention_names: intention_names,
-             conjecture_activation:
-               %ConjectureActivation{
-                 conjecture: %Conjecture{name: conjecture_name},
-                 about: about
-               } = coa
-           },
+             conjecture_activation: %ConjectureActivation{
+               conjecture: %Conjecture{name: conjecture_name},
+               about: about
+             }
+           } = coa,
            acc ->
           Logger.info("#{info(state)}: Executing #{inspect(coa)} ")
 
@@ -1510,7 +1507,7 @@ defmodule Andy.GM.GenerativeModel do
             acc,
             fn intention_name, %Round{} = acc1 ->
               intentions = GenerativeModelDef.intentions(gm_def, intention_name)
-              activate_intentions(intentions, belief_values, [acc1 | previous_rounds], state)
+              execute_intentions(intentions, belief_values, [acc1 | previous_rounds], state)
             end
           )
         end
@@ -1519,9 +1516,9 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round | previous_rounds]}
   end
 
-  defp activate_intentions(intentions, belief_values, [round | _previous_rounds] = rounds, state) do
+  defp execute_intentions(intentions, belief_values, [round | _previous_rounds] = rounds, state) do
     Logger.info(
-      "#{info(state)}: Activating intentions #{inspect(intentions)} given belief values #{
+      "#{info(state)}: Executing intentions #{inspect(intentions)} given belief values #{
         inspect(belief_values)
       }"
     )

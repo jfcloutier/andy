@@ -13,7 +13,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         conjecture(:other_found_food)
       ],
       contradictions: [
-        [:over_food, :no_food, :other_found_food]
+        [:over_food, :no_food]
       ],
       priors: %{
         over_food: %{about: :self, values: %{is: false}},
@@ -22,16 +22,16 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       },
       intentions: %{
         track_other: %Intention{
-          intent_name: :roam,
+          intent_name: :move,
           valuator: tracking_other_valuator(),
           repeatable: true
         },
         track_food: %Intention{
-          intent_name: :roam,
+          intent_name: :move,
           valuator: tracking_food_valuator(),
           repeatable: true
         }
-      }
+      } |> Map.merge(movement_intentions())
     }
   end
 
@@ -46,7 +46,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         no_change_predictor("*:*:beacon_distance/1", default: %{detected: :unknown})
       ],
       valuator: no_food_belief_valuator(),
-      intention_domain: [],
+      intention_domain: movement_domain(),
       self_activated: true
     }
   end

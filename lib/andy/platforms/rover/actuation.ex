@@ -44,8 +44,8 @@ defmodule Andy.Rover.Actuation do
             script: stopping()
           },
           %Activation{
-            intent: :roam,
-            script: roaming()
+            intent: :move,
+            script: moving()
           },
           %Activation{
             intent: :panic,
@@ -182,13 +182,13 @@ defmodule Andy.Rover.Actuation do
     end
   end
 
-  defp roaming() do
+  defp moving() do
     fn intent, motors ->
       forward_rps_speed = speed(intent.value.forward_speed)
       forward_time_ms = round(intent.value.forward_time * 1000)
       turn_direction = intent.value.turn_direction
       turn_time_ms = round(intent.value.turn_time * 1000)
-      script = Script.new(:roaming, motors)
+      script = Script.new(:moving, motors)
 
       script =
         case turn_direction do

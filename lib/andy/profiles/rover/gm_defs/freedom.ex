@@ -19,7 +19,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
           repeatable: false
         },
         roam_about: %Intention{
-          intent_name: :roam,
+          intent_name: :move,
           valuator: roam_valuator()
         }
       }

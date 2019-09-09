@@ -20,6 +20,12 @@ defmodule Andy.GM.CourseOfAction do
       ) do
     coa_conjecture_name == conjecture_name and coa_intention_names == intention_names
   end
+
+  def empty?(%CourseOfAction{
+        intention_names: coa_intention_names
+      }) do
+    Enum.count(coa_intention_names) == 0
+  end
 end
 
 defimpl Inspect, for: Andy.GM.CourseOfAction do
