@@ -12,7 +12,10 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
         conjecture(:clear_of_other)
       ],
       contradictions: [],
-      priors: %{clear_of_obstacle: %{is: true}, clear_of_other: %{is: true}},
+      priors: %{
+        clear_of_obstacle: %{about: :self, values: %{is: true}},
+        clear_of_other: %{about: :self, values: %{is: true}}
+      },
       intentions: %{}
     }
   end

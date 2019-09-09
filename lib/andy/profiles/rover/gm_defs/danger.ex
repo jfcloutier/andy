@@ -11,7 +11,10 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
         conjecture(:safe)
       ],
       contradictions: [[:safe, :group_panic]],
-      priors: %{safe: %{is: true}, group_panic: %{is: false}},
+      priors: %{
+        safe: %{about: :self, values: %{is: true}},
+        group_panic: %{about: :self, values: %{is: false}}
+      },
       intentions: %{
         express_opinion_about_safety: %Intention{
           intent_name: :say,

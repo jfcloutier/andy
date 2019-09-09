@@ -11,7 +11,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
         conjecture(:in_well_lit_area)
       ],
       contradictions: [],
-      priors: %{in_well_lit_area: %{is: true}},
+      priors: %{in_well_lit_area: %{about: :self, values: %{is: true}}},
       intentions:
         %{
           express_feeling_about_light: %Intention{

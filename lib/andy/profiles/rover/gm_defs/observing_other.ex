@@ -13,7 +13,10 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         conjecture(:observed)
       ],
       contradictions: [[:not_seen, :observed]],
-      priors: %{not_seen: %{is: true}, observed: %{is: false}},
+      priors: %{
+        not_seen: %{about: :other, values: %{is: true}},
+        observed: %{about: :other, values: %{is: false}}
+      },
       intentions: %{
         face: %Intention{
           intent_name: :turn,

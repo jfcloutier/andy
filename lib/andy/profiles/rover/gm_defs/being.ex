@@ -11,7 +11,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
         conjecture(:thriving)
       ],
       contradictions: [],
-      priors: %{thriving: %{is: true}},
+      priors: %{thriving: %{about: :self, values: %{is: true}}},
       intentions: %{
         express_opinion_about_life: %Intention{
           intent_name: :say,

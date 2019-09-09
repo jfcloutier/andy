@@ -12,7 +12,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
         conjecture(:sated)
       ],
       contradictions: [],
-      priors: %{sated: %{is: true}},
+      priors: %{sated: %{about: :self, values: %{is: true}}},
       intentions: %{
         express_opinion_about_sated: %Intention{
           intent_name: :say,

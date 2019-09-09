@@ -12,7 +12,7 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
         conjecture(:on_collision_course)
       ],
       contradictions: [],
-      priors: %{on_collision_course: %{is: false}},
+      priors: %{on_collision_course: %{about: :other, values: %{is: false}}},
       intentions: %{}
     }
   end

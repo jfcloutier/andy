@@ -6,6 +6,7 @@ defmodule Andy.GM.GenerativeModelDef do
 
   alias __MODULE__
   alias Andy.GM.{Belief, Intention}
+  require Logger
 
   defstruct name: nil,
             # GM conjectures
@@ -23,26 +24,23 @@ defmodule Andy.GM.GenerativeModelDef do
             intentions: %{}
 
   def initial_beliefs(gm_def) do
-    Enum.reduce(
+    inital_beliefs = Enum.reduce(
       gm_def.priors,
       [],
-      fn conjecture_name, acc ->
-        case Map.get(gm_def.priors, conjecture_name) do
-          nil ->
-            acc
-
-          values ->
+      fn {conjecture_name, %{about: about, values: values}}, acc ->
             [
               %Belief{
                 source: {:gm, gm_def.name},
-                about: conjecture_name,
+                conjecture_name: conjecture_name,
+                about: about,
                 values: values
               }
               | acc
             ]
         end
-      end
     )
+    Logger.info("#{gm_def.name}(0): Initial beliefs are #{inspect initial_beliefs}")
+    initial_beliefs
   end
 
   def has_conjecture?(%GenerativeModelDef{} = gm_def, conjecture_name) do

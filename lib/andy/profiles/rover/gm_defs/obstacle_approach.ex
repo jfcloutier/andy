@@ -11,7 +11,10 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
         conjecture(:approaching_obstacle)
       ],
       contradictions: [],
-      priors: %{obstacle_not_hit: %{is: true}, obstacle_avoided: %{is: true}},
+      priors: %{
+        obstacle_not_hit: %{about: :self, values: %{is: true}},
+        obstacle_avoided: %{about: :self, values: %{is: true}}
+      },
       intentions: %{}
     }
   end

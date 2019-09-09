@@ -51,6 +51,19 @@ defmodule Andy.GM.Utils do
     end
   end
 
+  def no_change_predictor(predicted_conjecture_name, about, default: default_expectations) do
+    fn _conjecture_activation, [round | _previous_rounds] ->
+      current = current_perceived_values(round, about, predicted_conjecture_name, default: %{})
+
+      %Prediction{
+        conjecture_name: predicted_conjecture_name,
+        about: about,
+        expectations: Map.merge(default_expectations, current)
+      }
+    end
+  end
+
+
   # Fixed prediction (to be achieved by the goal conjecture)
   def goal_predictor(predicted_conjecture_name, goal_values) do
     fn conjecture_activation, _rounds ->

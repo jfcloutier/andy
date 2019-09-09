@@ -12,7 +12,10 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
         conjecture(:found_food)
       ],
       contradictions: [[:chewing, :found_food]],
-      priors: %{chewing: %{is: false}, found_food: %{is: false}},
+      priors: %{
+        chewing: %{about: :self, values: %{is: false}},
+        found_food: %{about: :self, values: %{is: false}}
+      },
       intentions: %{
         declare_looking_for_food: %Intention{
           intent_name: :say,
@@ -56,7 +59,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
       activator: always_activator(:goal),
       predictors: [
         no_change_predictor(:over_food, default: %{is: false}),
-        no_change_predictor(:other_found_food, default: %{is: false})
+        no_change_predictor(:other_found_food, :other, default: %{is: false})
       ],
       valuator: found_food_belief_valuator(),
       intention_domain: [:declare_looking_for_food]

@@ -11,7 +11,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
         conjecture(:free)
       ],
       contradictions: [],
-      priors: %{free: %{is: true}},
+      priors: %{free: %{about: :self, values: %{is: true}}},
       intentions: %{
         express_opinion_about_freedom: %Intention{
           intent_name: :say,

@@ -38,7 +38,7 @@ defmodule Andy.GM.GenerativeModel do
   #               - Increase precision weight of the sub-GMs that deviate the least or have no competitor
   #           - When two perceptions are about the same thing, retain only the more trustworthy
   #               - A GM retains one effective perception about something (e.g. can't perceive two distances to a wall)
-  #           - Compute the new GM's beliefs for each activated conjecture given GM's present and past rounds,
+  #           - Compute the round's final GM's beliefs for each activated conjecture given GM's present and past rounds,
   #             and determine if they are prediction errors (i.e. beliefs that contradict or are misaligned with
   #             received predictions). The new beliefs replace all beliefs carried over from the previous round.
   #           - Report the prediction errors
@@ -679,15 +679,30 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Compute new beliefs from active conjectures given current state of the GM
+  # to replace prior beliefs of same subject
   defp determine_beliefs(
-         %State{conjecture_activations: conjecture_activations, rounds: [round | previous_rounds]} =
-           state
+         %State{
+           conjecture_activations: conjecture_activations,
+           rounds: [%Round{beliefs: prior_beliefs} = round | previous_rounds]
+         } = state
        ) do
-    beliefs =
+    new_beliefs =
       conjecture_activations
       |> Enum.map(&create_belief_from_conjecture(&1, state))
 
-    Logger.info("#{info(state)}: New beliefs #{inspect(beliefs)}")
+    Logger.info("#{info(state)}: New beliefs #{inspect(new_beliefs)}")
+
+    remaining_prior_beliefs =
+      Enum.reject(
+        prior_beliefs,
+        fn prior_belief ->
+          Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(prior_belief)))
+        end
+      )
+
+    beliefs = remaining_prior_beliefs ++ new_beliefs
+    Logger.info("#{info(state)}: Final beliefs #{inspect(beliefs)}")
+
     %State{state | rounds: [%Round{round | beliefs: beliefs} | previous_rounds]}
   end
 

@@ -16,9 +16,9 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         [:over_food, :no_food, :other_found_food]
       ],
       priors: %{
-        over_food: %{is: false},
-        no_food: %{is: true},
-        other_found_food: %{is: false}
+        over_food: %{about: :self, values: %{is: false}},
+        no_food: %{about: :self, values: %{is: true}},
+        other_found_food: %{about: :other, values: %{is: false}}
       },
       intentions: %{
         track_other: %Intention{

@@ -11,7 +11,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
         conjecture(:distance_to_obstacle)
       ],
       contradictions: [],
-      priors: %{distance_to_obstacle: %{is: :unknown}},
+      priors: %{distance_to_obstacle: %{about: :self, values: %{is: :unknown}}},
       intentions: %{
         express_opinion_about_distance: %Intention{
           intent_name: :say,

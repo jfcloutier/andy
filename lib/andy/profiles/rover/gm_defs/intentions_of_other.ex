@@ -15,8 +15,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       # allow all conjectures to be activated
       contradictions: [],
       priors: %{
-        other_panicking: %{is: false},
-        other_homing_on_food: %{is: false}
+        other_panicking: %{about: :other, values: %{is: false}},
+        other_homing_on_food: %{about: :other, values: %{is: false}}
       },
       intentions: %{
         say_other_panicking: %Intention{
