@@ -24,7 +24,7 @@ defmodule Andy.GM.GenerativeModelDef do
             intentions: %{}
 
   def initial_beliefs(gm_def) do
-    inital_beliefs = Enum.reduce(
+    initial_beliefs = Enum.reduce(
       gm_def.priors,
       [],
       fn {conjecture_name, %{about: about, values: values}}, acc ->

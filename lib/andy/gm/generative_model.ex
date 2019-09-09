@@ -683,7 +683,7 @@ defmodule Andy.GM.GenerativeModel do
   defp determine_beliefs(
          %State{
            conjecture_activations: conjecture_activations,
-           rounds: [%Round{beliefs: prior_beliefs} = round | previous_rounds]
+           rounds: [%Round{beliefs: previous_beliefs} = round | previous_rounds]
          } = state
        ) do
     new_beliefs =
@@ -692,15 +692,15 @@ defmodule Andy.GM.GenerativeModel do
 
     Logger.info("#{info(state)}: New beliefs #{inspect(new_beliefs)}")
 
-    remaining_prior_beliefs =
+    remaining_previous_beliefs =
       Enum.reject(
-        prior_beliefs,
-        fn prior_belief ->
-          Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(prior_belief)))
+        previous_beliefs,
+        fn previous_belief ->
+          Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(previous_belief)))
         end
       )
 
-    beliefs = remaining_prior_beliefs ++ new_beliefs
+    beliefs = remaining_previous_beliefs ++ new_beliefs
     Logger.info("#{info(state)}: Final beliefs #{inspect(beliefs)}")
 
     %State{state | rounds: [%Round{round | beliefs: beliefs} | previous_rounds]}
