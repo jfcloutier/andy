@@ -1,6 +1,8 @@
 defmodule Andy.GM.GenerativeModel do
   @moduledoc "A generative model agent"
 
+  # TODO - Too big. Refactor code into GM state component modules
+
   # Round initialization:
   #           - Copy over all the perceptions from the previous round that have not already been copied too often
   #             (a GM's perceptions are prediction errors from sub-GMs and detectors,
@@ -311,7 +313,7 @@ defmodule Andy.GM.GenerativeModel do
     |> carry_over_beliefs()
     # Carry over unachieved goal conjecture activations, activate self-activated conjectures
     |> initial_conjecture_activations()
-    # Remove perceptions and beliefs that are from conjectures mutually excluded from the current ones
+    # Remove carried over perceptions and beliefs that are from conjectures mutually excluded from the current ones
     |> remove_excluded_perceptions_and_beliefs()
     # Make predictions about this round of perceptions given beliefs from previous round (possibly none)
     # Add them as new perceptions, possibly overriding carried-over perceptions
@@ -488,40 +490,9 @@ defmodule Andy.GM.GenerativeModel do
            ]
          } = state
        ) do
-    updated_perceptions =
-      Enum.reject(
-        perceptions,
-        fn perception ->
-          Enum.any?(
-            conjecture_activations,
-            fn conjecture_activation ->
-              GenerativeModelDef.contradicts?(
-                gm_def,
-                ConjectureActivation.subject(conjecture_activation),
-                Perception.subject(perception)
-              )
-            end
-          )
-        end
-      )
+    updated_perceptions = reject_mutually_excluded_perceptions(gm_def, perceptions, conjecture_activations)
 
-    updated_beliefs =
-      Enum.reject(
-        beliefs,
-        fn belief ->
-          Enum.any?(
-            conjecture_activations,
-            fn conjecture_activation ->
-              GenerativeModelDef.contradicts?(
-                gm_def,
-                ConjectureActivation.subject(conjecture_activation),
-                Belief.subject(belief)
-              )
-            end
-          )
-        end
-      )
-
+    updated_beliefs = reject_mutually_excluded_beliefs(gm_def, beliefs, conjecture_activations)
     Logger.info(
       "#{info(state)}: After removing excluded perceptions: #{inspect(updated_perceptions)}"
     )
@@ -530,6 +501,42 @@ defmodule Andy.GM.GenerativeModel do
 
     updated_round = %Round{round | perceptions: updated_perceptions, beliefs: updated_beliefs}
     %State{state | rounds: [updated_round | previous_rounds]}
+  end
+
+  defp reject_mutually_excluded_beliefs(gm_def, beliefs, conjecture_activations) do
+    Enum.reject(
+      beliefs,
+      fn belief ->
+        Enum.any?(
+          conjecture_activations,
+          fn conjecture_activation ->
+            GenerativeModelDef.contradicts?(
+              gm_def,
+              ConjectureActivation.subject(conjecture_activation),
+              Belief.subject(belief)
+            )
+          end
+        )
+      end
+    )
+  end
+
+  defp reject_mutually_excluded_perceptions(gm_def, perceptions, conjecture_activations) do
+    Enum.reject(
+      perceptions,
+      fn perception ->
+        Enum.any?(
+          conjecture_activations,
+          fn conjecture_activation ->
+            GenerativeModelDef.contradicts?(
+              gm_def,
+              ConjectureActivation.subject(conjecture_activation),
+              Perception.subject(perception)
+            )
+          end
+        )
+      end
+    )
   end
 
   # Make predictions for all conjecture activations in the GM
@@ -682,7 +689,6 @@ defmodule Andy.GM.GenerativeModel do
   # to replace prior beliefs of same subject
   defp determine_beliefs(
          %State{
-           gm_def: gm_def,
            conjecture_activations: conjecture_activations,
            rounds: [%Round{beliefs: current_beliefs} = round | previous_rounds]
          } = state
@@ -700,16 +706,6 @@ defmodule Andy.GM.GenerativeModel do
           Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(current_belief)))
         end
       )
-      |> Enum.reject(fn current_belief ->
-        Enum.any?(
-          conjecture_activations,
-          &GenerativeModelDef.contradicts?(
-            gm_def,
-            ConjectureActivation.subject(&1),
-            Belief.subject(current_belief)
-          )
-        )
-      end)
 
     beliefs = remaining_current_beliefs ++ new_beliefs
     Logger.info("#{info(state)}: Final beliefs #{inspect(beliefs)}")
