@@ -5,9 +5,11 @@ defmodule Andy.Intent do
   alias __MODULE__
 
   @type t :: %__MODULE__{
+          id: String.t,
           about: atom,
           value: any,
-          since: number
+          since: number,
+          executed: boolean
         }
 
   @doc """
@@ -16,13 +18,16 @@ defmodule Andy.Intent do
   since: When the intent was created
   source: The source of the intent
   """
-  defstruct about: nil,
+  defstruct id: nil,
+            about: nil,
             value: nil,
-            since: nil
+            since: nil,
+            executed: false
 
   @doc "Create an intent"
   def new(about: about, value: params) do
     %Intent{
+      id: UUID.uuid4(),
       about: about,
       since: now(),
       value: params
@@ -32,6 +37,10 @@ defmodule Andy.Intent do
   @doc "The age of an intent"
   def age(intent) do
     now() - intent.since
+  end
+
+  def executed?(intent) do
+    intent.executed
   end
 
 end

@@ -68,10 +68,10 @@ defmodule Andy.Actuator do
         script = script_generator.(intent, state.devices)
         Script.execute(actuator_config.type, script)
 
-        # This will have the intent stored in memory. Unrealized intents are not retained in memory.
-        PubSub.notify_actuated(intent)
       end
     )
+    # TODO - Maybe wait before notifying of actuation completed
+    PubSub.notify_actuated(intent)
   end
 
   def handle_event({:intended, %Intent{} = intent}, %{actuator_config: actuator_config} = state) do

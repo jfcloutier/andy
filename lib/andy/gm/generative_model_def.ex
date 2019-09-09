@@ -3,15 +3,18 @@ defmodule Andy.GM.GenerativeModelDef do
 
   # half a second
   @default_max_round_duration 500
+  @default_max_execution_duration 5_000
 
   alias __MODULE__
   alias Andy.GM.{Belief, Intention}
   require Logger
 
   defstruct name: nil,
-            # GM conjectures
+              # the maximum duration of a round for the GM
             max_round_duration: @default_max_round_duration,
-            # the maximum duration of a round for the GM
+              # the maximum duration of intent execution for the GM
+            max_execution_duration: @default_max_execution_duration,
+              # GM conjectures
             conjectures: [],
             # sets of mutually-exclusive conjectures (by name)
             contradictions: [],

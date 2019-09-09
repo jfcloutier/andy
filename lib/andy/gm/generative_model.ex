@@ -178,6 +178,26 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
+  # Is this round execution timeout event meant for this GM? If so, close the current round.
+  def handle_event(
+        {:execution_timed_out, name, round_id},
+        %State{
+          gm_def: %GenerativeModelDef{
+            name: name
+          },
+          started: true
+        } = state
+      ) do
+    # could be an obsolete round timeout event meant for a previous round that completed early
+    if current_round?(round_id, state) do
+      Logger.info("#{info(state)}: Round execution timed out")
+      close_round(state)
+    else
+      Logger.info("#{info(state)}: Obsolete round execution timeout")
+      state
+    end
+  end
+
   # Another GM completed a round - relevant is GM is sub-GM (a sub-believer that's also a GM)
   def handle_event(
         {:round_completed, name},
@@ -271,6 +291,16 @@ defmodule Andy.GM.GenerativeModel do
     shutdown(state)
   end
 
+  def handle_event({:actuated, intent}, state) do
+    if intent_relevant?(intent, state) do
+      state
+      |> mark_intent_executed(intent)
+      |> maybe_close_round()
+    else
+      state
+    end
+  end
+
   # Ignore any other event
   def handle_event(_event, state) do
     # Logger.info("#{info(state)}: Ignoring event #{inspect(event)}")
@@ -354,14 +384,59 @@ defmodule Andy.GM.GenerativeModel do
       |> set_courses_of_action()
       # Execute the currently set courses of action
       |> execute_courses_of_action()
-      # Terminate the current round (set completed_on, report round_completed)
-      |> mark_round_completed()
-      # Drop obsolete rounds (forget the distant past)
-      |> drop_obsolete_rounds()
-      # Add the next round
-      |> add_new_round()
 
     new_state
+  end
+
+  # Close the current round (set completed_on, report round_completed)
+  # and get the next round going
+  defp close_round(%State{} = state) do
+    Logger.info("#{info(state)}: Closing round")
+
+    state
+    |> mark_round_completed()
+    # Drop obsolete rounds (forget the distant past)
+    |> drop_obsolete_rounds()
+    # Add the next round
+    |> add_new_round()
+  end
+
+  defp intent_relevant?(%Intent{id: id}, state) do
+    %Round{intents: intents} = current_round(state)
+    Enum.any?(intents, &(&1.id == id))
+  end
+
+  defp mark_intent_executed(
+         %State{rounds: [%Round{intents: intents} = round | previous_rounds]} = state,
+         %Intent{id: id} = intent
+       ) do
+    Logger.info("#{info(state)}: Marking intent #{inspect(intent)} executed")
+
+    updated_intents =
+      Enum.reduce(
+        intents,
+        [],
+        fn %Intent{id: intent_id} = intent, acc ->
+          if id == intent_id do
+            [%Intent{intent | executed: true} | acc]
+          else
+            acc
+          end
+        end
+      )
+
+    updated_round = %Round{round | intents: updated_intents}
+    %State{state | rounds: [updated_round | previous_rounds]}
+  end
+
+  defp maybe_close_round(state) do
+    %Round{intents: intents} = current_round(state)
+
+    if Enum.all?(intents, &Intent.executed?(&1)) do
+      close_round(state)
+    else
+      state
+    end
   end
 
   defp gm_name(%State{gm_def: gm_def}) do
@@ -630,6 +705,11 @@ defmodule Andy.GM.GenerativeModel do
   defp round_timed_out?(round_id, %State{gm_def: gm_def} = state) do
     %Round{id: id, started_on: started_on} = current_round(state)
     id == round_id and now() - started_on >= gm_def.max_round_duration
+  end
+
+  defp current_round?(round_id, state) do
+    %Round{id: id} = current_round(state)
+    id == round_id
   end
 
   # Can this prediction can be verified by this GM?
@@ -1513,7 +1593,20 @@ defmodule Andy.GM.GenerativeModel do
         end
       )
 
-    %State{state | rounds: [updated_round | previous_rounds]}
+    updated_state = %State{state | rounds: [updated_round | previous_rounds]}
+
+    if Enum.count(courses_of_action) > 0 do
+      # Allow for the intents to be actuated
+      Logger.info("#{info(state)}: Setting execution timeout for round #{round.id}")
+      PubSub.notify_after(
+        {:execution_timed_out, gm_name(state), round.id},
+        gm_def.max_execution_duration
+      )
+
+      updated_state
+    else
+      close_round(updated_state)
+    end
   end
 
   defp execute_intentions(intentions, belief_values, [round | _previous_rounds] = rounds, state) do
