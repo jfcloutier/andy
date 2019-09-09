@@ -494,11 +494,11 @@ defmodule Andy.GM.GenerativeModel do
         fn perception ->
           Enum.any?(
             conjecture_activations,
-            fn %ConjectureActivation{conjecture: conjecture} ->
-              GenerativeModelDef.mutually_exclusive?(
+            fn conjecture_activation ->
+              GenerativeModelDef.contradicts?(
                 gm_def,
-                conjecture.name,
-                Perception.prediction_conjecture_name(perception)
+                ConjectureActivation.subject(conjecture_activation),
+                Perception.subject(perception)
               )
             end
           )
@@ -508,14 +508,14 @@ defmodule Andy.GM.GenerativeModel do
     updated_beliefs =
       Enum.reject(
         beliefs,
-        fn %Belief{conjecture_name: belief_conjecture_name} ->
+        fn belief ->
           Enum.any?(
             conjecture_activations,
-            fn %ConjectureActivation{conjecture: conjecture} ->
-              GenerativeModelDef.mutually_exclusive?(
+            fn conjecture_activation ->
+              GenerativeModelDef.contradicts?(
                 gm_def,
-                conjecture.name,
-                belief_conjecture_name
+                ConjectureActivation.subject(conjecture_activation),
+                Belief.subject(belief)
               )
             end
           )
@@ -682,8 +682,9 @@ defmodule Andy.GM.GenerativeModel do
   # to replace prior beliefs of same subject
   defp determine_beliefs(
          %State{
+           gm_def: gm_def,
            conjecture_activations: conjecture_activations,
-           rounds: [%Round{beliefs: previous_beliefs} = round | previous_rounds]
+           rounds: [%Round{beliefs: current_beliefs} = round | previous_rounds]
          } = state
        ) do
     new_beliefs =
@@ -692,15 +693,25 @@ defmodule Andy.GM.GenerativeModel do
 
     Logger.info("#{info(state)}: New beliefs #{inspect(new_beliefs)}")
 
-    remaining_previous_beliefs =
+    remaining_current_beliefs =
       Enum.reject(
-        previous_beliefs,
-        fn previous_belief ->
-          Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(previous_belief)))
+        current_beliefs,
+        fn current_belief ->
+          Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(current_belief)))
         end
       )
+      |> Enum.reject(fn current_belief ->
+        Enum.any?(
+          conjecture_activations,
+          &GenerativeModelDef.contradicts?(
+            gm_def,
+            ConjectureActivation.subject(&1),
+            Belief.subject(current_belief)
+          )
+        )
+      end)
 
-    beliefs = remaining_previous_beliefs ++ new_beliefs
+    beliefs = remaining_current_beliefs ++ new_beliefs
     Logger.info("#{info(state)}: Final beliefs #{inspect(beliefs)}")
 
     %State{state | rounds: [%Round{round | beliefs: beliefs} | previous_rounds]}

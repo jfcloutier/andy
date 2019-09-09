@@ -24,22 +24,24 @@ defmodule Andy.GM.GenerativeModelDef do
             intentions: %{}
 
   def initial_beliefs(gm_def) do
-    initial_beliefs = Enum.reduce(
-      gm_def.priors,
-      [],
-      fn {conjecture_name, %{about: about, values: values}}, acc ->
-            [
-              %Belief{
-                source: {:gm, gm_def.name},
-                conjecture_name: conjecture_name,
-                about: about,
-                values: values
-              }
-              | acc
-            ]
+    initial_beliefs =
+      Enum.reduce(
+        gm_def.priors,
+        [],
+        fn {conjecture_name, %{about: about, values: values}}, acc ->
+          [
+            %Belief{
+              source: {:gm, gm_def.name},
+              conjecture_name: conjecture_name,
+              about: about,
+              values: values
+            }
+            | acc
+          ]
         end
-    )
-    Logger.info("#{gm_def.name}(0): Initial beliefs are #{inspect initial_beliefs}")
+      )
+
+    Logger.info("#{gm_def.name}(0): Initial beliefs are #{inspect(initial_beliefs)}")
     initial_beliefs
   end
 
@@ -57,6 +59,14 @@ defmodule Andy.GM.GenerativeModelDef do
         other
       ) do
     Enum.any?(contradictions, &(conjecture_name in &1 and other in &1))
+  end
+
+  def contradicts?(gm_def, {conjecture_name, about}, {other_conjecture_name, about}) do
+    mutually_exclusive?(gm_def, conjecture_name, other_conjecture_name)
+  end
+
+  def contradicts?(_gm_def, _subject, _other_subject) do
+    false
   end
 
   # An intention name may be associated with a group of intentions or a single one.
