@@ -38,7 +38,7 @@ defmodule Andy.BrickPi.UltrasonicSensor do
     value = get_attribute(updated_sensor, "value0", :integer)
 
     if value > 2500 do
-      :unknown
+      {:unknown, updated_sensor}
     else
       {round(value / 10), updated_sensor}
     end
