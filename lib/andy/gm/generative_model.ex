@@ -1136,7 +1136,7 @@ defmodule Andy.GM.GenerativeModel do
 
     # Estimate how much each CoA execution correlates to believing in the conjecture it was meant to validate
     # The closer the CoA execution is to this round, the greater the correlation
-    impact = if conjecture_satisfied?, do: 1.0, else: -1.0
+    impact = if conjecture_satisfied?, do: 1.0, else: 0.0
 
     # The correlation of a CoA in a round to a current belief is the closeness of the round to the current one
     # e.g. [4/4, 2/4, 1/4]

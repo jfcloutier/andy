@@ -16,6 +16,7 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   }
 
   alias Andy.{ActuatorsSupervisor, Device}
+  import Andy.Utils, only: [get_andy_env: 2]
 
   @name __MODULE__
 
@@ -74,10 +75,12 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
 
   # Start and activate all generative models
   defp start_generative_models() do
-    Logger.info("Starting generative models")
+    if get_andy_env("ANDY_START_GMS", "yes") == "yes" do
+      Logger.info("Starting generative models")
 
-    Andy.cognition()
-    |> Cognition.gm_defs_with_family()
-    |> Enum.each(&spawn(fn -> GenerativeModelsSupervisor.start_generative_model(&1) end))
+      Andy.cognition()
+      |> Cognition.gm_defs_with_family()
+      |> Enum.each(&spawn(fn -> GenerativeModelsSupervisor.start_generative_model(&1) end))
+    end
   end
 end
