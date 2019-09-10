@@ -116,7 +116,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   #
   defp touched?(round, prediction_about) do
-    current_perceived_value(round, prediction_about, :distance_to_obstacle, :is, default: :unknown) |> less_than?(5)
+    current_perceived_value(round, prediction_about, :distance_to_obstacle, :is, default: :unknown) |> less_than?(4)
   end
 
 end

@@ -37,6 +37,7 @@ defmodule Andy.BrickPi.InfraredSensor do
         end
       )
 
+      Logger.info("INFRARED SENSES = #{inspect [:beacon_proximity | beacon_senses]}")
     [:beacon_proximity | beacon_senses]
   end
 
