@@ -214,29 +214,17 @@ defmodule Andy.Rover.Actuation do
   defp panicking() do
     fn intent, motors ->
       script = Script.new(:panicking, motors)
-      intensity = intent.value.intensity
-      times = intent.value.times
+      back_off_speed = intent.value.back_off_speed
+      back_off_time = intent.value.back_off_time
+      turn_time = intent.value.turn_time
+      repeats = intent.value.repeats
 
-      backward_speed =
-        case intensity do
-          :low -> :slow
-          :medium -> :normal
-          :high -> :fast
-        end
-
-      fear_factor =
-        case intensity do
-          :low -> 1
-          :medium -> 2
-          :high -> 3
-        end
-
-      backward_rps_speed = speed(backward_speed)
-      backward_time_ms = round(1000) * fear_factor
-      turn_time_ms = round(1000) * fear_factor
+      backward_rps_speed = speed(back_off_speed)
+      backward_time_ms = round(1000 * back_off_time)
+      turn_time_ms = round(1000 * turn_time)
 
       Enum.reduce(
-        1..times,
+        1..repeats,
         script,
         fn _n, acc ->
           turn_direction = Enum.random([:right, :left, :none])

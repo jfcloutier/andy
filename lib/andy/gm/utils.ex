@@ -33,8 +33,12 @@ defmodule Andy.GM.Utils do
 
   def empty_valuator() do
     fn _conjecture_activation, _rounds ->
-      %{}
+      %{value: %{}, duration: 0}
     end
+  end
+
+  def saying(words) do
+    %{value: words, duration: 0}
   end
 
   # Predict no change, or some initial expectation
@@ -467,10 +471,10 @@ defmodule Andy.GM.Utils do
 
   defp turn_valuator() do
     # seconds
-    fn(_) ->  2 end
+    fn(_) ->  %{value: 2, duration: 2} end
   end
 
   defp move_valuator() do
-    fn(_) -> %{speed: :normal, time: 2} end
+    fn(_) -> %{value: %{speed: :normal, time: 2}, duration: 2} end
   end
 end

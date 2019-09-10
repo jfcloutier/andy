@@ -56,7 +56,13 @@ defmodule Andy.Actuator do
     {:ok, pid}
   end
 
-  def realize_intent(%Intent{} = intent, %{actuator_config: actuator_config} = state) do
+  def realize_intent(
+        %Intent{duration: duration} = intent,
+        %{actuator_config: actuator_config} = state
+      ) do
+    if Intent.stale?(intent),
+      do: Logger.warn("Stale #{inspect(intent)}! Age = #{Intent.age(intent)}")
+
     Logger.info("Realizing intent #{inspect(intent)}")
 
     actuator_config.activations
@@ -67,10 +73,11 @@ defmodule Andy.Actuator do
       fn script_generator ->
         script = script_generator.(intent, state.devices)
         Script.execute(actuator_config.type, script)
-
       end
     )
-    # TODO - Maybe wait before notifying of actuation completed
+
+    sleep_msecs = round(1000 * (duration || Intent.default_duration()))
+    Process.sleep(sleep_msecs)
     PubSub.notify_actuated(intent)
   end
 

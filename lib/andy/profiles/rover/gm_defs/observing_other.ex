@@ -136,16 +136,16 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   defp face_valuator() do
     fn %{direction: :unknown} ->
       turn_direction = Enum.random([:right, :left])
-      %{turn_direction: turn_direction, turn_time: 1}
+      %{value: %{turn_direction: turn_direction, turn_time: 1}, duration: 1}
     end
 
-    fn %{direction: direction} when abs(direction) <= 60->
+    fn %{direction: direction} when abs(direction) <= 60 ->
       nil
     end
 
     fn %{direction: direction} ->
       turn_direction = if direction < 0, do: :left, else: :right
-      %{turn_direction: turn_direction, turn_time: 0.5}
+      %{value: %{turn_direction: turn_direction, turn_time: 0.5}, duration: 0.5}
     end
   end
 end

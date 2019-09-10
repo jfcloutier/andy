@@ -103,7 +103,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
 
   defp chewing_noise() do
     fn %{is: true} ->
-      "Nom de nom de nom"
+      saying("Nom de nom de nom")
     end
 
     fn _other ->
@@ -113,7 +113,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
 
   defp looking_for_food_declaration() do
     fn %{is: false} ->
-      "I am looking for food"
+      saying("I am looking for food")
     end
 
     fn _other ->

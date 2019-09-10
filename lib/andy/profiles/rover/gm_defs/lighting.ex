@@ -33,7 +33,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
       predictors: [
         no_change_predictor("*:*:ambient", default: %{detected: 100})
       ],
-      valuator: in_well_lit_area_valuator(),
+      valuator: in_well_lit_area_belief_valuator(),
       intention_domain: [:express_feeling_about_safety] ++ movement_domain()
     }
   end
@@ -44,7 +44,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
 
   # Conjecture belief valuators
 
-  defp in_well_lit_area_valuator() do
+  defp in_well_lit_area_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
@@ -59,11 +59,11 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
 
   defp feeling_about_light() do
     fn %{is: true} ->
-      "Now I can see"
+      saying("Now I can see")
     end
 
     fn _other ->
-      "It's too dark!"
+      saying("It's too dark!")
     end
   end
 end

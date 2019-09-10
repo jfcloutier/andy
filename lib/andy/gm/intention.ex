@@ -5,7 +5,7 @@ defmodule Andy.GM.Intention do
 
   # e.g. :go_forward
   defstruct intent_name: nil,
-            # fn(belief_values) -> intent value
+            # fn(belief_values) -> %{value: intent value, duration: intent_duration}
             valuator: nil,
             # Can the generated intent be repeated with the same values?
             repeatable: true

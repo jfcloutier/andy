@@ -33,7 +33,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
       name: :free,
       activator: always_activator(:opinion),
       predictors: [],
-      valuator: free_valuator(),
+      valuator: free_belief_valuator(),
       intention_domain: [:express_opinion_about_freedom, :roam_about]
     }
   end
@@ -44,7 +44,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
 
   # Conjecture belief valuators
 
-  defp free_valuator() do
+  defp free_belief_valuator() do
     fn _conjecture_activation, _rounds ->
       %{is: true}
     end
@@ -54,7 +54,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
 
   defp opinion_about_freedom() do
     fn %{is: true} ->
-      "Let's explore"
+      saying("Let's explore")
     end
 
     fn _other ->
@@ -63,11 +63,17 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
   end
 
   defp roam_valuator() do
+    forward_time = Enum.random(0..3)
+    turn_time = Enum.random(0..4)
+
     %{
-      forward_speed: Enum.random([:fast, :normal, :slow]),
-      forward_time: Enum.random(0..3),
-      turn_direction: Enum.random([:left, :right]),
-      turn_time: Enum.random(0..4)
+      value: %{
+        forward_speed: Enum.random([:fast, :normal, :slow]),
+        forward_time: forward_time,
+        turn_direction: Enum.random([:left, :right]),
+        turn_time: turn_time
+      },
+      duration: forward_time + turn_time
     }
   end
 end

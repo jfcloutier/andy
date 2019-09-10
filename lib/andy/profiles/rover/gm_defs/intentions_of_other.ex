@@ -120,7 +120,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
 
   defp panicking_opinion_valuator() do
     fn %{is: true} ->
-      "#{Andy.name_of_other()} is freaking out"
+      saying("#{Andy.name_of_other()} is freaking out")
     end
 
     fn _ ->
@@ -130,7 +130,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
 
   defp homing_on_food_opinion_valuator() do
     fn %{is: true} ->
-      "#{Andy.name_of_other()} has found food"
+      saying("#{Andy.name_of_other()} has found food")
     end
 
     fn _ ->

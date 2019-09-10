@@ -20,18 +20,20 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         no_food: %{about: :self, values: %{is: true}},
         other_found_food: %{about: :other, values: %{is: false}}
       },
-      intentions: %{
-        track_other: %Intention{
-          intent_name: :move,
-          valuator: tracking_other_valuator(),
-          repeatable: true
-        },
-        track_food: %Intention{
-          intent_name: :move,
-          valuator: tracking_food_valuator(),
-          repeatable: true
+      intentions:
+        %{
+          track_other: %Intention{
+            intent_name: :move,
+            valuator: tracking_other_valuator(),
+            repeatable: true
+          },
+          track_food: %Intention{
+            intent_name: :move,
+            valuator: tracking_food_valuator(),
+            repeatable: true
+          }
         }
-      } |> Map.merge(movement_intentions())
+        |> Map.merge(movement_intentions())
     }
   end
 
@@ -206,10 +208,13 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
           end
 
         %{
-          forward_speed: speed,
-          forward_time: forward_time,
-          turn_direction: turn_direction,
-          turn_time: turn_time
+          value: %{
+            forward_speed: speed,
+            forward_time: forward_time,
+            turn_direction: turn_direction,
+            turn_time: turn_time
+          },
+          duration: forward_time + turn_time
         }
       end
     end
@@ -250,10 +255,13 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
           end
 
         %{
-          forward_speed: speed,
-          forward_time: forward_time,
-          turn_direction: turn_direction,
-          turn_time: turn_time
+          value: %{
+            forward_speed: speed,
+            forward_time: forward_time,
+            turn_direction: turn_direction,
+            turn_time: turn_time
+          },
+          duration: forward_time + turn_time
         }
       end
     end

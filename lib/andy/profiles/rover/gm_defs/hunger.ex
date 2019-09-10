@@ -33,7 +33,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
         no_change_predictor(:chewing, default: %{is: false}),
         no_change_predictor(:found_food, default: %{is: false})
       ],
-      valuator: sated_valuator(),
+      valuator: sated_belief_valuator(),
       intention_domain: [:express_opinion_about_sated]
     }
   end
@@ -44,7 +44,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
 
   # Conjecture belief valuators
 
-  defp sated_valuator() do
+  defp sated_belief_valuator() do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
@@ -59,7 +59,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
 
   defp opinion_about_sated() do
     fn %{is: false} ->
-      "I am hungry"
+      saying("I am hungry")
     end
 
     fn _other ->

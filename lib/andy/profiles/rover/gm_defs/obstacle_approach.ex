@@ -28,7 +28,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
       predictors: [
         no_change_predictor(:distance_to_obstacle, default: %{is: :unknown})
       ],
-      valuator: approaching_obstacle_valuator(),
+      valuator: approaching_obstacle_belief_valuator(),
       intention_domain: []
     }
   end
@@ -39,7 +39,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
 
   # Conjecture belief valuators
 
-  defp approaching_obstacle_valuator() do
+  defp approaching_obstacle_belief_valuator() do
     fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 

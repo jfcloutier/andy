@@ -94,11 +94,11 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
 
   defp opinion_about_thriving() do
     fn %{is: true} ->
-      "Life is good"
+      saying("Life is good")
     end
 
     fn _other ->
-      "Life sucks"
+      saying("Life sucks")
     end
   end
 end

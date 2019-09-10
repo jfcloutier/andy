@@ -1598,6 +1598,7 @@ defmodule Andy.GM.GenerativeModel do
     if Enum.count(courses_of_action) > 0 do
       # Allow for the intents to be actuated
       Logger.info("#{info(state)}: Setting execution timeout for round #{round.id}")
+
       PubSub.notify_after(
         {:execution_timed_out, gm_name(state), round.id},
         gm_def.max_execution_duration
@@ -1620,17 +1621,19 @@ defmodule Andy.GM.GenerativeModel do
       intentions,
       round,
       fn intention, %Round{intents: intents} = acc ->
-        intent_value = intention.valuator.(belief_values)
+        intent_valuation = intention.valuator.(belief_values)
 
-        if intent_value == nil do
+        if intent_valuation == nil do
           # a nil-valued intent is a noop intent, so ignore it
           acc
         else
           # execute valued intent
+          %{value: intent_value, duration: duration} = intent_valuation
           intent =
             Intent.new(
               about: intention.intent_name,
-              value: intent_value
+              value: intent_value,
+              duration: duration
             )
 
           if not (Intention.not_repeatable?(intention) and

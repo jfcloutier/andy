@@ -29,7 +29,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       predictors: [
         no_change_predictor(:distance_to_obstacle, default: %{detected: :unknown})
       ],
-      valuator: obstacle_not_hit_valuator(),
+      valuator: obstacle_not_hit_belief_valuator(),
       intention_domain: movement_domain()
     }
   end
@@ -41,7 +41,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       predictors: [
         distance_to_obstacle_predictor()
       ],
-      valuator: obstacle_avoided_valuator(),
+      valuator: obstacle_avoided_belief_valuator(),
       intention_domain: movement_domain()
     }
   end
@@ -82,7 +82,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   # Conjecture belief valuators
 
-  defp obstacle_not_hit_valuator() do
+  defp obstacle_not_hit_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
@@ -95,7 +95,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
     end
   end
 
-  defp obstacle_avoided_valuator() do
+  defp obstacle_avoided_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
