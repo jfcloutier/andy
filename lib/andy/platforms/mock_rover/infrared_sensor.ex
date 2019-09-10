@@ -5,6 +5,7 @@ defmodule Andy.MockRover.InfraredSensor do
 
   alias Andy.Device
   import Andy.Utils
+  require Logger
 
   @max_distance 70
   @nudge_distance 5
@@ -31,10 +32,10 @@ defmodule Andy.MockRover.InfraredSensor do
         fn channel, acc ->
           acc ++
             [
-              {:beacon_heading, channel},
-              {:beacon_distance, channel},
-              {:beacon_on, channel},
-              {:remote_buttons, channel}
+              beacon_sense(:beacon_heading, channel),
+              beacon_sense(:beacon_distance, channel),
+              beacon_sense(:beacon_on, channel),
+              beacon_sense(:remote_buttons, channel)
             ]
         end
       )
@@ -43,30 +44,26 @@ defmodule Andy.MockRover.InfraredSensor do
   end
 
   def beacon_senses_for(channel) do
-    [{:beacon_heading, channel}, {:beacon_distance, channel}, {:beacon_on, channel}]
+    [
+      beacon_sense(:beacon_heading, channel),
+      beacon_sense(:beacon_distance, channel),
+      beacon_sense(:beacon_on, channel)
+    ]
   end
 
-  def read(sensor, :beacon_proximity) do
-    proximity(sensor)
+  def read(sensor, sense) do
+    expanded_sense = expand_sense(sense)
+    {_, updated_sensor} = do_read(sensor, expanded_sense)
+    # double read seems necessary after a mode change
+    do_read(updated_sensor, expanded_sense)
   end
 
-  def read(sensor, {:remote_buttons, channel}) do
-    remote_buttons(sensor, channel)
-  end
-
-  def read(sensor, {beacon_sense, channel}) do
-    case beacon_sense do
-      :beacon_heading -> seek_heading(sensor, channel)
-      :beacon_distance -> seek_distance(sensor, channel)
-      :beacon_on -> seek_beacon_on?(sensor, channel)
-    end
-  end
-
-  def nudge(_sensor, {beacon_sense, channel}, value, previous_value) do
-    case beacon_sense do
-      :beacon_heading -> nudge_heading(channel, value, previous_value)
-      :beacon_distance -> nudge_distance(channel, value, previous_value)
-      :beacon_on -> nudge_beacon_on?(channel, value, previous_value)
+  def nudge(_sensor, sense, value, previous_value) do
+    case expand_sense(sense) do
+      {:beacon_heading, channel} -> nudge_heading(channel, value, previous_value)
+      {:beacon_distance, channel} -> nudge_distance(channel, value, previous_value)
+      {:beacon_on, channel} -> nudge_beacon_on?(channel, value, previous_value)
+      :beacon_proximity -> nudge_proximity(value, previous_value)
     end
   end
 
@@ -75,6 +72,37 @@ defmodule Andy.MockRover.InfraredSensor do
   end
 
   ### Private
+
+  defp beacon_sense(kind, channel) do
+    "#{kind}/#{channel}" |> String.to_atom()
+  end
+
+  defp expand_sense(sense) do
+    case String.split("#{sense}", "/") do
+      [kind] ->
+        String.to_atom(kind)
+
+      [kind, channel_s] ->
+        {channel, _} = Integer.parse(channel_s)
+        {String.to_atom(kind), channel}
+    end
+  end
+
+  defp do_read(sensor, :beacon_proximity) do
+    proximity(sensor)
+  end
+
+  defp do_read(sensor, {:remote_buttons, channel}) do
+    remote_buttons(sensor, channel)
+  end
+
+  defp do_read(sensor, {beacon_sense, channel}) do
+    case beacon_sense do
+      :beacon_heading -> seek_heading(sensor, channel)
+      :beacon_distance -> seek_distance(sensor, channel)
+      :beacon_on -> seek_beacon_on?(sensor, channel)
+    end
+  end
 
   defp proximity(sensor) do
     value = :rand.uniform(20)
@@ -107,6 +135,21 @@ defmodule Andy.MockRover.InfraredSensor do
   end
 
   defp nudge_distance(_channel, value, previous_value) do
+    case previous_value do
+      nil ->
+        Enum.random(0..@max_distance)
+
+      _ ->
+        direction = if value - previous_value >= 0, do: 1, else: -1
+        nudge = Enum.random(0..@nudge_distance)
+
+        (previous_value + direction * nudge)
+        |> max(0)
+        |> min(@max_distance)
+    end
+  end
+
+  defp nudge_proximity(value, previous_value) do
     case previous_value do
       nil ->
         Enum.random(0..@max_distance)

@@ -24,8 +24,8 @@ defmodule Andy.GM.DetectorsSupervisor do
 
   @doc "Start a detector"
   def start_detector(device, sense) do
-    Logger.info("Starting detector on device #{inspect device} with sense #{inspect sense}")
-    DynamicSupervisor.start_child(@name, {Detector, [device, sense]})
+    Logger.info("Starting detector on device #{inspect(device)} with sense #{inspect(sense)}")
+    {:ok, _} = DynamicSupervisor.start_child(@name, {Detector, [device, sense]})
   end
 
   ### Callbacks

@@ -90,6 +90,13 @@ defmodule Andy.GM.Detector do
 
       updated_state
     else
+      Logger.debug(
+        "NO NAME MATCH for detector #{state.name} for conjecture #{conjecture_name} and device #{
+          inspect(state.device)
+        } and sense #{inspect(state.sense)}"
+      )
+
+
       state
     end
   end
@@ -106,7 +113,7 @@ defmodule Andy.GM.Detector do
 
   defp name(device, sense) do
     clean_port =
-      case String.split(device.port, ":") do
+      case String.split(device.port || "MOCK", ":") do
         [port] ->
           port
 
@@ -130,17 +137,7 @@ defmodule Andy.GM.Detector do
       [device_type_s, device_port_s, sense_name_s] ->
         device_type = atomize_if_name(device_type_s)
         device_port = atomize_if_name(device_port_s)
-
-        sense_name =
-          case String.split(sense_name_s, "/") do
-            [sense_name_s] ->
-              atomize_if_name(sense_name_s)
-
-            [sense_name_s, number_s] ->
-              {number, _} = Integer.parse(number_s)
-              {atomize_if_name(sense_name_s), number}
-          end
-
+        sense_name =  atomize_if_name(sense_name_s)
         device_type in ["*", device.type] and device_port in ["*", device.port] and
           sense_name in ["*", sense]
 

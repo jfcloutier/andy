@@ -29,42 +29,26 @@ defmodule Andy.BrickPi.InfraredSensor do
         fn channel, acc ->
           acc ++
             [
-              {:beacon_heading, channel},
-              {:beacon_distance, channel},
-              {:beacon_on, channel},
-              {:remote_buttons, channel}
+              beacon_sense(:beacon_heading, channel),
+              beacon_sense(:beacon_distance, channel),
+              beacon_sense(:beacon_on, channel),
+              beacon_sense(:remote_buttons, channel)
             ]
         end
       )
 
-      Logger.info("INFRARED SENSES = #{inspect [:beacon_proximity | beacon_senses]}")
     [:beacon_proximity | beacon_senses]
   end
 
   def beacon_senses_for(channel) do
-    [{:beacon_heading, channel}, {:beacon_distance, channel}, {:beacon_on, channel}]
+    [beacon_sense(:beacon_heading, channel), beacon_sense(:beacon_distance, channel), beacon_sense(:beacon_on, channel)]
   end
 
   def read(sensor, sense) do
-    {_, updated_sensor} = do_read(sensor, sense)
+    expanded_sense = expand_sense(sense)
+    {_, updated_sensor} = do_read(sensor, expanded_sense)
     # double read seems necessary after a mode change
-    do_read(updated_sensor, sense)
-  end
-
-  defp do_read(sensor, :beacon_proximity) do
-    beacon_proximity(sensor)
-  end
-
-  defp do_read(sensor, {:remote_buttons, channel}) do
-    remote_buttons(sensor, channel)
-  end
-
-  defp do_read(sensor, {beacon_sense, channel}) do
-    case beacon_sense do
-      :beacon_heading -> seek_heading(sensor, channel)
-      :beacon_distance -> seek_distance(sensor, channel)
-      :beacon_on -> seek_beacon_on?(sensor, channel)
-    end
+    do_read(updated_sensor, expanded_sense)
   end
 
   def pause(_) do
@@ -157,6 +141,35 @@ defmodule Andy.BrickPi.InfraredSensor do
   end
 
   ### PRIVATE
+
+  defp beacon_sense(kind, channel) do
+    "#{kind}/#{channel}" |> String.to_atom()
+  end
+
+  defp expand_sense(sense) do
+    case String.split("#{sense}", "/") do
+      [kind] -> String.to_atom(kind)
+      [kind, channel_s] ->
+        {channel, _} = Integer.parse(channel_s)
+        {String.to_atom(kind), channel}
+    end
+  end
+
+  defp do_read(sensor, :beacon_proximity) do
+    beacon_proximity(sensor)
+  end
+
+  defp do_read(sensor, {:remote_buttons, channel}) do
+    remote_buttons(sensor, channel)
+  end
+
+  defp do_read(sensor, {beacon_sense, channel}) do
+    case beacon_sense do
+      :beacon_heading -> seek_heading(sensor, channel)
+      :beacon_distance -> seek_distance(sensor, channel)
+      :beacon_on -> seek_beacon_on?(sensor, channel)
+    end
+  end
 
   defp set_proximity_mode(sensor) do
     LegoSensor.set_mode(sensor, @proximity)
