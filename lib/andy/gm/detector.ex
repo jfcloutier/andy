@@ -5,7 +5,9 @@ defmodule Andy.GM.Detector do
   import Andy.Utils, only: [listen_to_events: 3, now: 0, platform_dispatch: 2]
   require Logger
 
-  # wait at least half a second to read a new value - TODO - use device TTL?
+  # TODO - Re-introduce nudging and sensitivity
+
+  # wait at least half a second to read a new value
   @refractory_interval 500
 
   # A detector receives predictions from GMs.
@@ -72,9 +74,10 @@ defmodule Andy.GM.Detector do
     name_s = "#{name}"
     [n_device, n_port, n_sense] = String.split(name_s, ":")
     [p_device, p_port, p_sense] = String.split(name_pattern, ":")
+
     p_device in [n_device, "*"] and
-    p_port in [n_port, "*"] and
-    p_sense in [n_sense, "*"]
+      p_port in [n_port, "*"] and
+      p_sense in [n_sense, "*"]
   end
 
   ### Event handling
@@ -164,32 +167,62 @@ defmodule Andy.GM.Detector do
   defp atomize_if_name("*"), do: "*"
   defp atomize_if_name(name) when is_binary(name), do: String.to_atom(name)
 
+  # If value read is :unknown, use previous reading if any.
+  # If two :unknown reads in a row, the second one will be returned as :unknown
   defp read_value(
          about,
          %State{device: device, sense: sense, previous_reads: previous_reads} = state
        ) do
     time_now = now()
 
-    read =
-      case previous_read(previous_reads, about, time_now) do
+    {effective_reading, updated_state} =
+      case recent_read(previous_reads, about, time_now) do
         nil ->
-          value = read(device, sense)
           Logger.info("#{inspect(detector_name(state))}: Reading new value")
-          %Read{value: value, timestamp: time_now}
+          {reading, updated_device} = value = read(device, sense)
+          previous_read = Map.get(previous_reads, about)
 
+          if reading == :unknown and previous_read != nil do
+            Logger.info(
+              "#{inspect(detector_name(state))}: Value is :unknown, using previous read #{
+                inspect(previous_read)
+              }"
+            )
+
+            {previous_reading, _updated_device} = previous_read.value
+            # Return previous reading but store the :unknown one as previous read
+            {previous_reading,
+             %State{
+               state
+               | device: updated_device,
+                 previous_reads:
+                   Map.put(previous_reads, about, %Read{value: value, timestamp: time_now})
+             }}
+          else
+            # return :unknown reading and make it the previous read
+            read = %Read{value: value, timestamp: time_now}
+
+            {reading,
+             %State{
+               state
+               | device: updated_device,
+                 previous_reads: Map.put(previous_reads, about, read)
+             }}
+          end
+
+        # Prior read not yet expired
         prior_read ->
-          prior_read
+          {prior_reading, _updated_device} = prior_read.value
+          # No change of state
+          {prior_reading, state}
       end
 
-    {reading, updated_device} = read.value
-    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(reading)}")
-
-    {reading,
-     %State{state | device: updated_device, previous_reads: Map.put(previous_reads, about, read)}}
+    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(effective_reading)}")
+    {effective_reading, updated_state}
   end
 
   # Unexpired previous read else nil
-  def previous_read(previous_reads, about, time_now) do
+  defp recent_read(previous_reads, about, time_now) do
     case Map.get(previous_reads, about) do
       nil ->
         nil

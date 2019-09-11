@@ -104,6 +104,7 @@ defmodule Andy.Rover.Platform do
     # 		System.cmd("poweroff", [])
   end
 
+  # Scotty!
   def voice() do
     "en-sc"
   end
@@ -116,10 +117,12 @@ defmodule Andy.Rover.Platform do
     LegoMotor.read(device, sense)
   end
 
+  # TODO - Unused
   def sensor_sensitivity(device, sense) do
     LegoSensor.sensitivity(device, sense)
   end
 
+  # TODO - Unused
   def motor_sensitivity(device, sense) do
     LegoMotor.sensitivity(device, sense)
   end
@@ -128,6 +131,7 @@ defmodule Andy.Rover.Platform do
     InfraredSensor.beacon_senses_for(channel)
   end
 
+  # TODO - Unused
   def nudge(_device, _sense, value, _previous_value) do
     value
   end
