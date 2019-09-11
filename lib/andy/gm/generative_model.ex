@@ -70,7 +70,8 @@ defmodule Andy.GM.GenerativeModel do
     Perception,
     Efficacy,
     LongTermMemory,
-    Intention
+    Intention,
+    Detector
   }
 
   # for how long rounds are remembered (long-term memory)
@@ -274,14 +275,36 @@ defmodule Andy.GM.GenerativeModel do
   def handle_event(
         {
           :prediction_error,
-          %PredictionError{} = prediction_error
+          %PredictionError{size: size} = prediction_error
         },
-        %State{started: true} = state
+        %State{
+          started: true
+        } = state
       ) do
     if prediction_error_relevant?(prediction_error, state) do
       Logger.info("#{info(state)}: Received prediction error #{inspect(prediction_error)}")
 
-      add_prediction_error_to_round(prediction_error, state)
+      updated_state =
+        if size > 0 do
+          add_prediction_error_to_round(prediction_error, state)
+        else
+          state
+        end
+
+      # If from a detector, consider it reported in
+      source = PredictionError.source(prediction_error)
+
+      if Detector.detector_name?(source) do
+        Logger.info("#{info(state)}: Detector #{inspect(source)} reported in")
+        %State{rounds: [%Round{reported_in: reported_in} = round | previous_rounds]} = updated_state
+        updated_round = %Round{round | reported_in: [source | reported_in]}
+
+        %State{updated_state | rounds: [updated_round | previous_rounds]}
+        # Complete the round if it is fully informed
+        |> maybe_complete_round()
+      else
+        updated_state
+      end
     else
       state
     end
@@ -749,11 +772,26 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp round_ready_to_complete?(%State{sub_gm_names: sub_gm_names} = state) do
-    %Round{reported_in: reported_in} = current_round(state)
+    %Round{reported_in: reported_in, perceptions: perceptions} = current_round(state)
+    activated_detectors = activated_detectors(perceptions)
 
     Enum.all?(
       sub_gm_names,
       &(not_considered?(&1, state) or &1 in reported_in)
+    ) and Enum.all?(activated_detectors, &(&1 in reported_in))
+  end
+
+  defp activated_detectors(perceptions) do
+    Enum.filter(
+      perceptions,
+      fn perception ->
+        if Perception.prediction?(perception) do
+          %Prediction{carry_overs: carry_overs, conjecture_name: conjecture_name} = perception
+          carry_overs == 0 and Detector.detector_name?(conjecture_name)
+        else
+          false
+        end
+      end
     )
   end
 
@@ -1190,14 +1228,26 @@ defmodule Andy.GM.GenerativeModel do
                 acc
               else
                 # keep trying to achieve the goal
-                [select_course_of_action(conjecture_activation, state) | acc]
+                case select_course_of_action(conjecture_activation, state) do
+                  nil ->
+                    acc
+
+                  coa ->
+                    [coa | acc]
+                end
               end
 
               # opinion
             else
               if believed_now?(conjecture_activation, state) do
                 # keep trying to confirm the opinion
-                [select_course_of_action(conjecture_activation, state) | acc]
+                case select_course_of_action(conjecture_activation, state) do
+                  nil ->
+                    acc
+
+                  coa ->
+                    [coa | acc]
+                end
               else
                 acc
               end
@@ -1209,7 +1259,6 @@ defmodule Andy.GM.GenerativeModel do
     Logger.info("#{info(state)}: CoA selections #{inspect(coa_selections)}")
     # reducing [{selected_course_of_action, updated_coa_index, new_coa?}, ...]
     {round_courses_of_action, updated_coa_indices, updated_efficacies} =
-      results =
       Enum.reduce(
         coa_selections,
         {[], courses_of_action_indices, efficacies},
@@ -1229,7 +1278,11 @@ defmodule Andy.GM.GenerativeModel do
         end
       )
 
-    Logger.info("#{info(state)}: CoAs set to #{inspect(results)}")
+    Logger.info(
+      "#{info(state)}: CoAs set to #{inspect(round_courses_of_action)} with updated CoA indices #{
+        inspect(updated_coa_indices)
+      } and updated efficacies #{inspect(updated_efficacies)}"
+    )
 
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
@@ -1272,7 +1325,7 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Select a course of action for a conjecture
-  # Returns {selected_course_of_action, updated_coa_index, new_coa?}
+  # Returns {selected_course_of_action, updated_coa_index, new_coa?} or nil if no CoA
   defp select_course_of_action(
          %ConjectureActivation{} = conjecture_activation,
          %State{
@@ -1323,7 +1376,7 @@ defmodule Andy.GM.GenerativeModel do
       if maybe_untried_coa == nil or CourseOfAction.empty?(maybe_untried_coa) or
            course_of_action_already_tried?(maybe_untried_coa, tried) do
         if tried == [],
-          do: Logger.warn("#{info(state)}: Empty tried CoAs and no new untried CoA!")
+          do: Logger.info("#{info(state)}: Empty tried CoAs and no new untried CoA!")
 
         tried
       else
@@ -1333,21 +1386,27 @@ defmodule Andy.GM.GenerativeModel do
       |> normalize_efficacies()
 
     # Pick a CoA randomly, favoring higher efficacy
-    course_of_action = pick_course_of_action(candidates, state)
-    # Move the CoA index if we picked an untried CoA
-    new_coa? = course_of_action == maybe_untried_coa
+    case pick_course_of_action(candidates, state) do
+      nil ->
+        Logger.info("#{info(state)}: No CoA was picked")
+        nil
 
-    # Are all intentions in the domain of the activated conjecture non-repeatable?
-    all_non_repeatable? = all_non_repeatable_intentions?(conjecture_activation, state)
+      course_of_action ->
+        # Move the CoA index if we picked an untried CoA
+        new_coa? = course_of_action == maybe_untried_coa
 
-    updated_coa_index =
-      if (maybe_untried_coa == nil and not all_non_repeatable?) or new_coa? do
-        coa_index + 1
-      else
-        coa_index
-      end
+        # Are all intentions in the domain of the activated conjecture non-repeatable?
+        all_non_repeatable? = all_non_repeatable_intentions?(conjecture_activation, state)
 
-    {course_of_action, updated_coa_index, new_coa?}
+        updated_coa_index =
+          if (maybe_untried_coa == nil and not all_non_repeatable?) or new_coa? do
+            coa_index + 1
+          else
+            coa_index
+          end
+
+        {course_of_action, updated_coa_index, new_coa?}
+    end
   end
 
   defp course_of_action_already_tried?(maybe_untried_coa, tried) do
@@ -1409,12 +1468,13 @@ defmodule Andy.GM.GenerativeModel do
       GenerativeModelDef.unduplicate_non_repeatables(gm_def, intention_names)
       |> Enum.reverse()
 
+    # Should never happen
     if Enum.count(unduplicated_intention_names) == 0,
       do: Logger.warn("#{info(state)}: Empty intention names for new CoA")
 
     index_of_coa = index_of_coa(unduplicated_intention_names, intention_names)
 
-    if index_of_coa < courses_of_action_index do
+    if(index_of_coa < courses_of_action_index) do
       Logger.info(
         "#{info(state)}: Already tried #{inspect(unduplicated_intention_names)} (#{index_of_coa} < #{
           courses_of_action_index
@@ -1423,14 +1483,40 @@ defmodule Andy.GM.GenerativeModel do
 
       nil
     else
-      new_coa = %CourseOfAction{
-        conjecture_activation: conjecture_activation,
-        intention_names: unduplicated_intention_names
-      }
+      if all_noops?(unduplicated_intention_names, conjecture_activation, state) do
+        Logger.info("#{info(state)}: Noop #{inspect(unduplicated_intention_names)}. No new CoA.")
+        nil
+      else
+        new_coa = %CourseOfAction{
+          conjecture_activation: conjecture_activation,
+          intention_names: unduplicated_intention_names
+        }
 
-      Logger.info("#{info(state)}: Candidate new COA #{inspect(new_coa)}")
-      new_coa
+        Logger.info("#{info(state)}: Candidate new COA #{inspect(new_coa)}")
+        new_coa
+      end
     end
+  end
+
+  defp all_noops?(intention_names, conjecture_activation, state) when is_list(intention_names) do
+    %Round{beliefs: beliefs} = current_round(state)
+
+    case Enum.find(
+           beliefs,
+           &(Belief.subject(&1) == ConjectureActivation.subject(conjecture_activation))
+         ) do
+      nil ->
+        Logger.warn("#{info(state)}: No belief found for #{inspect(conjecture_activation)}")
+        true
+
+      %Belief{} = belief ->
+        Enum.all?(intention_names, &noop?(&1, belief, state))
+    end
+  end
+
+  defp noop?(intention_name, %Belief{values: belief_values}, %State{gm_def: gm_def}) do
+    intentions = GenerativeModelDef.intentions(gm_def, intention_name)
+    Enum.all?(intentions, &(&1.valuator.(belief_values) == nil))
   end
 
   defp index_list(courses_of_action_index, [_intention_name]) do
@@ -1491,6 +1577,11 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   # Randomly pick a course of action with a probability proportional to its degree of efficacy
+
+  defp pick_course_of_action([], _state) do
+    nil
+  end
+
   defp pick_course_of_action([{coa, _degree}], _state) do
     coa
   end
@@ -1629,6 +1720,7 @@ defmodule Andy.GM.GenerativeModel do
         else
           # execute valued intent
           %{value: intent_value, duration: duration} = intent_valuation
+
           intent =
             Intent.new(
               about: intention.intent_name,

@@ -62,6 +62,11 @@ defmodule Andy.GM.Detector do
     {:ok, pid}
   end
 
+  def detector_name?(name) do
+    name_s = "#{name}"
+    Enum.count(String.split(name_s, ":")) == 3
+  end
+
   ### Event handling
 
   # expectations = %{detector_name: value}
@@ -95,7 +100,6 @@ defmodule Andy.GM.Detector do
           inspect(state.device)
         } and sense #{inspect(state.sense)}"
       )
-
 
       state
     end
@@ -137,7 +141,8 @@ defmodule Andy.GM.Detector do
       [device_type_s, device_port_s, sense_name_s] ->
         device_type = atomize_if_name(device_type_s)
         device_port = atomize_if_name(device_port_s)
-        sense_name =  atomize_if_name(sense_name_s)
+        sense_name = atomize_if_name(sense_name_s)
+
         device_type in ["*", device.type] and device_port in ["*", device.port] and
           sense_name in ["*", sense]
 
@@ -188,7 +193,7 @@ defmodule Andy.GM.Detector do
     end
   end
 
-  # Prediction error or nil
+  # Prediction error of size >= 0 (size == 0 means a prediction non-error - needed by GM to check if all activated detectors reported in)
   defp maybe_prediction_error(
          %Prediction{goal: goal_or_nil} = prediction,
          value,
@@ -203,30 +208,28 @@ defmodule Andy.GM.Detector do
     values = %{detected: value}
     size = Prediction.prediction_error_size(prediction, values)
 
-    if size == 0.0 do
-      nil
-    else
-      belief =
-        Belief.new(
-          source: name,
-          conjecture_name: conjecture_name,
-          about: about,
-          goal: goal_or_nil,
-          values: values
-        )
-
-      prediction_error = %PredictionError{
-        prediction: prediction,
-        size: size,
-        belief: belief
-      }
-
-      Logger.info(
-        "#{inspect(detector_name(state))}: Prediction error #{inspect(prediction_error)}"
+    belief =
+      Belief.new(
+        source: name,
+        conjecture_name: conjecture_name,
+        about: about,
+        goal: goal_or_nil,
+        values: values
       )
 
-      prediction_error
-    end
+    prediction_error = %PredictionError{
+      prediction: prediction,
+      size: size,
+      belief: belief
+    }
+
+    if size > 0,
+      do:
+        Logger.info(
+          "#{inspect(detector_name(state))}: Prediction error #{inspect(prediction_error)}"
+        )
+
+    prediction_error
   end
 
   # Read a sense from a sensor device

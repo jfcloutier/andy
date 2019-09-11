@@ -39,7 +39,7 @@ defmodule Andy.GM.Prediction do
   def carry_overs(%Prediction{carry_overs: carry_overs}), do: carry_overs
 
   def prediction_conjecture_name(prediction) do
-    source(prediction)
+    conjecture_name(prediction)
   end
 
   def values(%Prediction{expectations: nil} = prediction) do

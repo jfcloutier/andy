@@ -10,11 +10,11 @@ defmodule Andy.GM.GenerativeModelDef do
   require Logger
 
   defstruct name: nil,
-              # the maximum duration of a round for the GM
+            # the maximum duration of a round for the GM
             max_round_duration: @default_max_round_duration,
-              # the maximum duration of intent execution for the GM
+            # the maximum duration of intent execution for the GM
             max_execution_duration: @default_max_execution_duration,
-              # GM conjectures
+            # GM conjectures
             conjectures: [],
             # sets of mutually-exclusive conjectures (by name)
             contradictions: [],
@@ -44,7 +44,7 @@ defmodule Andy.GM.GenerativeModelDef do
         end
       )
 
-    Logger.info("#{gm_def.name}(0): Initial beliefs are #{inspect(initial_beliefs)}")
+    Logger.info("#{inspect(gm_def.name)}(0): Initial beliefs are #{inspect(initial_beliefs)}")
     initial_beliefs
   end
 
@@ -56,16 +56,16 @@ defmodule Andy.GM.GenerativeModelDef do
     Enum.find(conjectures, &(&1.name == conjecture_name))
   end
 
-  def mutually_exclusive?(
+  def contradicts?(
         %GenerativeModelDef{contradictions: contradictions},
-        conjecture_name,
-        other
+        {conjecture_name, about},
+        {other_conjecture_name, about}
       ) do
-    Enum.any?(contradictions, &(conjecture_name in &1 and other in &1))
-  end
-
-  def contradicts?(gm_def, {conjecture_name, about}, {other_conjecture_name, about}) do
-    mutually_exclusive?(gm_def, conjecture_name, other_conjecture_name)
+    Enum.any?(
+      contradictions,
+      &(conjecture_name != other_conjecture_name and conjecture_name in &1 and
+          other_conjecture_name in &1)
+    )
   end
 
   def contradicts?(_gm_def, _subject, _other_subject) do
