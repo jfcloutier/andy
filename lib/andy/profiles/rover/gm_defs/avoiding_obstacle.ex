@@ -27,7 +27,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       name: :obstacle_not_hit,
       activator: obstacle_not_hit_activator(),
       predictors: [
-        no_change_predictor(:distance_to_obstacle, default: %{detected: :unknown})
+        no_change_predictor(:distance_to_obstacle, default: %{is: :unknown})
       ],
       valuator: obstacle_not_hit_belief_valuator(),
       intention_domain: movement_domain()
