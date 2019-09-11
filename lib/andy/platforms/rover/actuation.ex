@@ -111,8 +111,8 @@ defmodule Andy.Rover.Actuation do
       how_long = round(intent.value.time * 1000)
 
       Script.new(:going_forward, motors)
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed])
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed * -1])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed * -1])
       |> Script.add_step(:all, :run_for, [how_long])
 
       # 			|> Script.add_wait(how_long)
@@ -136,8 +136,8 @@ defmodule Andy.Rover.Actuation do
       how_long = round(intent.value.time * 1000)
 
       Script.new(:going_backward, motors)
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed * -1])
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed * -1])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed])
       |> Script.add_step(:all, :run_for, [how_long])
     end
   end
@@ -147,8 +147,8 @@ defmodule Andy.Rover.Actuation do
       how_long = round(intent.value * 1000)
 
       Script.new(:turning_right, motors)
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5])
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, speed(:normal)])
       |> Script.add_step(:all, :run_for, [how_long])
     end
   end
@@ -158,8 +158,8 @@ defmodule Andy.Rover.Actuation do
       how_long = round(intent.value * 1000)
 
       Script.new(:turning_left, motors)
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, speed(:normal)])
       |> Script.add_step(:all, :run_for, [how_long])
     end
   end
@@ -176,8 +176,8 @@ defmodule Andy.Rover.Actuation do
         end
 
       Script.new(:turning, motors)
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5 * toggle])
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5 * toggle])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, -1 * speed(:normal) * toggle])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, speed(:normal) * toggle])
       |> Script.add_step(:all, :run_for, [how_long])
     end
   end
@@ -194,19 +194,19 @@ defmodule Andy.Rover.Actuation do
         case turn_direction do
           :right ->
             script
-            |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5])
-            |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5])
+            |> Script.add_step(:left_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+            |> Script.add_step(:right_wheel, :set_speed, [:rps, speed(:normal)])
 
           :left ->
             script
-            |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
-            |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
+            |> Script.add_step(:right_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+            |> Script.add_step(:left_wheel, :set_speed, [:rps, speed(:normal)])
         end
 
       script
       |> Script.add_step(:all, :run_for, [turn_time_ms])
-      |> Script.add_step(:right_wheel, :set_speed, [:rps, forward_rps_speed])
-      |> Script.add_step(:left_wheel, :set_speed, [:rps, forward_rps_speed])
+      |> Script.add_step(:right_wheel, :set_speed, [:rps, forward_rps_speed * -1])
+      |> Script.add_step(:left_wheel, :set_speed, [:rps, forward_rps_speed * -1])
       |> Script.add_step(:all, :run_for, [forward_time_ms])
     end
   end
@@ -232,13 +232,13 @@ defmodule Andy.Rover.Actuation do
           case turn_direction do
             :right ->
               acc
-              |> Script.add_step(:left_wheel, :set_speed, [:rps, 0.5])
-              |> Script.add_step(:right_wheel, :set_speed, [:rps, -0.5])
+              |> Script.add_step(:left_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+              |> Script.add_step(:right_wheel, :set_speed, [:rps, speed(:normal)])
 
             :left ->
               acc
-              |> Script.add_step(:right_wheel, :set_speed, [:rps, 0.5])
-              |> Script.add_step(:left_wheel, :set_speed, [:rps, -0.5])
+              |> Script.add_step(:right_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+              |> Script.add_step(:left_wheel, :set_speed, [:rps, speed(:normal)])
 
             :none ->
               acc
@@ -248,8 +248,8 @@ defmodule Andy.Rover.Actuation do
 
           acc
           |> Script.add_step(:all, :run_for, [turn_time_ms])
-          |> Script.add_step(:right_wheel, :set_speed, [:rps, backward_rps_speed * -1])
-          |> Script.add_step(:left_wheel, :set_speed, [:rps, backward_rps_speed * -1])
+          |> Script.add_step(:right_wheel, :set_speed, [:rps, backward_rps_speed])
+          |> Script.add_step(:left_wheel, :set_speed, [:rps, backward_rps_speed])
           |> Script.add_step(:all, :run_for, [backward_time_ms])
         end
       )
@@ -270,7 +270,7 @@ defmodule Andy.Rover.Actuation do
     fn _intent, motors ->
       Script.new(:eating, motors)
       |> Script.add_step(:mouth, :set_speed, [:rps, 1])
-      |> Script.add_step(:mouth, :run_for, [1000])
+      |> Script.add_step(:mouth, :run_for, [2000])
     end
   end
 
