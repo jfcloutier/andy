@@ -271,23 +271,28 @@ defmodule Andy.GM.GenerativeModel do
         %State{state | rounds: [updated_round | previous_rounds]} |> start_round_if_not_started()
 
       # Activate associated conjectures
-      new_conjecture_activations = activate_conjectures_from_prediction(updated_state, prediction)
-      # The new activations are added to prior ones minus priors that are mutually excluded
-      updated_conjecture_activations =
-        rationalize_conjecture_activations(
-          new_conjecture_activations ++ conjecture_activations,
-          gm_def
-        )
+      case activate_conjectures_from_prediction(updated_state, prediction) do
+        [] ->
+          updated_state
 
-      Logger.info(
-        "#{info(state)}: Conjecture activations #{inspect(updated_conjecture_activations)} after receiving prediction #{
-          inspect(prediction)
-        }"
-      )
+        new_conjecture_activations ->
+          # The new activations are added to prior ones minus priors that are mutually excluded
+          updated_conjecture_activations =
+            rationalize_conjecture_activations(
+              new_conjecture_activations ++ conjecture_activations,
+              gm_def
+            )
 
-      %State{updated_state | conjecture_activations: updated_conjecture_activations}
-      |> remove_excluded_perceptions_and_beliefs()
-      |> make_predictions(new_conjecture_activations)
+          Logger.info(
+            "#{info(state)}: Conjecture activations #{inspect(updated_conjecture_activations)} after receiving prediction #{
+              inspect(prediction)
+            }"
+          )
+
+          %State{updated_state | conjecture_activations: updated_conjecture_activations}
+          |> remove_excluded_perceptions_and_beliefs()
+          |> make_predictions(new_conjecture_activations)
+      end
     else
       state
     end
@@ -384,7 +389,8 @@ defmodule Andy.GM.GenerativeModel do
 
   # Activate *not-yet activated* conjectures from the prediction
   defp activate_conjectures_from_prediction(
-         %State{gm_def: gm_def, rounds: rounds, conjecture_activations: conjecture_activations} = state,
+         %State{gm_def: gm_def, rounds: rounds, conjecture_activations: conjecture_activations} =
+           state,
          %Prediction{conjecture_name: conjecture_name, about: prediction_about} = prediction
        ) do
     if Enum.any?(
