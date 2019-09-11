@@ -1,8 +1,8 @@
 defmodule Andy.GM.GenerativeModelDef do
   @moduledoc "A generative model's definition"
 
-  # half a second
-  @default_max_round_duration 3_000
+  @default_max_round_duration 2_000
+  @default_min_round_duration 250
   @default_max_execution_duration 3_000
 
   alias __MODULE__
@@ -14,6 +14,8 @@ defmodule Andy.GM.GenerativeModelDef do
             max_round_duration: @default_max_round_duration,
             # the maximum duration of intent execution for the GM
             max_execution_duration: @default_max_execution_duration,
+              # the maximum duration of intent execution for the GM
+            min_round_duration: @default_min_round_duration,
             # GM conjectures
             conjectures: [],
             # sets of mutually-exclusive conjectures (by name)
@@ -46,6 +48,10 @@ defmodule Andy.GM.GenerativeModelDef do
 
     Logger.info("#{inspect(gm_def.name)}(0): Initial beliefs are #{inspect(initial_beliefs)}")
     initial_beliefs
+  end
+
+  def min_round_duration(%GenerativeModelDef{min_round_duration: min_round_duration}) do
+    min_round_duration
   end
 
   def has_conjecture?(%GenerativeModelDef{} = gm_def, conjecture_name) do

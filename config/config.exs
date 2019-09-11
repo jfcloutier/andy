@@ -24,19 +24,10 @@ config :andy,
     "mock_rover" => Andy.MockRover.Platform,
     "rover" => Andy.Rover.Platform
   },
-  #  andy.profiles: %{
-  #    "puppy" => Andy.Puppy.Profile,
-  #    "mommy" => Andy.Mommy.Profile
-  #  },
   profiles: %{
     "rover" => Andy.Profiles.Rover
   },
   max_beacon_channels: 1,
-  #       very_fast_rps: 3,
-  #       fast_rps: 2,
-  #       normal_rps: 1,
-  #       slow_rps: 0.5,
-  #       very_slow_rps: 0.3
   very_fast_rps: 1.5,
   fast_rps: 1,
   normal_rps: 0.5,

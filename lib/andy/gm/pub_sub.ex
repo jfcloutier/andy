@@ -56,7 +56,6 @@ defmodule Andy.GM.PubSub do
   end
 
   @doc "Notify of an intent actuated"
-  # TODO - no handler
   def notify_actuated(intent) do
     notify({:actuated, intent})
   end

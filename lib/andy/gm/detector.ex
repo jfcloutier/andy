@@ -67,6 +67,16 @@ defmodule Andy.GM.Detector do
     Enum.count(String.split(name_s, ":")) == 3
   end
 
+  # e.g. :"infrared:MOCK:beacon_distance/1" matches pattern "*:*:beacon_distance/1"?
+  def name_matches_pattern?(name, name_pattern) do
+    name_s = "#{name}"
+    [n_device, n_port, n_sense] = String.split(name_s, ":")
+    [p_device, p_port, p_sense] = String.split(name_pattern, ":")
+    p_device in [n_device, "*"] and
+    p_port in [n_port, "*"] and
+    p_sense in [n_sense, "*"]
+  end
+
   ### Event handling
 
   # expectations = %{detector_name: value}

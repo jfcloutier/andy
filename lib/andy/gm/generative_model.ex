@@ -2,6 +2,7 @@ defmodule Andy.GM.GenerativeModel do
   @moduledoc "A generative model agent"
 
   # TODO - Too big. Refactor code into GM state component modules
+  # TODO - Simplify updating the current round
 
   # Round initialization:
   #           - Copy over all the perceptions from the previous round that have not already been copied too often
@@ -99,7 +100,11 @@ defmodule Andy.GM.GenerativeModel do
               # conjecture_activation_subject => [efficacy, ...] - the efficacies of tried courses of action to achieve a goal conjecture
               efficacies: %{},
               # conjecture_activation_subject => index of next course of action to try
-              courses_of_action_indices: %{}
+              courses_of_action_indices: %{},
+              # one [:initializing, :running, :completing, :closing]
+              round_status: :initializing,
+              # event bufer for when current round in not running
+              event_buffer: []
   end
 
   @doc "Child spec as supervised worker"
@@ -152,7 +157,11 @@ defmodule Andy.GM.GenerativeModel do
         %State{} = state
       ) do
     if gm_name(state) == name do
-      updated_state = initialize_round(state)
+      updated_state =
+        state
+        |> round_status(:initializing)
+
+      Agent.cast(name, fn state -> initialize_round(state) end)
       %State{updated_state | started: true}
     else
       state
@@ -166,13 +175,16 @@ defmodule Andy.GM.GenerativeModel do
           gm_def: %GenerativeModelDef{
             name: name
           },
-          started: true
+          started: true,
+          round_status: :running
         } = state
       ) do
     # could be an obsolete round timeout event meant for a previous round that completed early
     if round_timed_out?(round_id, state) do
       Logger.info("#{info(state)}: Round timed out")
-      complete_round(state)
+      updated_state = state |> round_status(:completing)
+      Agent.cast(name, fn state -> complete_round(state) end)
+      updated_state
     else
       Logger.info("#{info(state)}: Obsolete round timeout")
       state
@@ -186,13 +198,15 @@ defmodule Andy.GM.GenerativeModel do
           gm_def: %GenerativeModelDef{
             name: name
           },
-          started: true
+          round_status: :completing
         } = state
       ) do
     # could be an obsolete round timeout event meant for a previous round that completed early
     if current_round?(round_id, state) do
       Logger.info("#{info(state)}: Round execution timed out")
-      close_round(state)
+      updated_state = state |> round_status(:closing)
+      Agent.cast(name, fn state -> close_round(state) end)
+      updated_state
     else
       Logger.info("#{info(state)}: Obsolete round execution timeout")
       state
@@ -203,7 +217,7 @@ defmodule Andy.GM.GenerativeModel do
   def handle_event(
         {:round_completed, name},
         %State{
-          started: true,
+          round_status: :running,
           sub_gm_names: sub_gm_names,
           rounds: [%Round{reported_in: reported_in} = round | previous_rounds]
         } = state
@@ -226,9 +240,17 @@ defmodule Andy.GM.GenerativeModel do
   # 	Remove mutually excluded activations and their associated predictions made
   # 	Make predictions from the activated conjecture
   def handle_event(
+        {:prediction, %Prediction{}} = event,
+        %State{round_status: round_status} = state
+      )
+      when round_status != :running do
+    buffer_event(state, event)
+  end
+
+  def handle_event(
         {:prediction, %Prediction{} = prediction},
         %State{
-          started: true,
+          round_status: :running,
           gm_def: gm_def,
           conjecture_activations: conjecture_activations,
           rounds: [%Round{received_predictions: received_predictions} = round | previous_rounds]
@@ -278,7 +300,8 @@ defmodule Andy.GM.GenerativeModel do
           %PredictionError{size: size} = prediction_error
         },
         %State{
-          started: true
+          started: true,
+          round_status: :running
         } = state
       ) do
     if prediction_error_relevant?(prediction_error, state) do
@@ -296,7 +319,10 @@ defmodule Andy.GM.GenerativeModel do
 
       if Detector.detector_name?(source) do
         Logger.info("#{info(state)}: Detector #{inspect(source)} reported in")
-        %State{rounds: [%Round{reported_in: reported_in} = round | previous_rounds]} = updated_state
+
+        %State{rounds: [%Round{reported_in: reported_in} = round | previous_rounds]} =
+          updated_state
+
         updated_round = %Round{round | reported_in: [source | reported_in]}
 
         %State{updated_state | rounds: [updated_round | previous_rounds]}
@@ -314,23 +340,47 @@ defmodule Andy.GM.GenerativeModel do
     shutdown(state)
   end
 
-  def handle_event({:actuated, intent}, state) do
+  def handle_event(
+        {:actuated, intent} = event,
+        %State{
+          started: true,
+          round_status: round_status
+        } = state
+      ) do
     if intent_relevant?(intent, state) do
-      state
-      |> mark_intent_executed(intent)
-      |> maybe_close_round()
+      if round_status == :completing do
+        state
+        |> mark_intent_executed(intent)
+        |> maybe_close_round()
+      else
+        Logger.info(
+          "#{info(state)}: Ignoring actuated event #{inspect(event)} because round status is #{
+            inspect(round_status)
+          }"
+        )
+
+        state
+      end
     else
       state
     end
   end
 
   # Ignore any other event
-  def handle_event(_event, state) do
-    # Logger.info("#{info(state)}: Ignoring event #{inspect(event)}")
+  def handle_event(event, state) do
+    Logger.debug("#{info(state)}: Ignoring event #{inspect(event)}")
     state
   end
 
   ### PRIVATE
+
+  defp round_status(state, status) do
+    %State{state | round_status: status}
+  end
+
+  defp buffer_event(%State{event_buffer: event_buffer} = state, event) do
+    %State{state | event_buffer: event_buffer ++ [event]}
+  end
 
   # Activate not-yet activated conjectures from the prediction
   defp activate_conjectures_from_prediction(
@@ -359,26 +409,80 @@ defmodule Andy.GM.GenerativeModel do
   defp initialize_round(%State{} = state) do
     Logger.info("#{info(state)}: Initializing new round")
 
-    state
-    # Carry over perceptions from previous round unless they've been carried over already too many times
-    |> carry_over_perceptions()
-    # Carry over the beliefs from the previous round
-    |> carry_over_beliefs()
-    # Carry over unachieved goal conjecture activations, activate self-activated conjectures
-    |> initial_conjecture_activations()
-    # Remove carried over perceptions and beliefs that are from conjectures mutually excluded from the current ones
-    |> remove_excluded_perceptions_and_beliefs()
-    # Make predictions about this round of perceptions given beliefs from previous round (possibly none)
-    # Add them as new perceptions, possibly overriding carried-over perceptions
-    |> make_predictions()
+    updated_state =
+      state
+      # Carry over perceptions from previous round unless they've been carried over already too many times
+      |> carry_over_perceptions()
+      # Carry over the beliefs from the previous round
+      |> carry_over_beliefs()
+      # Carry over unachieved goal conjecture activations, activate self-activated conjectures
+      |> initial_conjecture_activations()
+      # Remove carried over perceptions and beliefs that are from conjectures mutually excluded from the current ones
+      |> remove_excluded_perceptions_and_beliefs()
+      # Make predictions about this round of perceptions given beliefs from previous round (possibly none)
+      # Add them as new perceptions, possibly overriding carried-over perceptions
+      |> make_predictions()
+      |> round_status(:running)
+
+    Agent.cast(gm_name(state), fn state -> empty_event_buffer(state) end)
+    updated_state
+  end
+
+  defp empty_event_buffer(%State{event_buffer: event_buffer} = state) do
+    Logger.info("#{info(state)}: Emptying event buffer #{inspect(event_buffer)}")
+
+    updated_state =
+      Enum.reduce(
+        event_buffer,
+        state,
+        fn event, acc ->
+          handle_event(event, acc)
+          # Make sure the GM stays :running
+          round_status(acc, :catching_up)
+        end
+      )
+      |> round_status(:running)
+
+    %State{updated_state | event_buffer: []}
   end
 
   # Complete the current round if fully informed
-  defp maybe_complete_round(state) do
-    if Round.started?(current_round(state)) and round_ready_to_complete?(state) do
+  defp maybe_complete_round(
+         %State{
+           gm_def: gm_def,
+           rounds: [
+             %Round{started_on: started_on, early_timeout_on: early_timeout_on?, id: round_id} =
+               current_round
+             | previous_rounds
+           ]
+         } = state
+       ) do
+    if Round.started?(current_round) and round_ready_to_complete?(state) do
       Logger.info("#{info(state)}: Round ready to complete")
-      complete_round(state)
+      duration = now() - started_on
+      min_round_duration = GenerativeModelDef.min_round_duration(gm_def)
+
+      if duration < min_round_duration do
+        if not early_timeout_on? do
+          Logger.info("#{info(state)}: Too early to complete")
+
+          PubSub.notify_after(
+            {:round_timed_out, gm_name(state), round_id},
+            min_round_duration - duration
+          )
+
+          updated_round = %Round{current_round | early_timeout_on: true}
+          %State{state | rounds: [updated_round | previous_rounds]}
+        else
+          state
+        end
+      else
+        updated_state = state |> round_status(:completing)
+        Agent.cast(gm_name(state), fn state -> complete_round(state) end)
+        updated_state
+      end
     else
+      Logger.info("#{info(state)}: Round not ready to complete")
       state
     end
   end
@@ -456,7 +560,9 @@ defmodule Andy.GM.GenerativeModel do
     %Round{intents: intents} = current_round(state)
 
     if Enum.all?(intents, &Intent.executed?(&1)) do
-      close_round(state)
+      state
+      |> round_status(:closing)
+      |> close_round()
     else
       state
     end
@@ -725,9 +831,9 @@ defmodule Andy.GM.GenerativeModel do
     round
   end
 
-  defp round_timed_out?(round_id, %State{gm_def: gm_def} = state) do
-    %Round{id: id, started_on: started_on} = current_round(state)
-    id == round_id and now() - started_on >= gm_def.max_round_duration
+  defp round_timed_out?(round_id, %State{} = state) do
+    %Round{id: id} = current_round(state)
+    round_id == id
   end
 
   defp current_round?(round_id, state) do
@@ -774,25 +880,34 @@ defmodule Andy.GM.GenerativeModel do
   defp round_ready_to_complete?(%State{sub_gm_names: sub_gm_names} = state) do
     %Round{reported_in: reported_in, perceptions: perceptions} = current_round(state)
     activated_detectors = activated_detectors(perceptions)
+    Logger.info("#{info(state)}: Activated detectors #{inspect(activated_detectors)} ")
+    Logger.info("#{info(state)}: Reported in #{inspect(reported_in)} ")
 
     Enum.all?(
       sub_gm_names,
       &(not_considered?(&1, state) or &1 in reported_in)
-    ) and Enum.all?(activated_detectors, &(&1 in reported_in))
+    ) and
+      Enum.all?(
+        activated_detectors,
+        fn detector_pattern ->
+          Enum.any?(
+            reported_in,
+            &(Detector.detector_name?(&1) and Detector.name_matches_pattern?(&1, detector_pattern))
+          )
+        end
+      )
   end
 
   defp activated_detectors(perceptions) do
     Enum.filter(
       perceptions,
       fn perception ->
-        if Perception.prediction?(perception) do
-          %Prediction{carry_overs: carry_overs, conjecture_name: conjecture_name} = perception
-          carry_overs == 0 and Detector.detector_name?(conjecture_name)
-        else
-          false
-        end
+        carry_overs = Perception.carry_overs(perception)
+        conjecture_name = Perception.prediction_conjecture_name(perception)
+        carry_overs == 0 and Detector.detector_name?(conjecture_name)
       end
     )
+    |> Enum.map(&Perception.prediction_conjecture_name(&1))
   end
 
   # The sub-GM influences the GM
@@ -1466,13 +1581,14 @@ defmodule Andy.GM.GenerativeModel do
 
     unduplicated_intention_names =
       GenerativeModelDef.unduplicate_non_repeatables(gm_def, intention_names)
-      |> Enum.reverse()
+
+    # Note: intention_names are reversed, unduplicated_intention_names are un-reversed
 
     # Should never happen
     if Enum.count(unduplicated_intention_names) == 0,
       do: Logger.warn("#{info(state)}: Empty intention names for new CoA")
 
-    index_of_coa = index_of_coa(unduplicated_intention_names, intention_names)
+    index_of_coa = index_of_coa(unduplicated_intention_names, intention_domain)
 
     if(index_of_coa < courses_of_action_index) do
       Logger.info(
@@ -1647,6 +1763,8 @@ defmodule Andy.GM.GenerativeModel do
        ) do
     %Round{courses_of_action: courses_of_action, beliefs: beliefs} = round
 
+    Logger.info("#{info(state)}: Executing CoAs #{inspect(courses_of_action)} ")
+
     updated_round =
       Enum.reduce(
         courses_of_action,
@@ -1659,8 +1777,6 @@ defmodule Andy.GM.GenerativeModel do
              }
            } = coa,
            acc ->
-          Logger.info("#{info(state)}: Executing #{inspect(coa)} ")
-
           belief_values =
             case Enum.find(
                    beliefs,
@@ -1672,6 +1788,8 @@ defmodule Andy.GM.GenerativeModel do
               %Belief{values: values} ->
                 values
             end
+
+          Logger.info("#{info(state)}: Executing CoA #{inspect(coa)} ")
 
           Enum.reduce(
             intention_names,
@@ -1697,7 +1815,9 @@ defmodule Andy.GM.GenerativeModel do
 
       updated_state
     else
-      close_round(updated_state)
+      updated_state |> round_status(:closing)
+      Agent.cast(gm_name(state), fn state -> close_round(state) end)
+      updated_state
     end
   end
 
@@ -1788,8 +1908,10 @@ defmodule Andy.GM.GenerativeModel do
 
   defp add_new_round(%State{rounds: rounds} = state) do
     index = Round.next_round_index(rounds)
-    updated_state = %State{state | rounds: [Round.new(index) | rounds]}
-    initialize_round(updated_state)
+
+    %State{state | rounds: [Round.new(index) | rounds]}
+    |> round_status(:initializing)
+    |> initialize_round()
   end
 
   defp random_permutation([]) do
