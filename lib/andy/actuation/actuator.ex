@@ -77,8 +77,11 @@ defmodule Andy.Actuator do
     )
 
     sleep_msecs = round(1000 * (duration || Intent.default_duration()))
-    Process.sleep(sleep_msecs)
-    PubSub.notify_actuated(intent)
+
+    spawn(fn ->
+      Process.sleep(sleep_msecs)
+      PubSub.notify_actuated(intent)
+    end)
   end
 
   def handle_event({:intended, %Intent{} = intent}, %{actuator_config: actuator_config} = state) do
