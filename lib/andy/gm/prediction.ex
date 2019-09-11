@@ -160,6 +160,6 @@ defimpl Inspect, for: Andy.GM.Prediction do
   def inspect(prediction, _opts) do
     "<#{if prediction.goal == nil, do: "Opinion", else: "Goal"} #{
       inspect(prediction.conjecture_name)
-    } of #{inspect(prediction.about)} will be #{inspect(prediction.expectations)}>"
+    } of #{inspect(prediction.about)} will be #{inspect(prediction.expectations)} (#{prediction.carry_overs})>"
   end
 end

@@ -32,7 +32,6 @@ defmodule Andy.MixProject do
   defp deps do
     [
       {:logger_file_backend, "~> 0.0.10"},
-      {:poison, "~> 4.0"},
       {:elixir_uuid, "~> 1.2"}
     ]
   end

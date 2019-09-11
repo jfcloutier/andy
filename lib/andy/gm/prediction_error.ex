@@ -54,6 +54,6 @@ defimpl Inspect, for: Andy.GM.PredictionError do
   def inspect(prediction_error, _opts) do
     "<<Error of #{prediction_error.size} predicting #{inspect(prediction_error.prediction)}: Got #{
       inspect(prediction_error.belief.values)
-    }>>"
+    }  (#{prediction_error.carry_overs})>>"
   end
 end

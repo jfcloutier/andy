@@ -49,19 +49,13 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
   # Conjecture activators
 
   defp obstacle_not_hit_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      touched? = touched?(round, prediction_about)
-
-      if touched? do
-        [
+    fn conjecture, _rounds, prediction_about ->
+      [
           Conjecture.activate(conjecture,
             about: prediction_about,
             goal: fn %{is: not_hit?} -> not_hit? == true end
           )
         ]
-      else
-        []
-      end
     end
   end
 

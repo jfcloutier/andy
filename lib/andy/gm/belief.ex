@@ -13,7 +13,9 @@ defmodule Andy.GM.Belief do
             # the goal, if any, to be achieved
             goal: nil,
             # value_name => value, or nil if disbelief
-            values: nil
+            values: nil,
+            # the number of times the belief was carried over from a previous round
+            carry_overs: 0
 
   def new(
         source: source,
@@ -66,12 +68,16 @@ defmodule Andy.GM.Belief do
   def from_generative_model?(%Belief{source: source}) do
     source not in [:detector, :prediction]
   end
+
+  def increment_carry_overs(%Belief{carry_overs: carry_overs} = belief) do
+    %Belief{belief | carry_overs: carry_overs + 1}
+  end
 end
 
 defimpl Inspect, for: Andy.GM.Belief do
   def inspect(belief, _opts) do
     "<Belief that #{if belief.goal == nil, do: "opinion", else: "goal"} #{
       inspect(belief.conjecture_name)
-    } of #{inspect(belief.about)} is #{inspect(belief.values)}>"
+    } of #{inspect(belief.about)} is #{inspect(belief.values)} (#{belief.carry_overs})>"
   end
 end

@@ -617,8 +617,8 @@ defmodule Andy.GM.GenerativeModel do
          } = state
        ) do
     Logger.info("#{info(state)}: Carrying over all prior beliefs #{inspect(prior_beliefs)}")
-
-    updated_round = %Round{round | beliefs: prior_beliefs}
+    carried_over_beliefs = prior_beliefs |> Enum.map(&Belief.increment_carry_overs(&1))
+    updated_round = %Round{round | beliefs: carried_over_beliefs}
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
