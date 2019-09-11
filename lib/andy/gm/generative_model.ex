@@ -287,7 +287,7 @@ defmodule Andy.GM.GenerativeModel do
 
       %State{updated_state | conjecture_activations: updated_conjecture_activations}
       |> remove_excluded_perceptions_and_beliefs()
-      |> make_predictions(updated_conjecture_activations)
+      |> make_predictions(new_conjecture_activations)
     else
       state
     end
@@ -382,14 +382,22 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | event_buffer: event_buffer ++ [event]}
   end
 
-  # Activate not-yet activated conjectures from the prediction
+  # Activate *not-yet activated* conjectures from the prediction
   defp activate_conjectures_from_prediction(
-         %State{gm_def: gm_def, rounds: rounds},
-         %Prediction{conjecture_name: conjecture_name, about: prediction_about}
+         %State{gm_def: gm_def, rounds: rounds, conjecture_activations: conjecture_activations} = state,
+         %Prediction{conjecture_name: conjecture_name, about: prediction_about} = prediction
        ) do
-    conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
+    if Enum.any?(
+         conjecture_activations,
+         &(ConjectureActivation.subject(&1) == Perception.subject(prediction))
+       ) do
+      Logger.info("#{info(state)}: Conjecture activation exists for #{inspect(prediction)}")
+      []
+    else
+      conjecture = GenerativeModelDef.conjecture(gm_def, conjecture_name)
 
-    conjecture.activator().(conjecture, rounds, prediction_about)
+      conjecture.activator().(conjecture, rounds, prediction_about)
+    end
   end
 
   # Recall what was remembered, if anything, after the last run
