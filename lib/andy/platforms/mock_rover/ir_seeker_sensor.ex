@@ -34,7 +34,6 @@ defmodule Andy.MockRover.IRSeekerSensor do
     proximity(sensor)
   end
 
-
   def nudge(_sensor, sense, value, previous_value) when sense in [:direction, :direction_mod] do
     if previous_value == nil do
       double_max_direction = 2 * @max_direction
@@ -70,6 +69,7 @@ defmodule Andy.MockRover.IRSeekerSensor do
 
   defp direction(sensor) do
     value = Enum.random(0..9)
+
     angle =
       cond do
         value == 0 ->
@@ -92,5 +92,4 @@ defmodule Andy.MockRover.IRSeekerSensor do
     proximity = Enum.random(0..9)
     {proximity, sensor}
   end
-
- end
+end

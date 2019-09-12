@@ -49,7 +49,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
       about = conjecture_activation.about
 
       in_well_lit_area? =
-        current_perceived_value(round, about, "*:*:ambient", :detected, default: 100) |> greater_than?(10)
+        current_perceived_value(round, about, "*:*:ambient", :detected, default: 100)
+        |> greater_than?(10)
 
       %{is: in_well_lit_area?}
     end

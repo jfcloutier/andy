@@ -26,7 +26,7 @@ defmodule Andy.GM.Round do
             # whether round is on an early timeout (otherwise would have completed too soon
             early_timeout_on: false
 
-              def new(index \\ 0) do
+  def new(index \\ 0) do
     %Round{id: UUID.uuid4(), index: index}
   end
 

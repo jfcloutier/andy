@@ -67,7 +67,6 @@ defmodule Andy.GM.Utils do
     end
   end
 
-
   # Fixed prediction (to be achieved by the goal conjecture)
   def goal_predictor(predicted_conjecture_name, goal_values) do
     fn conjecture_activation, _rounds ->
@@ -162,7 +161,9 @@ defmodule Andy.GM.Utils do
           if Map.get(values, value_name) == value do
             true
           else
-            once_believed?(previous_rounds, about, conjecture_name, value_name, value, since: since)
+            once_believed?(previous_rounds, about, conjecture_name, value_name, value,
+              since: since
+            )
           end
       end
     end
@@ -471,10 +472,10 @@ defmodule Andy.GM.Utils do
 
   defp turn_valuator() do
     # seconds
-    fn(_) ->  %{value: 2, duration: 2} end
+    fn _ -> %{value: 2, duration: 2} end
   end
 
   defp move_valuator() do
-    fn(_) -> %{value: %{speed: :normal, time: 2}, duration: 2} end
+    fn _ -> %{value: %{speed: :normal, time: 2}, duration: 2} end
   end
 end

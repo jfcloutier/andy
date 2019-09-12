@@ -41,7 +41,11 @@ defmodule Andy.BrickPi.InfraredSensor do
   end
 
   def beacon_senses_for(channel) do
-    [beacon_sense(:beacon_heading, channel), beacon_sense(:beacon_distance, channel), beacon_sense(:beacon_on, channel)]
+    [
+      beacon_sense(:beacon_heading, channel),
+      beacon_sense(:beacon_distance, channel),
+      beacon_sense(:beacon_on, channel)
+    ]
   end
 
   def read(sensor, sense) do
@@ -148,7 +152,9 @@ defmodule Andy.BrickPi.InfraredSensor do
 
   defp expand_sense(sense) do
     case String.split("#{sense}", "/") do
-      [kind] -> String.to_atom(kind)
+      [kind] ->
+        String.to_atom(kind)
+
       [kind, channel_s] ->
         {channel, _} = Integer.parse(channel_s)
         {String.to_atom(kind), channel}

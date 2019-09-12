@@ -63,10 +63,12 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
             false
 
           [min_direction..max_direction] ->
-            min_direction == max_direction # in same 30 degrees range
+            # in same 30 degrees range
+            min_direction == max_direction
         end
 
-      close? = greater_than?(proximity, 7) # closest == 9
+      # closest == 9
+      close? = greater_than?(proximity, 7)
       %{is: close? and bee_line?}
     end
   end

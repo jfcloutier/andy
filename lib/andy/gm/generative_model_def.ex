@@ -14,7 +14,7 @@ defmodule Andy.GM.GenerativeModelDef do
             max_round_duration: @default_max_round_duration,
             # the maximum duration of intent execution for the GM
             max_execution_duration: @default_max_execution_duration,
-              # the maximum duration of intent execution for the GM
+            # the maximum duration of intent execution for the GM
             min_round_duration: @default_min_round_duration,
             # GM conjectures
             conjectures: [],

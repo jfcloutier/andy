@@ -41,7 +41,9 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       # Only activate if actively observing the robot
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor(:observed, default: %{is: false, proximity: :unknown, direction: :unknown})
+        no_change_predictor(:observed,
+          default: %{is: false, proximity: :unknown, direction: :unknown}
+        )
       ],
       valuator: other_panicking_belief_valuator(),
       intention_domain: [:say_other_panicking]
@@ -54,7 +56,9 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       # Only activate if actively observing the robot
       activator: always_activator(:opinion, :other),
       predictors: [
-        no_change_predictor(:observed, default: %{is: false, proximity: :unknown, direction: :unknown})
+        no_change_predictor(:observed,
+          default: %{is: false, proximity: :unknown, direction: :unknown}
+        )
       ],
       valuator: other_homing_on_food_belief_valuator(),
       intention_domain: [:say_other_homing_on_food]
@@ -108,11 +112,13 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           reversals(proximities) <= 1 and
           reversals(directions) <= 1
 
-      proximity = current_perceived_value(round, about, :proximity_mod, :detected, defaut: :unknown)
-      direction = current_perceived_value(round, about, :direction_mod, :detected, defaut: :unknown)
-      %{is: homing?,
-        proximity: proximity,
-        direction: direction}
+      proximity =
+        current_perceived_value(round, about, :proximity_mod, :detected, defaut: :unknown)
+
+      direction =
+        current_perceived_value(round, about, :direction_mod, :detected, defaut: :unknown)
+
+      %{is: homing?, proximity: proximity, direction: direction}
     end
   end
 
