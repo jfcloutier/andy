@@ -41,9 +41,9 @@ defmodule Andy.Intent do
     }
   end
 
- @doc "The default duration of an intent"
- def default_duration() do
-   @default_duration
+  @doc "The default duration of an intent"
+  def default_duration() do
+    @default_duration
   end
 
   @doc "The age of an intent"
