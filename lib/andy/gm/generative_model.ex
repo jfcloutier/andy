@@ -557,10 +557,11 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
 
-  # Keep unachieved goal conjecture activations. A goal conjecture activation lives until goal is achieved
-  # or a mutually exclusive conjecture is self-activated or activated via prediction received.
+  # Keep unachieved goal conjecture activations if predictions were received in the previous round.
+  # Otherwise, a goal conjecture activation lives until goal is achieved
+  # or a mutually exclusive conjecture is self-activated or is activated via a prediction received in the round.
   # Activate self-activated conjectures
-  # Activate as many non-mutually exclusive conjectures as possible.
+  # Keep the non-mutually exclusive conjecture activations.
   defp initial_conjecture_activations(
          %State{
            gm_def: gm_def,
@@ -569,13 +570,21 @@ defmodule Andy.GM.GenerativeModel do
          } = state
        ) do
     preserved_goal_activations =
-      Enum.filter(
-        prior_conjecture_activations,
-        # ConjectureActivation.carry_overs(&1) <= @max_carry_overs and
-        &(ConjectureActivation.goal?(&1) and
-            not achieved_now?(&1, state))
-      )
-      |> Enum.map(&ConjectureActivation.increment_carry_overs(&1))
+      if predictions_previously_received?(state) do
+        Enum.filter(
+          prior_conjecture_activations,
+          # ConjectureActivation.carry_overs(&1) <= @max_carry_overs and
+          &(ConjectureActivation.goal?(&1) and
+              not achieved_now?(&1, state))
+        )
+        |> Enum.map(&ConjectureActivation.increment_carry_overs(&1))
+      else
+        Logger.info(
+          "#{info(state)}: Dropping any prior goal activations because no previously received predictions"
+        )
+
+        []
+      end
 
     Logger.info(
       "#{info(state)}: Preserving unachieved goal activations #{
@@ -599,6 +608,15 @@ defmodule Andy.GM.GenerativeModel do
     )
 
     %State{state | conjecture_activations: conjecture_activations}
+  end
+
+  defp predictions_previously_received?(%State{rounds: [_round]}) do
+    false
+  end
+
+  defp predictions_previously_received?(%State{rounds: [_round, previous_round | _others]}) do
+    %Round{received_predictions: received_predictions} = previous_round
+    Enum.count(received_predictions) > 0
   end
 
   defp candidate_conjecture_activations(conjectures, rounds, prediction_about \\ nil) do
