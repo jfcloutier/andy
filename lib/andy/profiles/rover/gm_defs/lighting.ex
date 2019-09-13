@@ -12,35 +12,30 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
       ],
       contradictions: [],
       priors: %{in_well_lit_area: %{about: :self, values: %{is: true}}},
-      intentions:
-        %{
-          express_feeling_about_light: %Intention{
-            intent_name: :say,
-            valuator: feeling_about_light(),
-            repeatable: false
-          }
+      intentions: %{
+        express_feeling_about_light: %Intention{
+          intent_name: :say,
+          valuator: feeling_about_light(),
+          repeatable: false
         }
-        |> Map.merge(movement_intentions())
+      }
     }
   end
 
   # Conjectures
 
+  # opinion
   defp conjecture(:in_well_lit_area) do
     %Conjecture{
       name: :in_well_lit_area,
-      activator: always_activator(:goal),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor("*:*:ambient", default: %{detected: 100})
       ],
       valuator: in_well_lit_area_belief_valuator(),
-      intention_domain: [:express_feeling_about_safety] ++ movement_domain()
+      intention_domain: [:express_feeling_about_safety]
     }
   end
-
-  # Conjecture activators
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 

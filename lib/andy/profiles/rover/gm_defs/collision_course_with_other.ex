@@ -19,10 +19,11 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
 
   # Conjectures
 
+  # opinion
   defp conjecture(:on_collision_course) do
     %Conjecture{
       name: :on_collision_course,
-      activator: always_activator(:opinion),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor("*:*:direction_mod}", default: %{is: :unknown}),
         no_change_predictor("*:*:proximity_mod}", default: %{is: :unknown})
@@ -31,10 +32,6 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
       intention_domain: []
     }
   end
-
-  # Conjecture activators
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 
@@ -67,11 +64,9 @@ defmodule Andy.Profiles.Rover.GMDefs.CollisionCourseWithOther do
             min_direction == max_direction
         end
 
-      # closest == 9
+      # closest is 9
       close? = greater_than?(proximity, 7)
       %{is: close? and bee_line?}
     end
   end
-
-  # Intention valuators
 end

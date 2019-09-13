@@ -16,6 +16,7 @@ defmodule Andy.Profiles.Rover do
     CollisionCourseWithOther,
     Eating,
     SeekingFood,
+    FoodApproach,
     IntentionsOfOther,
     ObservingOther
   }
@@ -37,6 +38,7 @@ defmodule Andy.Profiles.Rover do
         CollisionCourseWithOther.gm_def(),
         Eating.gm_def(),
         SeekingFood.gm_def(),
+        FoodApproach.gm_def(),
         IntentionsOfOther.gm_def(),
         ObservingOther.gm_def()
       ],
@@ -52,7 +54,8 @@ defmodule Andy.Profiles.Rover do
         collision_course_with_other: [],
         lighting: [],
         eating: [:seeking_food],
-        seeking_food: [:intentions_of_other],
+        seeking_food: [:food_approach],
+        food_approach: [:intentions_of_other],
         intentions_of_other: [:observing_other],
         observing_other: []
       }

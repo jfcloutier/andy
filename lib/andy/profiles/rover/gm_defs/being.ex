@@ -27,15 +27,15 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
   defp conjecture(:thriving) do
     %Conjecture{
       name: :thriving,
-      activator: always_activator(:opinion, :self),
+      self_activated: true,
+      activator: opinion_activator(:self),
       predictors: [
         no_change_predictor(:safe, default: %{is: true}),
         sated_predictor(),
         free_predictor()
       ],
       valuator: thriving_belief_valuator(),
-      intention_domain: [:express_opinion_about_life],
-      self_activated: true
+      intention_domain: [:express_opinion_about_life]
     }
   end
 
@@ -75,8 +75,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
       end
     end
   end
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 

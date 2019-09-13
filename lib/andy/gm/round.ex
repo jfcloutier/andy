@@ -3,6 +3,7 @@ defmodule Andy.GM.Round do
 
   alias __MODULE__
   alias Andy.GM.GenerativeModelDef
+  import Andy.Utils, only: [now: 0]
 
   defstruct id: nil,
             # = the Nth round
@@ -26,19 +27,16 @@ defmodule Andy.GM.Round do
             # whether round is on an early timeout (otherwise would have completed too soon
             early_timeout_on: false
 
-  def new(index \\ 0) do
-    %Round{id: UUID.uuid4(), index: index}
-  end
-
-  def initial_round(gm_def) do
-    %Round{Round.new() | beliefs: GenerativeModelDef.initial_beliefs(gm_def)}
+  def new(gm_def, index) do
+    %Round{
+      id: UUID.uuid4(),
+      index: index,
+      beliefs: GenerativeModelDef.initial_beliefs(gm_def),
+      started_on: now()
+    }
   end
 
   def next_round_index([round | _]) do
     round.index + 1
-  end
-
-  def started?(%Round{started_on: started_on}) do
-    started_on != nil
   end
 end

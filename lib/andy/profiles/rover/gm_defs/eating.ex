@@ -40,12 +40,13 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
 
   # Conjectures
 
+  # opinion
   defp conjecture(:chewing) do
     %Conjecture{
       name: :chewing,
       activator: chewing_activator(),
       predictors: [
-        no_change_predictor(:chewing, default: %{is: false})
+        no_change_predictor(:over_food, default: %{is: false})
       ],
       # always true if activated
       valuator: constant_valuator(%{is: true}),
@@ -53,13 +54,14 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
     }
   end
 
+  # goal
   defp conjecture(:found_food) do
     %Conjecture{
       name: :found_food,
-      activator: always_activator(:goal),
+      activator: goal_activator(fn %{is: found_food?} -> found_food? end),
       predictors: [
         no_change_predictor(:over_food, default: %{is: false}),
-        no_change_predictor(:other_found_food, :other, default: %{is: false})
+        no_change_predictor(:approaching_food, default: %{is: false})
       ],
       valuator: found_food_belief_valuator(),
       intention_domain: [:declare_looking_for_food]
@@ -84,8 +86,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
       end
     end
   end
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 

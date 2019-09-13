@@ -24,10 +24,11 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
 
   # Conjectures
 
+  # Opinion
   defp conjecture(:distance_to_obstacle) do
     %Conjecture{
       name: :distance_to_obstacle,
-      activator: always_activator(:opinion),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor("*:*:distance", default: %{detected: :unknown})
       ],

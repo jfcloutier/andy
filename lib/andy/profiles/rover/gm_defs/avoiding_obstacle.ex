@@ -22,10 +22,12 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
 
   # Conjectures
 
+  # Self-activated goal
   defp conjecture(:obstacle_not_hit) do
     %Conjecture{
       name: :obstacle_not_hit,
-      activator: obstacle_not_hit_activator(),
+      self_activated: true,
+      activator: goal_activator(fn %{is: not_hit?} -> not_hit? end, :self),
       predictors: [
         no_change_predictor(:distance_to_obstacle, default: %{is: :unknown})
       ],
@@ -34,29 +36,18 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
     }
   end
 
+  # Self-activated goal
   defp conjecture(:obstacle_avoided) do
     %Conjecture{
       name: :obstacle_avoided,
-      activator: always_activator(:goal),
+      self_activated: true,
+      activator: goal_activator(fn %{is: avoided?} -> avoided? end, :self),
       predictors: [
         distance_to_obstacle_predictor()
       ],
       valuator: obstacle_avoided_belief_valuator(),
       intention_domain: movement_domain()
     }
-  end
-
-  # Conjecture activators
-
-  defp obstacle_not_hit_activator() do
-    fn conjecture, _rounds, prediction_about ->
-      [
-        Conjecture.activate(conjecture,
-          about: prediction_about,
-          goal: fn %{is: not_hit?} -> not_hit? == true end
-        )
-      ]
-    end
   end
 
   # Conjecture predictors
@@ -80,12 +71,11 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
-      touched? = touched?(round, about)
+      touched? =
+        current_perceived_value(round, about, :distance_to_obstacle, :is, default: :unknown)
+        |> less_than?(8)
 
-      approaching_obstacle? =
-        current_perceived_value(round, about, :approaching_obstacle, :is, default: false)
-
-      %{is: not touched? and not approaching_obstacle?}
+      %{is: not touched?}
     end
   end
 
@@ -103,13 +93,5 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
         is: not approaching_obstacle? and greater_than?(distance_to_obstacle, 15)
       }
     end
-  end
-
-  # Intention valuators
-
-  #
-  defp touched?(round, prediction_about) do
-    current_perceived_value(round, prediction_about, :distance_to_obstacle, :is, default: :unknown)
-    |> less_than?(8)
   end
 end

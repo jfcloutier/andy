@@ -12,8 +12,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
       ],
       contradictions: [],
       priors: %{
-        obstacle_not_hit: %{about: :self, values: %{is: true}},
-        obstacle_avoided: %{about: :self, values: %{is: true}}
+        approaching_obstacle: %{about: :self, values: %{is: false}}
       },
       intentions: %{}
     }
@@ -21,10 +20,11 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
 
   # Conjectures
 
+  # opinion
   defp conjecture(:approaching_obstacle) do
     %Conjecture{
       name: :approaching_obstacle,
-      activator: always_activator(:opinion),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor(:distance_to_obstacle, default: %{is: :unknown})
       ],
@@ -32,10 +32,6 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
       intention_domain: []
     }
   end
-
-  # Conjecture activators
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 
@@ -49,6 +45,4 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
       %{is: approaching?}
     end
   end
-
-  # Intention valuators
 end

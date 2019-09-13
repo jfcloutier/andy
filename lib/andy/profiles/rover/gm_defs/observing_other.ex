@@ -9,13 +9,20 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
     %GenerativeModelDef{
       name: :observing_other,
       conjectures: [
-        conjecture(:not_seen),
         conjecture(:observed)
       ],
-      contradictions: [[:not_seen, :observed]],
+      contradictions: [],
       priors: %{
-        not_seen: %{about: :other, values: %{is: true}},
-        observed: %{about: :other, values: %{is: false}}
+        observed: %{
+          about: :other,
+          values: %{
+            is: false,
+            direction: :unknown,
+            proximity: :unknown,
+            since: 0,
+            failing_since: 0
+          }
+        }
       },
       intentions: %{
         face: %Intention{
@@ -29,19 +36,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
 
   # Conjectures
 
-  defp conjecture(:not_seen) do
-    %Conjecture{
-      name: :not_seen,
-      activator: always_activator(:opinion, :other),
-      predictors: [
-        no_change_predictor("*:*:direction_mod", default: %{detected: :unknown})
-      ],
-      valuator: not_seen_belief_valuator(),
-      intention_domain: [],
-      self_activated: true
-    }
-  end
-
+  # goal
   defp conjecture(:observed) do
     %Conjecture{
       name: :observed,
@@ -60,16 +55,16 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   defp observed_activator() do
     fn conjecture, rounds, _prediction_about ->
       recently_observed? =
-        once_believed?(rounds, :other, :observed, :is, true, since: now() - 30_000)
+        once_believed?(rounds, :other, :observed, :is, true, since: now() - 10_000)
 
-      # if we have not observed the other in the last 30 secs
+      # if we have not observed the other in the last 10 secs
       if not recently_observed? do
         [
           Conjecture.activate(conjecture,
             about: :other,
-            # face the other robot for 5 secs or give up after failing to for 10 secs
-            goal: fn %{since: since, failing_since: failing_since} ->
-              since >= 5_000 or failing_since > 10_000
+            # face the other robot for 5 secs or give up after failing to for 5 secs
+            goal: fn %{is: observed?, since: since, failing_since: failing_since} ->
+              (observed? and since >= 5_000) or failing_since >= 5_000
             end
           )
         ]
@@ -79,26 +74,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
     end
   end
 
-  # Conjecture predictors
-
   # Conjecture belief valuators
-
-  defp not_seen_belief_valuator() do
-    fn conjecture_activation, [round | _previous_rounds] ->
-      about = conjecture_activation.about
-
-      not_seen? =
-        current_perceived_value(
-          round,
-          about,
-          "*:*:direction_mod",
-          :detected,
-          default: :unknown
-        ) == :unknown
-
-      %{is: not_seen?}
-    end
-  end
 
   defp observed_belief_valuator() do
     fn conjecture_activation, [round | previous_rounds] ->
@@ -116,16 +92,16 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       direction =
         current_perceived_value(round, about, "*:*:direction_mod", :detected, default: :unknown)
 
-      facing? = less_than?(absolute(direction), 60)
-
-      since = duration_believed(previous_rounds, about, :observed, :is, true)
-      failing_since = duration_believed(previous_rounds, about, :observed, :is, false)
+      facing? = less_than?(absolute(direction), 120)
+      now = now()
+      observing_since = now - duration_believed(previous_rounds, about, :observed, :is, true)
+      failing_since = now - duration_believed(previous_rounds, about, :observed, :is, false)
 
       %{
         is: facing?,
         direction: direction,
         proximity: proximity,
-        since: since,
+        since: observing_since,
         failing_since: failing_since
       }
     end
@@ -139,7 +115,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       %{value: %{turn_direction: turn_direction, turn_time: 1}, duration: 1}
     end
 
-    fn %{direction: direction} when abs(direction) <= 60 ->
+    fn %{direction: direction} when abs(direction) <= 120 ->
       nil
     end
 

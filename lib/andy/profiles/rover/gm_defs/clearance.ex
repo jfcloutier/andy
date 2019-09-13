@@ -22,10 +22,11 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
 
   # Conjectures
 
+  # opinion
   defp conjecture(:clear_of_obstacle) do
     %Conjecture{
       name: :clear_of_obstacle,
-      activator: always_activator(:opinion),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor(:obstacle_not_hit, default: %{is: true}),
         no_change_predictor(:obstacle_avoided, default: %{is: true})
@@ -35,10 +36,11 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
     }
   end
 
+  # opinion
   defp conjecture(:clear_of_other) do
     %Conjecture{
       name: :clear_of_other,
-      activator: always_activator(:opinion, :other),
+      activator: opinion_activator(:other),
       predictors: [
         no_change_predictor(:on_collision_course, default: %{is: false})
       ],
@@ -46,10 +48,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
       intention_domain: []
     }
   end
-
-  # Conjecture activators
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 
@@ -77,6 +75,4 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
       %{is: on_collision_course?}
     end
   end
-
-  # Intention valuators
 end

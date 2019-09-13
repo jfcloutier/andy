@@ -35,11 +35,12 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
 
   # Conjectures
 
+  # opinion
   defp conjecture(:other_panicking) do
     %Conjecture{
       name: :other_panicking,
       # Only activate if actively observing the robot
-      activator: always_activator(:opinion, :other),
+      activator: opinion_activator(:other),
       predictors: [
         no_change_predictor(:observed,
           default: %{is: false, proximity: :unknown, direction: :unknown}
@@ -50,11 +51,11 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
     }
   end
 
+  # opinion
   defp conjecture(:other_homing_on_food) do
     %Conjecture{
       name: :other_homing_on_food,
-      # Only activate if actively observing the robot
-      activator: always_activator(:opinion, :other),
+      activator: opinion_activator(:other),
       predictors: [
         no_change_predictor(:observed,
           default: %{is: false, proximity: :unknown, direction: :unknown}
@@ -65,10 +66,6 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
     }
   end
 
-  # Conjecture activators
-
-  # Conjecture predictors
-
   # Conjecture belief valuators
 
   defp other_panicking_belief_valuator() do
@@ -78,11 +75,11 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       observations =
         recent_perceived_values(rounds, about, :observed,
           matching: %{is: true},
-          since: now() - 10_000
+          since: now() - 15_000
         )
 
-      proximities = Enum.map(observations, &Map.get(&1, :proximity_mod, :unknown))
-      directions = Enum.map(observations, &Map.get(&1, :direction_mod, :unknown))
+      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
+      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
 
       panicking? =
         Enum.count(observations) > 4 and
@@ -94,17 +91,17 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   end
 
   defp other_homing_on_food_belief_valuator() do
-    fn conjecture_activation, [round | _previous_rounds] = rounds ->
+    fn conjecture_activation, rounds ->
       about = conjecture_activation.about
 
       observations =
         recent_perceived_values(rounds, about, :observed,
           matching: %{is: true},
-          since: now() - 10_000
+          since: now() - 15_000
         )
 
-      proximities = Enum.map(observations, &Map.get(&1, :proximity_mod, :unknown))
-      directions = Enum.map(observations, &Map.get(&1, :direction_mod, :unknown))
+      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
+      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
 
       homing? =
         Enum.count(observations) > 4 and
@@ -112,13 +109,16 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
           reversals(proximities) <= 1 and
           reversals(directions) <= 1
 
-      proximity =
-        current_perceived_value(round, about, :proximity_mod, :detected, defaut: :unknown)
+      {believed_proximity, believed_direction} =
+        case observations do
+          [] ->
+            :unknown
 
-      direction =
-        current_perceived_value(round, about, :direction_mod, :detected, defaut: :unknown)
+          [%{proximity: proximity, direction: direction} | _] ->
+            {proximity, direction}
+        end
 
-      %{is: homing?, proximity: proximity, direction: direction}
+      %{is: homing?, proximity: believed_proximity, direction: believed_direction}
     end
   end
 

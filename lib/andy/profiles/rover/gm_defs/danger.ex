@@ -32,6 +32,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
 
   # Conjectures
 
+  # goals
   defp conjecture(:safe) do
     %Conjecture{
       name: :safe,
@@ -40,13 +41,14 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
         no_change_predictor(:clear_of_obstacle, default: %{is: true}),
         no_change_predictor(:clear_of_other, default: %{is: true}),
         no_change_predictor(:in_well_lit_area, default: %{is: true}),
-        no_change_predictor(:other_panicking, default: %{is: false})
+        no_change_predictor(:other_panicking, :other, default: %{is: false})
       ],
       valuator: safe_belief_valuator(),
       intention_domain: [:express_opinion_about_safety]
     }
   end
 
+  # opinion
   defp conjecture(:group_panic) do
     %Conjecture{
       name: :group_panic,
@@ -75,7 +77,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       if not other_panicking? do
         [
           Conjecture.activate(conjecture,
-            about: :self
+            about: :self,
+            goal: fn %{is: safe?} -> safe? end
           )
         ]
       else
@@ -106,8 +109,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       end
     end
   end
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 
@@ -159,20 +160,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
     end
   end
 
-  #       back_off_speed =
-  #        case intensity do
-  #          :low -> :slow
-  #          :medium -> :normal
-  #          :high -> :fast
-  #        end
-  #
-  #      fear_factor =
-  #        case intensity do
-  #          :low -> 1
-  #          :medium -> 2
-  #          :high -> 3
-  #        end
-  #  value: %{back_off_speed: back_off_speed, back_off_time: back_off_time, turn_time: turn_time, repeats: repeats}
   defp panic_valuator() do
     fn %{is: true, well_lit: well_lit?} ->
       fear_factor = if well_lit?, do: :low, else: :high

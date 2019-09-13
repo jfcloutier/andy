@@ -20,6 +20,11 @@ defmodule Andy.Utils do
     end)
   end
 
+  def delay_cast(agent_name, function, delay \\ 10) do
+    Process.sleep(delay)
+    Agent.cast(agent_name, function)
+  end
+
   def timeout() do
     10000
   end

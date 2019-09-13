@@ -1,5 +1,5 @@
 defmodule Andy.Profiles.Rover.GMDefs.Freedom do
-  @moduledoc "The GM definition for :danger"
+  @moduledoc "The GM definition for :freedom"
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
   import Andy.GM.Utils
@@ -28,19 +28,16 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
 
   # Conjectures
 
+  # opinion
   defp conjecture(:free) do
     %Conjecture{
       name: :free,
-      activator: always_activator(:opinion),
+      activator: opinion_activator(),
       predictors: [],
       valuator: free_belief_valuator(),
       intention_domain: [:express_opinion_about_freedom, :roam_about]
     }
   end
-
-  # Conjecture activators
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 
