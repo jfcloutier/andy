@@ -135,12 +135,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   end
 
   defp homing_on_food_opinion_valuator() do
-    fn %{is: true} ->
-      saying("#{Andy.name_of_other()} has found food")
-    end
-
-    fn _ ->
-      nil
+    fn %{is: homing?} ->
+      if homing?, do: saying("#{Andy.name_of_other()} has found food"), else: nil
     end
   end
 end

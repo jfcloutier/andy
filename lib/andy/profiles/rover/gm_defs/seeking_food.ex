@@ -111,12 +111,8 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   # Intention valuators
 
   defp opinion_about_food() do
-    fn %{is: true} ->
-      saying("Food!")
-    end
-
-    fn _other ->
-      nil
+    fn %{is: found_food?} ->
+      if found_food?, do: saying("Food!"), else: nil
     end
   end
 

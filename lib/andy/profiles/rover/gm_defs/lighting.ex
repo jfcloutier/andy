@@ -54,12 +54,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Lighting do
   # Intention valuators
 
   defp feeling_about_light() do
-    fn %{is: true} ->
-      saying("Now I can see")
-    end
-
-    fn _other ->
-      saying("It's too dark!")
+    fn %{is: well_lit?} ->
+      if well_lit?, do: saying("Now I can see"), else: saying("It's too dark!")
     end
   end
 end

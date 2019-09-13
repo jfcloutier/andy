@@ -2,7 +2,7 @@ defmodule Andy.GM.GenerativeModelDef do
   @moduledoc "A generative model's definition"
 
   @default_max_round_duration 2_000
-  @default_min_round_duration 250
+  @default_min_round_duration 100
   @default_max_execution_duration 3_000
 
   alias __MODULE__

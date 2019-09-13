@@ -102,22 +102,14 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
   # Intention valuators
 
   defp chewing_noise() do
-    fn %{is: true} ->
-      saying("Nom de nom de nom")
-    end
-
-    fn _other ->
-      nil
+    fn %{is: chewing?} ->
+      if chewing?, do: saying("Nom de nom de nom"), else: nil
     end
   end
 
   defp looking_for_food_declaration() do
-    fn %{is: false} ->
-      saying("I am looking for food")
-    end
-
-    fn _other ->
-      nil
+    fn %{is: found_food?} ->
+      if found_food?, do: nil, else: saying("I am looking for food")
     end
   end
 end

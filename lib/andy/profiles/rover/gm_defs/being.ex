@@ -91,12 +91,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
   # Intention valuators
 
   defp opinion_about_thriving() do
-    fn %{is: true} ->
-      saying("Life is good")
-    end
-
-    fn _other ->
-      saying("Life sucks")
+    fn %{is: thriving?} ->
+      if thriving?, do: saying("Life is good"), else: saying("Life sucks")
     end
   end
 end

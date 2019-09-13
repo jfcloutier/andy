@@ -50,27 +50,25 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
   # Intention valuators
 
   defp opinion_about_freedom() do
-    fn %{is: true} ->
-      saying("Let's explore")
-    end
-
-    fn _other ->
-      nil
+    fn %{is: free?} ->
+      if free?, do: saying("Let's explore"), else: nil
     end
   end
 
   defp roam_valuator() do
-    forward_time = Enum.random(0..3)
-    turn_time = Enum.random(0..4)
+    fn _ ->
+      forward_time = Enum.random(0..3)
+      turn_time = Enum.random(0..4)
 
-    %{
-      value: %{
-        forward_speed: Enum.random([:fast, :normal, :slow]),
-        forward_time: forward_time,
-        turn_direction: Enum.random([:left, :right]),
-        turn_time: turn_time
-      },
-      duration: forward_time + turn_time
-    }
+      %{
+        value: %{
+          forward_speed: Enum.random([:fast, :normal, :slow]),
+          forward_time: forward_time,
+          turn_direction: Enum.random([:left, :right]),
+          turn_time: turn_time
+        },
+        duration: forward_time + turn_time
+      }
+    end
   end
 end

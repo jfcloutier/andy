@@ -148,43 +148,39 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
   # Intention valuators
 
   defp opinion_about_safety() do
-    fn %{is: true} ->
-      saying("I feel safe")
-    end
-
-    fn _other ->
-      saying("Danger!")
+    fn %{is: safe?} ->
+      if safe?, do: saying("I feel safe"), else: saying("Danger!")
     end
   end
 
   defp panic_valuator() do
-    fn %{is: true, well_lit: well_lit?} ->
-      fear_factor = if well_lit?, do: :low, else: :high
+    fn %{is: panicking?, well_lit: well_lit?} ->
+      if panicking? do
+        fear_factor = if well_lit?, do: :low, else: :high
 
-      {back_off_speed, back_off_time, turn_time, repeats} =
-        case fear_factor do
-          :low ->
-            {:fast, 1, 1, 1}
+        {back_off_speed, back_off_time, turn_time, repeats} =
+          case fear_factor do
+            :low ->
+              {:fast, 1, 1, 1}
 
-          :high ->
-            {:very_fast, 2, 2, 2}
-        end
+            :high ->
+              {:very_fast, 2, 2, 2}
+          end
 
-      duration = (back_off_time + turn_time) * repeats
+        duration = (back_off_time + turn_time) * repeats
 
-      %{
-        value: %{
-          back_off_speed: back_off_speed,
-          back_off_time: back_off_time,
-          turn_time: turn_time,
-          repeats: repeats
-        },
-        duration: duration
-      }
-    end
-
-    fn _other ->
-      nil
+        %{
+          value: %{
+            back_off_speed: back_off_speed,
+            back_off_time: back_off_time,
+            turn_time: turn_time,
+            repeats: repeats
+          },
+          duration: duration
+        }
+      else
+        nil
+      end
     end
   end
 end

@@ -37,10 +37,6 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
     }
   end
 
-  # Conjecture activators
-
-  # Conjecture predictors
-
   # Conjecture belief valuators
 
   defp distance_to_obstacle_belief_valuator() do
@@ -57,7 +53,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleDistance do
   # Intention valuators
 
   defp opinion_about_distance() do
-    fn %{is: distance} -> if less_than?(distance, 10), do: saying("Oops!"), else: nil end
-    fn _ -> nil end
+    fn %{is: distance} ->
+      if less_than?(distance, 10), do: saying("Oops!"), else: nil
+    end
   end
 end

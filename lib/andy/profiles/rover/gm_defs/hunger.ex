@@ -72,12 +72,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   # Intention valuators
 
   defp opinion_about_sated() do
-    fn %{is: false} ->
-      saying("I am hungry")
-    end
-
-    fn _other ->
-      nil
+    fn %{is: sated?} ->
+      if sated?, do: nil, else: saying("I am hungry")
     end
   end
 end
