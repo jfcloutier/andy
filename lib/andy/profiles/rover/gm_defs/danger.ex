@@ -40,8 +40,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       predictors: [
         no_change_predictor(:clear_of_obstacle, default: %{is: true}),
         no_change_predictor(:clear_of_other, default: %{is: true}),
-        no_change_predictor(:in_well_lit_area, default: %{is: true}),
-        no_change_predictor(:other_panicking, :other, default: %{is: false})
+         no_change_predictor(:other_panicking, :other, default: %{is: false})
       ],
       valuator: safe_belief_valuator(),
       intention_domain: [:express_opinion_about_safety]
@@ -54,6 +53,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       name: :group_panic,
       activator: group_panic_activator(),
       predictors: [
+        no_change_predictor(:in_well_lit_area, default: %{is: true}),
         no_change_predictor(:other_panicking, default: %{is: false})
       ],
       valuator: group_panic_belief_valuator(),
@@ -121,10 +121,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
 
       clear_of_other? = current_perceived_value(round, about, :clear_of_other, :is, default: true)
 
-      in_well_lit_area? =
-        current_perceived_value(round, about, :in_well_lit_area, :is, default: true)
-
-      %{is: clear_of_obstacle? and clear_of_other? and in_well_lit_area?}
+      %{is: clear_of_obstacle? and clear_of_other?}
     end
   end
 
