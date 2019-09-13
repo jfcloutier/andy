@@ -5,6 +5,8 @@ defmodule Andy.GM.Round do
   alias Andy.GM.GenerativeModelDef
   import Andy.Utils, only: [now: 0]
 
+  require Logger
+
   defstruct id: nil,
             # = the Nth round
             index: nil,
@@ -28,10 +30,16 @@ defmodule Andy.GM.Round do
             early_timeout_on: false
 
   def new(gm_def, index) do
+    initial_beliefs = GenerativeModelDef.initial_beliefs(gm_def)
+
+    Logger.info(
+      "#{inspect(gm_def.name)}(#{index}): Initial beliefs are #{inspect(initial_beliefs)}"
+    )
+
     %Round{
       id: UUID.uuid4(),
       index: index,
-      beliefs: GenerativeModelDef.initial_beliefs(gm_def),
+      beliefs: initial_beliefs,
       started_on: now()
     }
   end

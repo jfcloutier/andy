@@ -1372,7 +1372,7 @@ defmodule Andy.GM.GenerativeModel do
            efficacies: efficacies
          } = state
        ) do
-    Logger.info("#{info(state)}: Setting CoAs")
+    Logger.info("#{info(state)}: Setting CoAs for #{inspect conjecture_activations}")
 
     coa_selections =
       Enum.reduce(
@@ -1384,6 +1384,7 @@ defmodule Andy.GM.GenerativeModel do
           else
             if ConjectureActivation.goal?(conjecture_activation) do
               if achieved_now?(conjecture_activation, state) do
+                Logger.info("#{info(state)}: Goal achieved for #{inspect conjecture_activation}. Nothing to do.")
                 acc
               else
                 # keep trying to achieve the goal

@@ -7,7 +7,6 @@ defmodule Andy.GM.GenerativeModelDef do
 
   alias __MODULE__
   alias Andy.GM.{Belief, Intention}
-  require Logger
 
   defstruct name: nil,
             # the maximum duration of a round for the GM
@@ -46,7 +45,6 @@ defmodule Andy.GM.GenerativeModelDef do
         end
       )
 
-    Logger.info("#{inspect(gm_def.name)}(0): Initial beliefs are #{inspect(initial_beliefs)}")
     initial_beliefs
   end
 
