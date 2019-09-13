@@ -40,7 +40,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
       predictors: [
         no_change_predictor(:clear_of_obstacle, default: %{is: true}),
         no_change_predictor(:clear_of_other, default: %{is: true}),
-         no_change_predictor(:other_panicking, :other, default: %{is: false})
+        no_change_predictor(:other_panicking, :other, default: %{is: false})
       ],
       valuator: safe_belief_valuator(),
       intention_domain: [:express_opinion_about_safety]

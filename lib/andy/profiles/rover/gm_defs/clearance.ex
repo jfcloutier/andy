@@ -72,7 +72,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Clearance do
       on_collision_course? =
         current_perceived_value(round, about, :on_collision_course, :is, default: false)
 
-      %{is: on_collision_course?}
+      %{is: not on_collision_course?}
     end
   end
 end
