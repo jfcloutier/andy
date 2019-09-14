@@ -291,9 +291,7 @@ defmodule Andy.GM.GenerativeModel do
       ) do
     if intent_relevant?(intent, state) do
       if round_status == :completing do
-        state
-        |> mark_intent_executed(intent)
-        |> maybe_close_round()
+        receive_intent_actuated(state, intent)
       else
         Logger.info(
           "#{info(state)}: Ignoring actuated event #{inspect(event)} because round status is #{
@@ -567,7 +565,7 @@ defmodule Andy.GM.GenerativeModel do
            ]
          } = state
        ) do
-    Logger.info("#{info(state)}: Carrying over all prior beliefs #{inspect(prior_beliefs)}")
+    Logger.info("#{info(state)}: Carrying over all previous beliefs #{inspect(previous_beliefs)}")
     carried_over_beliefs = previous_beliefs |> Enum.map(&Belief.increment_carry_overs(&1))
 
     retained_prior_beliefs =
@@ -761,6 +759,12 @@ defmodule Andy.GM.GenerativeModel do
     # Activate associated conjectures
     case activate_conjectures_from_prediction(updated_state, prediction) do
       [] ->
+        Logger.info(
+          "#{info(state)}: No conjecture activations from receiving prediction #{
+            inspect(prediction)
+          }"
+        )
+
         updated_state
 
       new_conjecture_activations ->
@@ -812,6 +816,12 @@ defmodule Andy.GM.GenerativeModel do
     else
       updated_state
     end
+  end
+
+  defp receive_intent_actuated(state, intent) do
+    state
+    |> mark_intent_executed(intent)
+    |> maybe_close_round()
   end
 
   # Make predictions for all conjecture activations in the GM
@@ -1615,7 +1625,7 @@ defmodule Andy.GM.GenerativeModel do
     index_list = index_list(courses_of_action_index, intention_domain)
 
     Logger.info(
-      "index_list = #{inspect(index_list)}, intention_domain = #{inspect(intention_domain)}"
+      "#{info(state)}: index_list = #{inspect(index_list)}, intention_domain = #{inspect(intention_domain)}"
     )
 
     intention_names =
@@ -1852,7 +1862,7 @@ defmodule Andy.GM.GenerativeModel do
 
     updated_state = %State{state | rounds: [updated_round | previous_rounds]}
 
-    if Enum.count(courses_of_action) > 0 do
+    if Round.has_intents?(updated_round) do
       # Allow for the intents to be actuated
       Logger.info("#{info(state)}: Setting execution timeout for round #{round.id}")
 
@@ -1863,6 +1873,7 @@ defmodule Andy.GM.GenerativeModel do
 
       updated_state
     else
+      Logger.info("#{info(state)}: No intents in round. Closing now.")
       updated_state |> round_status(:closing)
       delay_cast(gm_name(state), fn state -> close_round(state) end)
       updated_state
@@ -1883,7 +1894,8 @@ defmodule Andy.GM.GenerativeModel do
         intent_valuation = intention.valuator.(belief_values)
 
         if intent_valuation == nil do
-          # a nil-valued intent is a noop intent, so ignore it
+          # a nil-valued intent is a noop intent,
+          Logger.info("#{info(state)}: Noop intention #{inspect intention}. Null intent valuation.")
           acc
         else
           # execute valued intent
@@ -1901,7 +1913,7 @@ defmodule Andy.GM.GenerativeModel do
             PubSub.notify_intended(intent)
             %Round{acc | intents: [intent | intents]}
           else
-            acc
+             acc
           end
         end
       end

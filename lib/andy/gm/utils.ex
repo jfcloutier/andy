@@ -249,14 +249,12 @@ defmodule Andy.GM.Utils do
     end
   end
 
-  # The number of msecs a belief's value has been held without interruption
-  def duration_believed(rounds, about, conjecture_name, value_name, value, since \\ 0)
-
-  def duration_believed([], _about, _conjecture_name, _value_name, _value, since) do
+  # Since when a belief's value has been held without interruption.
+  def believed_since([], _about, _conjecture_name, _value_name, _value, since) do
     since
   end
 
-  def duration_believed(
+  def believed_since(
         [%Round{completed_on: completed_on, beliefs: beliefs} | previous_rounds],
         about,
         conjecture_name,
@@ -273,7 +271,7 @@ defmodule Andy.GM.Utils do
       )
 
     if value_believed? do
-      duration_believed(
+      believed_since(
         previous_rounds,
         about,
         conjecture_name,

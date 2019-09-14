@@ -3,7 +3,7 @@ defmodule Andy.GM.GenerativeModelDef do
 
   @default_max_round_duration 2_000
   @default_min_round_duration 100
-  @default_max_execution_duration 3_000
+  @default_max_execution_duration 2_000
 
   alias __MODULE__
   alias Andy.GM.{Belief, Intention}

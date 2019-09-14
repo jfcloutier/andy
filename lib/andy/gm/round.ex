@@ -47,4 +47,8 @@ defmodule Andy.GM.Round do
   def next_round_index([round | _]) do
     round.index + 1
   end
+
+  def has_intents?(%Round{intents: intents}) do
+    Enum.count(intents) > 0
+  end
 end

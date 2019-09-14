@@ -63,8 +63,9 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
           Conjecture.activate(conjecture,
             about: :other,
             # face the other robot for 5 secs or give up after failing to for 5 secs
-            goal: fn %{is: observed?, since: since, failing_since: failing_since} ->
-              (observed? and since >= 5_000) or failing_since >= 5_000
+            goal: fn %{is: observed?, since: since} ->
+              elapsed = now() - since
+              (observed? and elapsed >= 5_000) or (not observed? and elapsed >= 5_000)
             end
           )
         ]
@@ -93,16 +94,13 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         current_perceived_value(round, about, "*:*:direction_mod", :detected, default: :unknown)
 
       facing? = less_than?(absolute(direction), 120)
-      now = now()
-      observing_since = now - duration_believed(previous_rounds, about, :observed, :is, true)
-      failing_since = now - duration_believed(previous_rounds, about, :observed, :is, false)
+      since = believed_since(previous_rounds, about, :observed, :is, facing?, now())
 
       %{
         is: facing?,
         direction: direction,
         proximity: proximity,
-        since: observing_since,
-        failing_since: failing_since
+        since: since
       }
     end
   end
