@@ -233,7 +233,7 @@ defmodule Andy.GM.GenerativeModel do
       updated_round = %Round{round | reported_in: [name | reported_in]}
 
       %State{state | rounds: [updated_round | previous_rounds]}
-      # Complete the round if it is fully informed
+      # Complete the round if it is fully informed and has activated conjectures
       |> maybe_complete_round()
     else
       state
@@ -929,6 +929,13 @@ defmodule Andy.GM.GenerativeModel do
 
     Logger.info("#{info(state)}: Updated perceptions #{inspect(updated_perceptions)}")
     %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
+  end
+
+  defp round_ready_to_complete?(
+         %State{conjecture_activations: []} = state
+       ) do
+    Logger.info("#{info(state)}: No conjecture activations. Round not ready to complete")
+    false
   end
 
   defp round_ready_to_complete?(%State{sub_gm_names: sub_gm_names} = state) do
