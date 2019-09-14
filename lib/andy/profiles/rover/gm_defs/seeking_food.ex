@@ -45,7 +45,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   defp conjecture(:approaching_food) do
     %Conjecture{
-      name: :other_found_food,
+      name: :approaching_food,
       activator: approaching_food_activator(),
       predictors: [
         no_change_predictor(:closer_to_food, default: %{is: false}),
@@ -74,8 +74,6 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       end
     end
   end
-
-  # Conjecture predictors
 
   # Conjecture belief valuators
 
@@ -111,8 +109,8 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   # Intention valuators
 
   defp opinion_about_food() do
-    fn %{is: found_food?} ->
-      if found_food?, do: saying("Food!"), else: nil
+    fn %{is: over_food?} ->
+      if over_food?, do: saying("Food!"), else: nil
     end
   end
 

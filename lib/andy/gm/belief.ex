@@ -57,8 +57,9 @@ defmodule Andy.GM.Belief do
     {conjecture_name, about}
   end
 
-  def values_match?(%Belief{values: values}, values), do: true
-  def values_match?(%Belief{values: _values}, _other_values), do: false
+  def values_match?(%Belief{values: values}, match) do
+    Enum.all?(match, fn {key, val} -> Map.get(values, key) == val end)
+  end
 
   def has_value?(%Belief{values: belief_values}, value_name, value) do
     does_match?(Map.get(belief_values, value_name), value)

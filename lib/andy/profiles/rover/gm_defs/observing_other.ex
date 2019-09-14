@@ -1,7 +1,7 @@
 defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   @moduledoc "The GM definition for :observing_other"
 
-  alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
+  alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, ConjectureActivation}
   import Andy.GM.Utils
   import Andy.Utils, only: [now: 0]
 
@@ -19,8 +19,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
             is: false,
             direction: :unknown,
             proximity: :unknown,
-            since: 0,
-            failing_since: 0
+            duration: 0,
+            recently_believed_or_tried?: false
           }
         }
       },
@@ -40,7 +40,11 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   defp conjecture(:observed) do
     %Conjecture{
       name: :observed,
-      activator: observed_activator(),
+      activator:
+        goal_activator(
+          # until observing the other succeeded or failed for at least 5 consecutive seconds
+          fn %{duration: duration} -> duration >= 5_000 end
+        ),
       predictors: [
         no_change_predictor("*:*:proximity_mod", default: %{detected: :unknown}),
         no_change_predictor("*:*:direction_mod", default: %{detected: :unknown})
@@ -50,36 +54,12 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
     }
   end
 
-  # Conjecture activators
-
-  defp observed_activator() do
-    fn conjecture, rounds, _prediction_about ->
-      recently_observed? =
-        once_believed?(rounds, :other, :observed, :is, true, since: now() - 10_000)
-
-      # if we have not observed the other in the last 10 secs
-      if not recently_observed? do
-        [
-          Conjecture.activate(conjecture,
-            about: :other,
-            # face the other robot for 5 secs or give up after failing to for 5 secs
-            goal: fn %{is: observed?, since: since} ->
-              elapsed = now() - since
-              (observed? and elapsed >= 5_000) or (not observed? and elapsed >= 5_000)
-            end
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
-
   # Conjecture belief valuators
 
   defp observed_belief_valuator() do
-    fn conjecture_activation, [round | previous_rounds] ->
+    fn conjecture_activation, [round | previous_rounds] = rounds ->
       about = conjecture_activation.about
+      conjecture_name = ConjectureActivation.conjecture_name(conjecture_activation)
 
       proximity =
         current_perceived_value(
@@ -93,14 +73,28 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       direction =
         current_perceived_value(round, about, "*:*:direction_mod", :detected, default: :unknown)
 
-      facing? = less_than?(absolute(direction), 120)
-      since = believed_since(previous_rounds, about, :observed, :is, facing?, now())
+      facing? = less_than?(absolute(direction), 181)
+      now = now()
+
+      duration =
+        case believed_since(previous_rounds, about, :observed, :is, facing?) do
+          nil ->
+            0
+
+          since ->
+            now - since
+        end
+
+      recently_observed_or_tried? =
+        recent_believed_values(rounds, about, conjecture_name, matching: %{}, since: now - 20_000)
+        |> Enum.any?(&(&1.duration >= 5_000))
 
       %{
         is: facing?,
         direction: direction,
         proximity: proximity,
-        since: since
+        duration: duration,
+        recently_observed_or_tried: recently_observed_or_tried?
       }
     end
   end
@@ -108,13 +102,17 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   # Intention valuators
 
   defp face_valuator() do
-    fn %{direction: direction} ->
+    fn %{direction: direction, recently_observed_or_tried: recently_observed_or_tried?} ->
       cond do
+        # don't bother if in the last 20 secs we observed the other, or failed to, for at least 5 consecutive secs
+        recently_observed_or_tried? ->
+          nil
+
         direction == :unknown ->
           turn_direction = Enum.random([:right, :left])
           %{value: %{turn_direction: turn_direction, turn_time: 1}, duration: 1}
 
-        abs(direction) <= 120 ->
+        abs(direction) < 181 ->
           nil
 
         true ->

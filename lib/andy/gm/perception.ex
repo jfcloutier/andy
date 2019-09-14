@@ -2,7 +2,6 @@ defmodule Andy.GM.Perception do
   @moduledoc "Perception behaviour to unify some of Prediction and PredictionError"
 
   alias Andy.GM.{PredictionError, Prediction, Perception}
-  import Andy.Utils, only: [does_match?: 2]
 
   @callback source(perception :: any) :: String.t()
   @callback conjecture_name(perception :: any) :: String.t()
@@ -10,10 +9,6 @@ defmodule Andy.GM.Perception do
   @callback carry_overs(perception :: any) :: non_neg_integer
   @callback prediction_conjecture_name(perception :: any) :: String.t()
   @callback values(perception :: any) :: map
-
-  def make_subject(conjecture_name: conjecture_name, about: about) do
-    {conjecture_name, about}
-  end
 
   def has_subject?(perception, subject) do
     subject(perception) == subject
@@ -23,8 +18,9 @@ defmodule Andy.GM.Perception do
     {conjecture_name(perception), about(perception)}
   end
 
-  def values_match?(perception, values) do
-    does_match?(values(perception), values)
+  def values_match?(perception, match) do
+    values = Perception.values(perception)
+    Enum.all?(match, fn {key, val} -> Map.get(values, key) == val end)
   end
 
   def same_subject?(perception, other) do

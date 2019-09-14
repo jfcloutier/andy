@@ -1,6 +1,8 @@
 defmodule Andy.GM.Utils do
   alias Andy.GM.{Perception, Belief, Prediction, Round, Intention, Conjecture}
 
+  require Logger
+
   def opinion_activator(about \\ nil) do
     fn conjecture, _rounds, prediction_about ->
       [
@@ -31,12 +33,12 @@ defmodule Andy.GM.Utils do
 
   def empty_valuator() do
     fn _conjecture_activation, _rounds ->
-      %{value: %{}, duration: 0}
+      %{value: %{}, duration: 10}
     end
   end
 
   def saying(words) do
-    %{value: words, duration: 0}
+    %{value: words, duration: 10}
   end
 
   # Predict no change, or some initial expectation
@@ -78,6 +80,10 @@ defmodule Andy.GM.Utils do
     end
   end
 
+  def make_subject(conjecture_name: conjecture_name, about: about) do
+    {conjecture_name, about}
+  end
+
   # Crudely predict, from all previous rounds, the expected distribution of a named, numerical value
   def expected_numerical_value([_round | previous_rounds], conjecture_name, about, value_name) do
     all_values =
@@ -101,7 +107,12 @@ defmodule Andy.GM.Utils do
   end
 
   # Determine if a name value has been :increasing, :decreasing, :static, or :unknown over previous rounds
-  def numerical_value_trend([_round | previous_rounds], conjecture_name, about, value_name) do
+  def numerical_perceived_value_trend(
+        [_round | previous_rounds],
+        conjecture_name,
+        about,
+        value_name
+      ) do
     all_values =
       all_perceived_values(
         previous_rounds,
@@ -110,8 +121,9 @@ defmodule Andy.GM.Utils do
         value_name
       )
       |> Enum.filter(&is_number(&1))
+      |> Enum.reverse() # from most recent to least recent
 
-    case all_values do
+    trend = case all_values do
       [] ->
         :unknown
 
@@ -130,6 +142,8 @@ defmodule Andy.GM.Utils do
             :increasing
         end
     end
+    Logger.debug("Numerical trend in #{inspect(all_values)} is #{inspect trend}")
+    trend
   end
 
   def once_believed?([], _about, _conjecture_name, _value_name, _value, since: _since) do
@@ -149,7 +163,7 @@ defmodule Andy.GM.Utils do
     if completed_on < since do
       false
     else
-      subject = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+      subject = make_subject(conjecture_name: conjecture_name, about: about)
 
       case Enum.find(beliefs, &(Belief.subject(&1) == subject)) do
         nil ->
@@ -206,7 +220,7 @@ defmodule Andy.GM.Utils do
     case Enum.find(
            perceptions,
            &(Perception.subject(&1) ==
-               Perception.make_subject(
+               make_subject(
                  conjecture_name: predicted_conjecture_name,
                  about: about
                ))
@@ -233,15 +247,16 @@ defmodule Andy.GM.Utils do
     if completed_on < since do
       []
     else
-      subject = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+      subject = make_subject(conjecture_name: conjecture_name, about: about)
 
-      matching_perceptions =
+      matching_perception_values =
         Enum.filter(
           perceptions,
           &(Perception.subject(&1) == subject and Perception.values_match?(&1, match))
         )
+        |> Enum.map(&Perception.values(&1))
 
-      matching_perceptions ++
+      matching_perception_values ++
         recent_perceived_values(previous_rounds, about, conjecture_name,
           matching: match,
           since: since
@@ -249,7 +264,40 @@ defmodule Andy.GM.Utils do
     end
   end
 
+  def recent_believed_values([], _about, _conjecture_name, matching: _match, since: _since) do
+    []
+  end
+
+  def recent_believed_values(
+        [%Round{completed_on: completed_on, beliefs: beliefs} | previous_rounds],
+        about,
+        conjecture_name,
+        matching: match,
+        since: since
+      ) do
+    if completed_on < since do
+      []
+    else
+      subject = make_subject(conjecture_name: conjecture_name, about: about)
+
+      matching_belief_values =
+        Enum.filter(
+          beliefs,
+          &(Belief.subject(&1) == subject and Belief.values_match?(&1, match))
+        )
+        |> Enum.map(&Belief.values(&1))
+
+      matching_belief_values ++
+        recent_believed_values(previous_rounds, about, conjecture_name,
+          matching: match,
+          since: since
+        )
+    end
+  end
+
   # Since when a belief's value has been held without interruption.
+  def believed_since(rounds, about, conjecture_name, value_name, value, since \\ nil)
+
   def believed_since([], _about, _conjecture_name, _value_name, _value, since) do
     since
   end
@@ -262,7 +310,7 @@ defmodule Andy.GM.Utils do
         value,
         since
       ) do
-    subject = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+    subject = make_subject(conjecture_name: conjecture_name, about: about)
 
     value_believed? =
       Enum.any?(
@@ -349,7 +397,7 @@ defmodule Andy.GM.Utils do
     if completed_on < since do
       0
     else
-      subject_counted = Perception.make_subject(conjecture_name: conjecture_name, about: about)
+      subject_counted = make_subject(conjecture_name: conjecture_name, about: about)
 
       count =
         perceptions

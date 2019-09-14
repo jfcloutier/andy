@@ -1625,7 +1625,9 @@ defmodule Andy.GM.GenerativeModel do
     index_list = index_list(courses_of_action_index, intention_domain)
 
     Logger.info(
-      "#{info(state)}: index_list = #{inspect(index_list)}, intention_domain = #{inspect(intention_domain)}"
+      "#{info(state)}: index_list = #{inspect(index_list)}, intention_domain = #{
+        inspect(intention_domain)
+      }"
     )
 
     intention_names =
@@ -1895,7 +1897,10 @@ defmodule Andy.GM.GenerativeModel do
 
         if intent_valuation == nil do
           # a nil-valued intent is a noop intent,
-          Logger.info("#{info(state)}: Noop intention #{inspect intention}. Null intent valuation.")
+          Logger.info(
+            "#{info(state)}: Noop intention #{inspect(intention)}. Null intent valuation."
+          )
+
           acc
         else
           # execute valued intent
@@ -1913,7 +1918,7 @@ defmodule Andy.GM.GenerativeModel do
             PubSub.notify_intended(intent)
             %Round{acc | intents: [intent | intents]}
           else
-             acc
+            acc
           end
         end
       end

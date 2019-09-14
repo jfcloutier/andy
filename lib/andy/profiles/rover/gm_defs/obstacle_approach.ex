@@ -40,7 +40,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObstacleApproach do
       about = conjecture_activation.about
 
       approaching? =
-        numerical_value_trend(rounds, :distance_to_obstacle, about, :is) == :decreasing
+        numerical_perceived_value_trend(rounds, :distance_to_obstacle, about, :is) == :decreasing
 
       %{is: approaching?}
     end

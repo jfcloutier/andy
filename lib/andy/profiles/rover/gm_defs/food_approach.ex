@@ -43,7 +43,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   defp conjecture(:closer_to_food) do
     %Conjecture{
       name: :closer_to_food,
-      activator: closer_to_food_activator(),
+      activator: goal_activator(fn %{is: closer_to_food?} -> closer_to_food? end),
       predictors: [
         no_change_predictor("*:*:beacon_heading/1", default: %{detected: 0}),
         no_change_predictor("*:*:beacon_distance/1", default: %{detected: :unknown})
@@ -70,23 +70,6 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   # Conjecture activators
 
-  defp closer_to_food_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      food_detected? = food_detected?(round, prediction_about)
-
-      if food_detected? do
-        [
-          Conjecture.activate(conjecture,
-            about: prediction_about,
-            goal: fn %{is: closer_to_food?} -> closer_to_food? end
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
-
   defp closer_to_other_homing_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
       food_detected? = food_detected?(round, prediction_about)
@@ -111,7 +94,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       about = conjecture_activation.about
 
       approaching? =
-        numerical_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) == :decreasing
+        numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) == :decreasing
 
       distance =
         current_perceived_value(round, about, "*:*:beacon_distance/1", :detected,
@@ -128,7 +111,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   def closer_to_other_homing_belief_valuator() do
     fn _conjecture_activation, [round | _previous_rounds] = rounds ->
       approaching? =
-        numerical_value_trend(rounds, :other_homing_on_food, :other, :proximity) == :decreasing
+        numerical_perceived_value_trend(rounds, :other_homing_on_food, :other, :proximity) == :decreasing
 
       other_vector =
         current_perceived_values(round, :other, :other_homing_on_food,
