@@ -32,7 +32,7 @@ defmodule Andy.GM.Utils do
   end
 
   def empty_valuator() do
-    fn _conjecture_activation, _rounds ->
+    fn _ ->
       %{value: %{}, duration: 0.1}
     end
   end
