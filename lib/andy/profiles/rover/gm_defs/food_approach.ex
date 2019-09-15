@@ -184,7 +184,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   defp wait_track_food_valuator() do
     fn %{heading: heading, distance: distance} ->
-      time = if distance == :unknown or heading == :unknown, do: 0, else: 1
+      time = if distance == :unknown or heading == :unknown, do: 0, else: 0.5
       %{value: %{time: time}, duration: time}
     end
   end
@@ -205,11 +205,11 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
         forward_time =
           cond do
-            distance < 5 -> 0
-            distance < 10 -> 0.25
-            distance < 20 -> 0.5
-            distance < 40 -> 1
-            true -> 1.5
+            distance < 5 -> 0.25
+            distance < 10 -> 0.5
+            distance < 20 -> 1
+            distance < 60 -> 1.5
+            true -> 2
           end
 
         %{
@@ -253,7 +253,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   defp wait_track_other_valuator() do
     fn %{proximity: proximity, direction: direction} ->
-      time = if proximity == :unknown or direction == :unknown, do: 0, else: 1
+      time = if proximity == :unknown or direction == :unknown, do: 0, else: 0.5
       %{value: %{time: time}, duration: time}
     end
   end
