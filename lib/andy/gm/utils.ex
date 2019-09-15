@@ -39,8 +39,8 @@ defmodule Andy.GM.Utils do
 
   def roam_valuator() do
     fn _ ->
-      forward_time = Enum.random(0..3)
-      turn_time = Enum.random(0..4)
+      forward_time = Enum.random(0..4) / 2
+      turn_time = Enum.random(0..4) / 2
 
       %{
         value: %{
