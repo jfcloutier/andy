@@ -92,7 +92,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Being do
 
   defp opinion_about_thriving() do
     fn %{is: thriving?} ->
-      if thriving?, do: saying("Life is good"), else: saying("Life sucks")
+      if thriving?, do: saying("Life is good"), else: nil
     end
   end
 end

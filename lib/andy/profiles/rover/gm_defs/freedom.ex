@@ -51,7 +51,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
 
   defp opinion_about_freedom() do
     fn %{is: free?} ->
-      if free?, do: saying("Let's explore"), else: nil
+      if free?, do: saying("Let's check things out"), else: nil
     end
   end
 

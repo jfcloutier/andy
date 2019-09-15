@@ -1645,7 +1645,7 @@ defmodule Andy.GM.GenerativeModel do
       )
 
     unduplicated_intention_names =
-      GenerativeModelDef.unduplicate_non_repeatables(gm_def, intention_names)
+      GenerativeModelDef.unduplicate_intentions(gm_def, intention_names)
 
     # Note: intention_names are reversed, unduplicated_intention_names are un-reversed
 
@@ -1871,7 +1871,7 @@ defmodule Andy.GM.GenerativeModel do
 
     if Round.has_intents?(updated_round) do
       # Allow for the intents to be actuated
-      time_out_in = 1000 * Round.intents_duration(updated_round) + 50
+      time_out_in = round(1000 * Round.intents_duration(updated_round) + 50)
 
       Logger.info(
         "#{info(state)}: Setting execution timeout for round #{round.id} in #{time_out_in} msecs"

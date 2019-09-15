@@ -26,12 +26,12 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         track_other: %Intention{
           intent_name: :move,
           valuator: tracking_other_valuator(),
-          repeatable: true
+          duplicable: false
         },
         track_food: %Intention{
           intent_name: :move,
           valuator: tracking_food_valuator(),
-          repeatable: true
+          duplicable: false
         }
       }
     }
