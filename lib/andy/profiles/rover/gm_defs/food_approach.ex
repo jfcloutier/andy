@@ -93,7 +93,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
     fn conjecture_activation, [round | _previous_rounds] = rounds ->
       about = conjecture_activation.about
 
-      approaching? =
+      distance_decreasing? =
         numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) ==
           :decreasing
 
@@ -104,6 +104,8 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
       heading =
         current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: :unknown)
+
+        approaching? = distance_decreasing? and not(distance == :unknown or heading == :unknown)
 
       %{is: approaching?, distance: distance, heading: heading}
     end

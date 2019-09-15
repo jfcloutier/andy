@@ -194,13 +194,13 @@ defmodule Andy.Rover.Actuation do
         case turn_direction do
           :right ->
             script
-            |> Script.add_step(:left_wheel, :set_speed, [:rps, speed(:normal)])
-            |> Script.add_step(:right_wheel, :set_speed, [:rps, -1 * speed(:normal)])
+            |> Script.add_step(:left_wheel, :set_speed, [:rps, -1 *speed(:normal)])
+            |> Script.add_step(:right_wheel, :set_speed, [:rps, speed(:normal)])
 
           :left ->
             script
-            |> Script.add_step(:left_wheel, :set_speed, [:rps, -1 * speed(:normal)])
-            |> Script.add_step(:right_wheel, :set_speed, [:rps, speed(:normal)])
+            |> Script.add_step(:left_wheel, :set_speed, [:rps, speed(:normal)])
+            |> Script.add_step(:right_wheel, :set_speed, [:rps, -1 * speed(:normal)])
         end
 
       script

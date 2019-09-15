@@ -13,7 +13,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         conjecture(:approaching_food)
       ],
       contradictions: [
-        [:no_food, :over_food, :approaching_food]
+        [:over_food, :approaching_food]
       ],
       priors: %{
         no_food: %{about: :self, values: %{is: false}},
@@ -28,7 +28,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         },
         roam_about: %Intention{
           intent_name: :move,
-          valuator: roam_valuator()
+          valuator: no_food_roam_valuator()
         }
       }
     }
@@ -160,6 +160,13 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       if over_food?, do: saying("Food!"), else: nil
     end
   end
+
+  defp no_food_roam_valuator() do
+    fn %{is: no_food?} = belief_values ->
+      if no_food?, do: roam_valuator().(belief_values), else: nil
+    end
+  end
+
 
   #
 
