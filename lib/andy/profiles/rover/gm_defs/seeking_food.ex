@@ -57,7 +57,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     %Conjecture{
       name: :no_food,
       self_activated: true,
-      activator: opinion_activator(),
+      activator: opinion_activator(:self),
       predictors: [
         no_change_predictor(
           "*:*:beacon_heading/1",

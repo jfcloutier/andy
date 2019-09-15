@@ -160,10 +160,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         turn_time =
           cond do
             abs_heading == 0 -> 0
-            abs_heading < 10 -> 0.25
             abs_heading < 10 -> 0.5
-            abs_heading < 20 -> 1
-            true -> 2
+            abs_heading < 10 -> 1
+            abs_heading < 20 -> 2
+            true -> 2.5
           end
 
         %{
