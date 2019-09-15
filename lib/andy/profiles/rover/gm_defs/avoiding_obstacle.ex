@@ -73,7 +73,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
 
       touched? =
         current_perceived_value(round, about, :distance_to_obstacle, :is, default: :unknown)
-        |> less_than?(8)
+        |> less_than?(10)
 
       %{is: not touched?}
     end
@@ -90,7 +90,7 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
         current_perceived_value(round, about, :distance_to_obstacle, :is, default: :unknown)
 
       %{
-        is: not approaching_obstacle? and greater_than?(distance_to_obstacle, 15)
+        is: not approaching_obstacle? and greater_than?(distance_to_obstacle, 20)
       }
     end
   end
