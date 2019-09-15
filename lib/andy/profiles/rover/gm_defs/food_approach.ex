@@ -205,9 +205,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
         forward_time =
           cond do
-            distance < 5 -> 0.25
-            distance < 10 -> 0.5
-            distance < 20 -> 1
+            distance < 4 -> 0
+            distance < 10 -> 0.25
+            distance < 20 -> 0.5
+            distance < 40 -> 1
             distance < 60 -> 1.5
             true -> 2
           end
