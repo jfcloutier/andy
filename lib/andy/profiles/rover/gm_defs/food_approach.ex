@@ -198,19 +198,19 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         speed =
           cond do
             distance < 10 -> :very_slow
-            distance < 20 -> :slow
-            distance < 40 -> :normal
+            distance < 15 -> :slow
+            distance < 30 -> :normal
             true -> :fast
           end
 
         forward_time =
           cond do
             distance < 4 -> 0
-            distance < 10 -> 0.25
-            distance < 20 -> 0.5
-            distance < 40 -> 1
-            distance < 60 -> 1.5
-            true -> 2
+            distance < 10 -> 0.5
+            distance < 20 -> 1
+            distance < 40 -> 1.5
+            distance < 60 -> 2
+            true -> 3
           end
 
         %{

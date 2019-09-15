@@ -209,6 +209,7 @@ defmodule Andy.Rover.Actuation do
 
       script
       |> Script.add_step(:all, :run_for, [turn_time_ms])
+      |> Script.add_wait(500)
       |> Script.add_step(:right_wheel, :set_speed, [:rps, forward_rps_speed * -1])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, forward_rps_speed * -1])
       |> Script.add_step(:all, :run_for, [forward_time_ms])
@@ -252,6 +253,7 @@ defmodule Andy.Rover.Actuation do
 
           acc
           |> Script.add_step(:all, :run_for, [turn_time_ms])
+          |> Script.add_wait(500)
           |> Script.add_step(:right_wheel, :set_speed, [:rps, backward_rps_speed])
           |> Script.add_step(:left_wheel, :set_speed, [:rps, backward_rps_speed])
           |> Script.add_step(:all, :run_for, [backward_time_ms])
