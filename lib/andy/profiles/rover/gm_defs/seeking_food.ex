@@ -44,7 +44,8 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         },
         roam_about: %Intention{
           intent_name: :move,
-          valuator: no_food_roam_valuator()
+          valuator: no_food_roam_valuator(),
+          duplicable: false
         }
       }
     }
