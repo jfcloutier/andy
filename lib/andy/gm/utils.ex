@@ -37,6 +37,24 @@ defmodule Andy.GM.Utils do
     end
   end
 
+  def roam_valuator() do
+    fn _ ->
+      forward_time = Enum.random(0..3)
+      turn_time = Enum.random(0..4)
+
+      %{
+        value: %{
+          forward_speed: Enum.random([:fast, :normal, :slow]),
+          forward_time: forward_time,
+          turn_direction: Enum.random([:left, :right]),
+          turn_time: turn_time
+        },
+        duration: forward_time + turn_time
+      }
+    end
+  end
+
+
   def saying(words) do
     %{value: words, duration: 0.1}
   end
@@ -235,6 +253,50 @@ defmodule Andy.GM.Utils do
         Perception.values(perception) || default_values
     end
   end
+
+  def current_believed_values(
+        %Round{beliefs: beliefs},
+        about,
+        predicted_conjecture_name,
+        default: default_values
+      ) do
+    case Enum.find(
+           beliefs,
+           &(Belief.subject(&1) ==
+               make_subject(
+                 conjecture_name: predicted_conjecture_name,
+                 about: about
+               ))
+         ) do
+      nil ->
+        default_values
+
+      belief ->
+        Belief.values(belief) || default_values
+    end
+  end
+
+  def current_believed_value(
+        round,
+        about,
+        predicted_conjecture_name,
+        value_name,
+        default: default
+      ) do
+    case current_believed_values(
+           round,
+           about,
+           predicted_conjecture_name,
+           default: %{}
+         ) do
+      nil ->
+        default
+
+      values ->
+        Map.get(values, value_name, default)
+    end
+  end
+
 
   def recent_perceived_values([], _about, _conjecture_name, matching: _match, since: _since) do
     []

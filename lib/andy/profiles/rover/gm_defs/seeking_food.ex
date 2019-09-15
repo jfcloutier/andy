@@ -8,13 +8,15 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     %GenerativeModelDef{
       name: :seeking_food,
       conjectures: [
+        conjecture(:no_food),
         conjecture(:over_food),
         conjecture(:approaching_food)
       ],
       contradictions: [
-        [:over_food, :approaching_food]
+        [:no_food, :over_food, :approaching_food]
       ],
       priors: %{
+        no_food: %{about: :self, values: %{is: false}},
         over_food: %{about: :self, values: %{is: false}},
         approaching_food: %{about: :self, values: %{is: false, got_it: false}}
       },
@@ -23,6 +25,10 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
           intent_name: :say,
           valuator: opinion_about_food(),
           repeatable: false
+        },
+        roam_about: %Intention{
+          intent_name: :move,
+          valuator: roam_valuator()
         }
       }
     }
@@ -31,10 +37,24 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   # Conjectures
 
   # opinion
+  defp conjecture(:no_food) do
+    %Conjecture{
+      name: :no_food,
+      activator: opinion_activator(),
+      predictors: [
+        no_change_predictor("*:*:beacon_heading/1", default: %{detected: :unknown}),
+        no_change_predictor("*:*:beacon_distance/1", default: %{detected: :unknown})
+      ],
+      valuator: no_food_belief_valuator(),
+      intention_domain: [:roam_about]
+    }
+  end
+
+  # opinion
   defp conjecture(:over_food) do
     %Conjecture{
       name: :over_food,
-      activator: opinion_activator(),
+      activator: over_food_activator(),
       predictors: [
         no_change_predictor("*:*:color", default: %{detected: :unknown})
       ],
@@ -58,11 +78,28 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   # Conjecture activators
 
+  defp over_food_activator() do
+    fn conjecture, [round | _previous_rounds], prediction_about ->
+      no_food_believed? = current_believed_value(round, prediction_about, :no_food, :is, default: false)
+
+      if not no_food_believed? do
+        [
+          Conjecture.activate(conjecture,
+            about: prediction_about
+          )
+        ]
+      else
+        []
+      end
+    end
+  end
+
   defp approaching_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->
-      over_food? = over_food?(round, prediction_about)
+      over_food_believed? = current_believed_value(round, prediction_about, :over_food, :is, default: false)
+      no_food_believed? = current_believed_value(round, prediction_about, :no_food, :is, default: false)
 
-      if not over_food? do
+      if not (no_food_believed? or over_food_believed?) do
         [
           Conjecture.activate(conjecture,
             about: prediction_about,
@@ -76,6 +113,16 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   end
 
   # Conjecture belief valuators
+
+  defp no_food_belief_valuator() do
+    fn conjecture_activation, [round | _previous_rounds] ->
+      about = conjecture_activation.about
+
+      no_food? = no_food?(round, about)
+
+      %{is: no_food?}
+    end
+  end
 
   defp over_food_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] ->
@@ -118,5 +165,11 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   defp over_food?(round, about) do
     current_perceived_value(round, about, "*:*:color", :detected, default: :unknown) == :white
+  end
+
+  defp no_food?(round, about) do
+    heading = current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: :unknown)
+    distance = current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: :unknown)
+    heading == :unknown or distance == :unknown
   end
 end

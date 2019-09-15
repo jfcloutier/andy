@@ -55,20 +55,4 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
     end
   end
 
-  defp roam_valuator() do
-    fn _ ->
-      forward_time = Enum.random(0..3)
-      turn_time = Enum.random(0..4)
-
-      %{
-        value: %{
-          forward_speed: Enum.random([:fast, :normal, :slow]),
-          forward_time: forward_time,
-          turn_direction: Enum.random([:left, :right]),
-          turn_time: turn_time
-        },
-        duration: forward_time + turn_time
-      }
-    end
-  end
 end

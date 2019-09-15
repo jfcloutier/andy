@@ -84,11 +84,11 @@ defmodule Andy.BrickPi.InfraredSensor do
     {value, updated_sensor}
   end
 
-  @doc "Get beacon heading on a channel (-25 for far left, 25 for far right, 0 if absent or straight ahead)"
+  @doc "Get beacon heading on a channel (-25 for far left, 25 for far right => :unknown, 0 if absent or straight ahead)"
   def seek_heading(sensor, channel) do
     updated_sensor = set_seek_mode(sensor)
     value = get_attribute(updated_sensor, "value#{(channel - 1) * 2}", :integer)
-    {value, updated_sensor}
+    if abs(value) == 25, do: {:unknown, updated_sensor}, else: {value, updated_sensor}
   end
 
   @doc "Get beacon distance on a channel (as percentage - 0 means immediate proximity, 100 means 70cm, -128 means unknown)"
