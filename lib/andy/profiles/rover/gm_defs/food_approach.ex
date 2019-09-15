@@ -45,8 +45,9 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       name: :closer_to_food,
       activator: goal_activator(fn %{is: closer_to_food?} -> closer_to_food? end),
       predictors: [
-        no_change_predictor("*:*:beacon_heading/1", default: %{detected: 0}),
-        no_change_predictor("*:*:beacon_distance/1", default: %{detected: :unknown})
+        no_change_predictor(:location_of_food, :self,
+          default: %{distance: :unknown, heading: :unknown}
+        )
       ],
       valuator: closer_to_food_belief_valuator(),
       intention_domain: [:track_food]
@@ -93,17 +94,14 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
     fn conjecture_activation, [round | _previous_rounds] = rounds ->
       about = conjecture_activation.about
 
-      distance =
-        current_perceived_value(round, about, "*:*:beacon_distance/1", :detected,
-          default: :unknown
+      %{distance: distance, heading: heading} =
+        current_perceived_values(round, about, :location_of_food,
+          default: %{distance: :unknown, heading: :unknown}
         )
-
-      heading =
-        current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: :unknown)
 
       approaching? =
         not (distance == :unknown or (distance == 70 and heading == 0)) and
-          numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) ==
+          numerical_perceived_value_trend(rounds, :location_of_food, about, :distance) ==
             :decreasing
 
       %{is: approaching?, distance: distance, heading: heading}
@@ -230,10 +228,11 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   #
 
   defp food_detected?(round, about) do
-    distance =
-      current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: :unknown)
+    %{distance: distance, heading: heading} =
+      current_perceived_values(round, about, :location_of_food,
+        default: %{distance: :unknown, heading: :unknown}
+      )
 
-    heading = current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: 0)
-    not (distance == :unknown or (distance == 70 and heading == 0))
+    not (distance == :unknown or heading == :unknown)
   end
 end

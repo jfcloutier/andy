@@ -61,17 +61,11 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
       activator: opinion_activator(:self),
       predictors: [
         no_change_predictor(
-          "*:*:beacon_heading/1",
+          :location_of_food,
           :self,
           default: %{
-            detected: :unknown
-          }
-        ),
-        no_change_predictor(
-          "*:*:beacon_distance/1",
-          :self,
-          default: %{
-            detected: :unknown
+            distance: :unknown,
+            heading: :unknown
           }
         )
       ],
@@ -208,12 +202,9 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   end
 
   defp no_food?(round, about) do
-    heading =
-      current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: :unknown)
+    %{distance: distance, heading: heading} =
+      current_perceived_values(round, about, :location_of_food, default: %{distance: :unknown, heading: :unknown})
 
-    distance =
-      current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: :unknown)
-
-    distance == :unknown or (distance == 70 and heading == 0)
+    distance == :unknown or heading == :unknown
   end
 end

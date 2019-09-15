@@ -95,7 +95,7 @@ defmodule Andy.BrickPi.InfraredSensor do
   def seek_distance(sensor, channel) do
     updated_sensor = set_seek_mode(sensor)
     raw = get_attribute(updated_sensor, "value#{(channel - 1) * 2 + 1}", :integer)
-    value = if raw in [70, -128], do: :unknown, else: round(raw / 100 * 70)
+    value = if raw == -128, do: :unknown, else: round(raw / 100 * 70)
     {value, updated_sensor}
   end
 
