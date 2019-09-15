@@ -30,6 +30,11 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
             duplicable: false
           },
           %Intention{
+            intent_name: :wait,
+            valuator: wait_track_other_valuator(),
+            duplicable: false
+          },
+          %Intention{
             intent_name: :go_forward,
             valuator: go_forward_other_valuator(),
             duplicable: false
@@ -40,12 +45,17 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
             intent_name: :turn,
             valuator: turn_food_valuator(),
             duplicable: false
+          },
+          %Intention{
+            intent_name: :wait,
+            valuator: wait_track_food_valuator(),
+            duplicable: false
+          },
+          %Intention{
+            intent_name: :go_forward,
+            valuator: go_forward_food_valuator(),
+            duplicable: false
           }
-#          %Intention{
-#            intent_name: :go_forward,
-#            valuator: go_forward_food_valuator(),
-#            duplicable: false
-#          }
         ]
       }
     }
@@ -154,10 +164,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
         turn_time =
           cond do
-            abs_heading == 0 -> 0
-            abs_heading < 5 -> 0.25
-            abs_heading < 10 -> 0.5
-            abs_heading < 20 -> 1
+            abs_heading <= 4 -> 0
+            abs_heading < 10 -> 0.25
+            abs_heading < 20 -> 0.5
+            abs_heading < 30 -> 1
             true -> 1.5
           end
 
@@ -172,6 +182,13 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
     end
   end
 
+  defp wait_track_food_valuator() do
+    fn %{heading: heading, distance: distance} ->
+      time = if distance == :unknown or heading == :unknown, do: 0, else: 1
+      %{value: %{time: time}, duration: time}
+    end
+  end
+
   defp go_forward_food_valuator() do
     fn %{distance: distance} ->
       # suspicious!
@@ -180,9 +197,9 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       else
         speed =
           cond do
-            distance < 5 -> :very_slow
-            distance < 10 -> :slow
-            distance < 20 -> :normal
+            distance < 10 -> :very_slow
+            distance < 20 -> :slow
+            distance < 40 -> :normal
             true -> :fast
           end
 
@@ -233,6 +250,14 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       end
     end
   end
+
+  defp wait_track_other_valuator() do
+    fn %{proximity: proximity, direction: direction} ->
+      time = if proximity == :unknown or direction == :unknown, do: 0, else: 1
+      %{value: %{time: time}, duration: time}
+    end
+  end
+
 
   defp go_forward_other_valuator() do
     fn %{proximity: proximity} ->

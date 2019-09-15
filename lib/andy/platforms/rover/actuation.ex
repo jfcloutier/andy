@@ -50,6 +50,10 @@ defmodule Andy.Rover.Actuation do
           %Activation{
             intent: :panic,
             script: panicking()
+          },
+          %Activation{
+            intent: :wait,
+            script: waiting()
           }
         ]
       ),
@@ -262,6 +266,14 @@ defmodule Andy.Rover.Actuation do
       |> Script.add_step(:all, :coast)
       |> Script.add_step(:all, :reset)
     end
+  end
+
+  def waiting() do
+    fn intent, motors ->
+      Script.new(:waiting, motors)
+      |> Script.add_wait(intent.value.time * 1_000)
+    end
+
   end
 
   # manipulation

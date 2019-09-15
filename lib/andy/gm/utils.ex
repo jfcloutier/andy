@@ -37,6 +37,13 @@ defmodule Andy.GM.Utils do
     end
   end
 
+  def wait_valuator(duration) do
+    fn _ ->
+      %{value: %{time: duration}, duration: duration}
+    end
+  end
+
+
   def roam_valuator() do
     fn _ ->
       forward_time = Enum.random(0..4) / 2
