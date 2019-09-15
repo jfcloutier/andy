@@ -158,7 +158,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
             abs_heading < 5 -> 0.25
             abs_heading < 10 -> 0.5
             abs_heading < 20 -> 1
-            true -> 2
+            true -> 1.5
           end
 
         %{
@@ -189,10 +189,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         forward_time =
           cond do
             distance < 5 -> 0
-            distance < 10 -> 0.5
-            distance < 20 -> 1
-            distance < 40 -> 2
-            true -> 3
+            distance < 10 -> 0.25
+            distance < 20 -> 0.5
+            distance < 40 -> 1
+            true -> 1.5
           end
 
         %{
