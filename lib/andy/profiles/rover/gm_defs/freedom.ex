@@ -54,5 +54,4 @@ defmodule Andy.Profiles.Rover.GMDefs.Freedom do
       if free?, do: saying("Let's check things out"), else: nil
     end
   end
-
 end

@@ -90,13 +90,17 @@ defmodule Andy.GM.GenerativeModelDef do
       intention_names,
       [],
       fn intention_name, acc ->
-        do_not_duplicate? = intentions(gm_def, intention_name) |> Enum.all?(&(Intention.not_repeatable?(&1) or Intention.not_duplicable?(&1)))
+        do_not_duplicate? =
+          intentions(gm_def, intention_name)
+          |> Enum.all?(&(Intention.not_repeatable?(&1) or Intention.not_duplicable?(&1)))
+
         if do_not_duplicate? and intention_name in acc, do: acc, else: [intention_name | acc]
       end
     )
   end
 
   def non_repeatable_intentions?(gm_def, intention_name) do
-    intentions(gm_def, intention_name) |> Enum.all?(&(Intention.not_repeatable?(&1) or Intention.not_duplicable?(&1)))
+    intentions(gm_def, intention_name)
+    |> Enum.all?(&(Intention.not_repeatable?(&1) or Intention.not_duplicable?(&1)))
   end
 end

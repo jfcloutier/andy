@@ -105,7 +105,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       heading =
         current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: :unknown)
 
-        approaching? = distance_decreasing? and not(distance == :unknown or heading == :unknown)
+      approaching? = distance_decreasing? and not (distance == :unknown or heading == :unknown)
 
       %{is: approaching?, distance: distance, heading: heading}
     end

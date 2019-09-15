@@ -54,7 +54,6 @@ defmodule Andy.GM.Utils do
     end
   end
 
-
   def saying(words) do
     %{value: words, duration: 0.1}
   end
@@ -296,7 +295,6 @@ defmodule Andy.GM.Utils do
         Map.get(values, value_name, default)
     end
   end
-
 
   def recent_perceived_values([], _about, _conjecture_name, matching: _match, since: _since) do
     []

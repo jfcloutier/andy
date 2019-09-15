@@ -19,7 +19,6 @@ defmodule Andy.GM.Intention do
   def not_duplicable?(%Intention{duplicable: duplicable?}) do
     not duplicable?
   end
-
 end
 
 defimpl Inspect, for: Andy.GM.Intention do
