@@ -134,7 +134,9 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   defp tracking_food_valuator() do
     fn %{distance: distance, heading: heading} ->
-      if distance == :unknown or heading == :unknown do
+      if distance == :unknown or heading == :unknown
+        # suspicious!
+         or (distance == 70 and heading == 0) do
         nil
       else
         speed =
@@ -160,10 +162,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         turn_time =
           cond do
             abs_heading == 0 -> 0
+            abs_heading < 5 -> 0.25
             abs_heading < 10 -> 0.5
-            abs_heading < 10 -> 1
-            abs_heading < 20 -> 2
-            true -> 2.5
+            abs_heading < 20 -> 1
+            true -> 2
           end
 
         %{
