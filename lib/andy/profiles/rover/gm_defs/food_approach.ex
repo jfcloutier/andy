@@ -40,12 +40,12 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
             intent_name: :turn,
             valuator: turn_food_valuator(),
             duplicable: false
-          },
-          %Intention{
-            intent_name: :go_forward,
-            valuator: go_forward_food_valuator(),
-            duplicable: false
           }
+#          %Intention{
+#            intent_name: :go_forward,
+#            valuator: go_forward_food_valuator(),
+#            duplicable: false
+#          }
         ]
       }
     }
