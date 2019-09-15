@@ -13,7 +13,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         conjecture(:approaching_food)
       ],
       contradictions: [
-        [:over_food, :approaching_food]
+        []
       ],
       priors: %{
         no_food: %{
@@ -83,7 +83,8 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   defp conjecture(:over_food) do
     %Conjecture{
       name: :over_food,
-      activator: over_food_activator(),
+      self_activated: true,
+      activator: opinion_activator(:self),
       predictors: [
         no_change_predictor(
           "*:*:color",
@@ -121,24 +122,6 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   end
 
   # Conjecture activators
-
-  defp over_food_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      no_food_believed? =
-        current_believed_value(round, prediction_about, :no_food, :is, default: false)
-
-      if not no_food_believed? do
-        [
-          Conjecture.activate(
-            conjecture,
-            about: prediction_about
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
 
   defp approaching_food_activator() do
     fn conjecture, [round | _previous_rounds], prediction_about ->

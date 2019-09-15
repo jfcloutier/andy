@@ -88,7 +88,7 @@ defmodule Andy.BrickPi.InfraredSensor do
   def seek_heading(sensor, channel) do
     updated_sensor = set_seek_mode(sensor)
     value = get_attribute(updated_sensor, "value#{(channel - 1) * 2}", :integer)
-    if abs(value) == 25, do: {:unknown, updated_sensor}, else: {value, updated_sensor}
+    {value, updated_sensor}
   end
 
   @doc "Get beacon distance on a channel (as percentage - 0 means immediate proximity, 100 means 70cm, -128 means unknown)"
