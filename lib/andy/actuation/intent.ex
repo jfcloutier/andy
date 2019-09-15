@@ -13,6 +13,7 @@ defmodule Andy.Intent do
           about: atom,
           value: any,
           since: non_neg_integer,
+          # secs
           duration: number,
           executed: boolean
         }
@@ -44,6 +45,10 @@ defmodule Andy.Intent do
   @doc "The default duration of an intent"
   def default_duration() do
     @default_duration
+  end
+
+  def duration(intent) do
+    intent.duration || 0
   end
 
   @doc "The age of an intent"

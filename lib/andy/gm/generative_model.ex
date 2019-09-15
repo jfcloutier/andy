@@ -86,7 +86,7 @@ defmodule Andy.GM.GenerativeModel do
   @forget_round_after_secs 60
   # How many rounds a perception/received prediction be carried over (short-term memory)
   @max_carry_overs 3
-  @max_coa_index 6
+  @max_coa_index 4
 
   defmodule State do
     defstruct gm_def: nil,
@@ -931,9 +931,7 @@ defmodule Andy.GM.GenerativeModel do
     %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
   end
 
-  defp round_ready_to_complete?(
-         %State{conjecture_activations: []} = state
-       ) do
+  defp round_ready_to_complete?(%State{conjecture_activations: []} = state) do
     Logger.info("#{info(state)}: No conjecture activations. Round not ready to complete")
     false
   end
@@ -1580,7 +1578,7 @@ defmodule Andy.GM.GenerativeModel do
 
         updated_coa_index =
           if (maybe_untried_coa == nil and not all_non_repeatable?) or new_coa? do
-            coa_index + 1
+            min(coa_index + 1, @max_coa_index)
           else
             coa_index
           end
@@ -1873,11 +1871,15 @@ defmodule Andy.GM.GenerativeModel do
 
     if Round.has_intents?(updated_round) do
       # Allow for the intents to be actuated
-      Logger.info("#{info(state)}: Setting execution timeout for round #{round.id}")
+      time_out_in = 1000 * Round.intents_duration(updated_round) + 50
+
+      Logger.info(
+        "#{info(state)}: Setting execution timeout for round #{round.id} in #{time_out_in} msecs"
+      )
 
       PubSub.notify_after(
         {:execution_timed_out, gm_name(state), round.id},
-        gm_def.max_execution_duration
+        time_out_in
       )
 
       updated_state

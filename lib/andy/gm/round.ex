@@ -3,6 +3,7 @@ defmodule Andy.GM.Round do
 
   alias __MODULE__
   alias Andy.GM.GenerativeModelDef
+  alias Andy.Intent
   import Andy.Utils, only: [now: 0]
 
   require Logger
@@ -50,5 +51,9 @@ defmodule Andy.GM.Round do
 
   def has_intents?(%Round{intents: intents}) do
     Enum.count(intents) > 0
+  end
+
+  def intents_duration(%Round{intents: intents}) do
+    Enum.map(intents, &Intent.duration(&1)) |> Enum.sum()
   end
 end

@@ -94,7 +94,8 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       about = conjecture_activation.about
 
       approaching? =
-        numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) == :decreasing
+        numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) ==
+          :decreasing
 
       distance =
         current_perceived_value(round, about, "*:*:beacon_distance/1", :detected,
@@ -111,7 +112,8 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   def closer_to_other_homing_belief_valuator() do
     fn _conjecture_activation, [round | _previous_rounds] = rounds ->
       approaching? =
-        numerical_perceived_value_trend(rounds, :other_homing_on_food, :other, :proximity) == :decreasing
+        numerical_perceived_value_trend(rounds, :other_homing_on_food, :other, :proximity) ==
+          :decreasing
 
       other_vector =
         current_perceived_values(round, :other, :other_homing_on_food,

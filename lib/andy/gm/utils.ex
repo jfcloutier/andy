@@ -33,12 +33,12 @@ defmodule Andy.GM.Utils do
 
   def empty_valuator() do
     fn _conjecture_activation, _rounds ->
-      %{value: %{}, duration: 10}
+      %{value: %{}, duration: 0.1}
     end
   end
 
   def saying(words) do
-    %{value: words, duration: 10}
+    %{value: words, duration: 0.1}
   end
 
   # Predict no change, or some initial expectation
@@ -121,28 +121,31 @@ defmodule Andy.GM.Utils do
         value_name
       )
       |> Enum.filter(&is_number(&1))
-      |> Enum.reverse() # from most recent to least recent
+      # from most recent to least recent
+      |> Enum.reverse()
 
-    trend = case all_values do
-      [] ->
-        :unknown
+    trend =
+      case all_values do
+        [] ->
+          :unknown
 
-      [_value] ->
-        :static
+        [_value] ->
+          :static
 
-      [value, prior_value | _] ->
-        cond do
-          value == prior_value ->
-            :static
+        [value, prior_value | _] ->
+          cond do
+            value == prior_value ->
+              :static
 
-          value < prior_value ->
-            :decreasing
+            value < prior_value ->
+              :decreasing
 
-          true ->
-            :increasing
-        end
-    end
-    Logger.debug("Numerical trend in #{inspect(all_values)} is #{inspect trend}")
+            true ->
+              :increasing
+          end
+      end
+
+    Logger.debug("Numerical trend in #{inspect(all_values)} is #{inspect(trend)}")
     trend
   end
 
