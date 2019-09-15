@@ -203,7 +203,9 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
 
   defp no_food?(round, about) do
     %{distance: distance, heading: heading} =
-      current_perceived_values(round, about, :location_of_food, default: %{distance: :unknown, heading: :unknown})
+      current_perceived_values(round, about, :location_of_food,
+        default: %{distance: :unknown, heading: :unknown}
+      )
 
     distance == :unknown or heading == :unknown
   end

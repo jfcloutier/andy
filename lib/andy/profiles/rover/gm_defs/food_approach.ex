@@ -23,16 +23,30 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         }
       },
       intentions: %{
-        track_other: %Intention{
-          intent_name: :move,
-          valuator: tracking_other_valuator(),
-          duplicable: false
-        },
-        track_food: %Intention{
-          intent_name: :move,
-          valuator: tracking_food_valuator(),
-          duplicable: false
-        }
+        track_other: [
+          %Intention{
+            intent_name: :turn,
+            valuator: turn_other_valuator(),
+            duplicable: false
+          },
+          %Intention{
+            intent_name: :go_forward,
+            valuator: go_forward_other_valuator(),
+            duplicable: false
+          }
+        ],
+        track_food: [
+          %Intention{
+            intent_name: :turn,
+            valuator: turn_food_valuator(),
+            duplicable: false
+          },
+          %Intention{
+            intent_name: :go_forward,
+            valuator: go_forward_food_valuator(),
+            duplicable: false
+          }
+        ]
       }
     }
   end
@@ -129,11 +143,39 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   # Intention valuators
 
-  defp tracking_food_valuator() do
-    fn %{distance: distance, heading: heading} ->
+  defp turn_food_valuator() do
+    fn %{heading: heading} ->
       # suspicious!
-      if distance == :unknown or
-           (distance == 70 and heading == 0) do
+      if heading == :unknown do
+        nil
+      else
+        turn_direction = if heading < 0, do: :left, else: :right
+        abs_heading = abs(heading)
+
+        turn_time =
+          cond do
+            abs_heading == 0 -> 0
+            abs_heading < 5 -> 0.25
+            abs_heading < 10 -> 0.5
+            abs_heading < 20 -> 1
+            true -> 2
+          end
+
+        %{
+          value: %{
+            turn_direction: turn_direction,
+            turn_time: turn_time
+          },
+          duration: turn_time
+        }
+      end
+    end
+  end
+
+  defp go_forward_food_valuator() do
+    fn %{distance: distance} ->
+      # suspicious!
+      if distance == :unknown do
         nil
       else
         speed =
@@ -153,33 +195,47 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
             true -> 3
           end
 
-        turn_direction = if heading < 0, do: :left, else: :right
-        abs_heading = abs(heading)
-
-        turn_time =
-          cond do
-            abs_heading == 0 -> 0
-            abs_heading < 5 -> 0.25
-            abs_heading < 10 -> 0.5
-            abs_heading < 20 -> 1
-            true -> 2
-          end
-
         %{
           value: %{
-            forward_speed: speed,
-            forward_time: forward_time,
-            turn_direction: turn_direction,
-            turn_time: turn_time
+            speed: speed,
+            time: forward_time
           },
-          duration: forward_time + turn_time
+          duration: forward_time
         }
       end
     end
   end
 
-  defp tracking_other_valuator() do
+  defp turn_other_valuator() do
     fn %{proximity: proximity, direction: direction} ->
+      if proximity == :unknown do
+        nil
+      else
+        turn_direction = if direction < 0, do: :left, else: :right
+        abs_direction = abs(direction)
+
+        turn_time =
+          cond do
+            abs_direction == 0 -> 0
+            abs_direction <= 30 -> 0.5
+            abs_direction <= 60 -> 1
+            abs_direction <= 90 -> 1.5
+            true -> 2
+          end
+
+        %{
+          value: %{
+            turn_direction: turn_direction,
+            turn_time: turn_time
+          },
+          duration: turn_time
+        }
+      end
+    end
+  end
+
+  defp go_forward_other_valuator() do
+    fn %{proximity: proximity} ->
       if proximity == :unknown do
         nil
       else
@@ -200,26 +256,12 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
             true -> 3
           end
 
-        turn_direction = if direction < 0, do: :left, else: :right
-        abs_direction = abs(direction)
-
-        turn_time =
-          cond do
-            abs_direction == 0 -> 0
-            abs_direction <= 30 -> 0.5
-            abs_direction <= 60 -> 1
-            abs_direction <= 90 -> 1.5
-            true -> 2
-          end
-
         %{
           value: %{
-            forward_speed: speed,
-            forward_time: forward_time,
-            turn_direction: turn_direction,
-            turn_time: turn_time
+            speed: speed,
+            time: forward_time
           },
-          duration: forward_time + turn_time
+          duration: forward_time
         }
       end
     end

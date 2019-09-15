@@ -65,5 +65,4 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodLocation do
       %{distance: distance, heading: heading}
     end
   end
-
- end
+end
