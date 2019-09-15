@@ -93,10 +93,6 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
     fn conjecture_activation, [round | _previous_rounds] = rounds ->
       about = conjecture_activation.about
 
-      distance_decreasing? =
-        numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) ==
-          :decreasing
-
       distance =
         current_perceived_value(round, about, "*:*:beacon_distance/1", :detected,
           default: :unknown
@@ -105,7 +101,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       heading =
         current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: :unknown)
 
-      approaching? = distance_decreasing? and not (distance == :unknown or heading == :unknown)
+      approaching? =
+        not (distance == :unknown or (distance == 70 and heading == 0)) and
+          numerical_perceived_value_trend(rounds, "*:*:beacon_distance/1", about, :detected) ==
+            :decreasing
 
       %{is: approaching?, distance: distance, heading: heading}
     end
@@ -134,9 +133,9 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   defp tracking_food_valuator() do
     fn %{distance: distance, heading: heading} ->
-      if distance == :unknown or heading == :unknown
-        # suspicious!
-         or (distance == 70 and heading == 0) do
+      # suspicious!
+      if distance == :unknown or
+           (distance == 70 and heading == 0) do
         nil
       else
         speed =
@@ -209,9 +208,9 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         turn_time =
           cond do
             abs_direction == 0 -> 0
-            abs_direction <= 30 -> 0.25
-            abs_direction <= 60 -> 0.5
-            abs_direction <= 90 -> 1
+            abs_direction <= 30 -> 0.5
+            abs_direction <= 60 -> 1
+            abs_direction <= 90 -> 1.5
             true -> 2
           end
 
@@ -231,7 +230,10 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   #
 
   defp food_detected?(round, about) do
-    current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: 70) !=
-      :unknown
+    distance =
+      current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: :unknown)
+
+    heading = current_perceived_value(round, about, "*:*:beacon_heading/1", :detected, default: 0)
+    not (distance == :unknown or (distance == 70 and heading == 0))
   end
 end

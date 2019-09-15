@@ -213,6 +213,6 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     distance =
       current_perceived_value(round, about, "*:*:beacon_distance/1", :detected, default: :unknown)
 
-    heading == :unknown or distance == :unknown
+    distance == :unknown or (distance == 70 and heading == 0)
   end
 end
