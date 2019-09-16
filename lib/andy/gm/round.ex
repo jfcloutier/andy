@@ -56,4 +56,9 @@ defmodule Andy.GM.Round do
   def intents_duration(%Round{intents: intents}) do
     Enum.map(intents, &Intent.duration(&1)) |> Enum.sum()
   end
+
+  def intent_names(%Round{intents: intents}) do
+    Enum.map(intents, &(Intent.name(&1)))
+  end
+
 end

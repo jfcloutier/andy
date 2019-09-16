@@ -66,7 +66,7 @@ defmodule Andy do
   end
 
   def name_of_other() do
-    get_andy_env("ANDY_OTHER_NAME", "the other guy")
+    get_andy_env("ANDY_OTHER_NAME", "dude")
   end
 
   def ports_config() do

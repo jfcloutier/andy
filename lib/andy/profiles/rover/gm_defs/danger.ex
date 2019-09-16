@@ -176,10 +176,10 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
         {back_off_speed, back_off_time, turn_time, repeats} =
           case fear_factor do
             :low ->
-              {:fast, 1, 1, 1}
+              {:fast, 1, 1, 3}
 
             :high ->
-              {:very_fast, 2, 2, 2}
+              {:very_fast, 2, 2, 5}
           end
 
         duration = (back_off_time + turn_time) * repeats

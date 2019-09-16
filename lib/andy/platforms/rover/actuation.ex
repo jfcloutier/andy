@@ -6,6 +6,8 @@ defmodule Andy.Rover.Actuation do
   alias Andy.{ActuatorConfig, MotorSpec, LEDSpec, SoundSpec, Activation, Script}
   import Andy.Utils
 
+  @default_wait 500
+
   @doc "Give the configurations of all Rover actuators"
   def actuator_configs() do
     [
@@ -118,8 +120,6 @@ defmodule Andy.Rover.Actuation do
       |> Script.add_step(:right_wheel, :set_speed, [:rps, rps_speed * -1])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, rps_speed * -1])
       |> Script.add_step(:all, :run_for, [how_long])
-
-      # 			|> Script.add_wait(how_long)
     end
   end
 
@@ -209,7 +209,7 @@ defmodule Andy.Rover.Actuation do
 
       script
       |> Script.add_step(:all, :run_for, [turn_time_ms])
-      |> Script.add_wait(500)
+      |> Script.add_wait(@default_wait)
       |> Script.add_step(:right_wheel, :set_speed, [:rps, forward_rps_speed * -1])
       |> Script.add_step(:left_wheel, :set_speed, [:rps, forward_rps_speed * -1])
       |> Script.add_step(:all, :run_for, [forward_time_ms])
@@ -253,10 +253,11 @@ defmodule Andy.Rover.Actuation do
 
           acc
           |> Script.add_step(:all, :run_for, [turn_time_ms])
-          |> Script.add_wait(500)
+          |> Script.add_wait(@default_wait)
           |> Script.add_step(:right_wheel, :set_speed, [:rps, backward_rps_speed])
           |> Script.add_step(:left_wheel, :set_speed, [:rps, backward_rps_speed])
           |> Script.add_step(:all, :run_for, [backward_time_ms])
+          |> Script.add_wait(@default_wait)
         end
       )
     end

@@ -173,6 +173,22 @@ defmodule Andy.GM.Utils do
     trend
   end
 
+  def rounds_since([], _since) do
+    []
+  end
+
+  def rounds_since([%Round{completed_on: completed_on} = round | previous_rounds], since) do
+    if completed_on > since do
+      rounds_since(previous_rounds, since) ++ [round]
+    else
+      []
+    end
+  end
+
+  def longest_round_sequence(rounds, test) do
+    do_longest_round_sequence(rounds, test, [[]])
+  end
+
   def once_believed?([], _about, _conjecture_name, _value_name, _value, since: _since) do
     false
   end
@@ -226,6 +242,44 @@ defmodule Andy.GM.Utils do
 
       values ->
         Map.get(values, value_name, default)
+    end
+  end
+
+  def latest_perceived_value(
+        [],
+        _about,
+        _predicted_conjecture_name,
+        _value_name,
+        default: default
+      ) do
+    default
+  end
+
+  def latest_perceived_value(
+        [round | previous_rounds],
+        about,
+        predicted_conjecture_name,
+        value_name,
+        default: default
+      ) do
+    case current_perceived_value(
+           round,
+           about,
+           predicted_conjecture_name,
+           value_name,
+           default: nil
+         ) do
+      nil ->
+        latest_perceived_value(
+          previous_rounds,
+          about,
+          predicted_conjecture_name,
+          value_name,
+          default: default
+        )
+
+      value ->
+        value
     end
   end
 
@@ -301,6 +355,11 @@ defmodule Andy.GM.Utils do
       values ->
         Map.get(values, value_name, default)
     end
+  end
+
+  def perceived_values(rounds, about, conjecture_name, matching: match) do
+    # since forever
+    recent_perceived_values(rounds, about, conjecture_name, matching: match, since: 0)
   end
 
   def recent_perceived_values([], _about, _conjecture_name, matching: _match, since: _since) do
@@ -615,4 +674,23 @@ defmodule Andy.GM.Utils do
   defp move_valuator() do
     fn _ -> %{value: %{speed: :normal, time: 2}, duration: 2} end
   end
+
+  defp do_longest_round_sequence([], _test, sequences) do
+    case Enum.sort(sequences, &(Enum.count(&1) >= Enum.count(&2))) do
+      [] ->
+        []
+
+      [longest | _] ->
+        longest |> Enum.reverse()
+    end
+  end
+
+  defp do_longest_round_sequence([round | previous_rounds], test, [sequence | others]) do
+    if test.(round) do
+      do_longest_round_sequence(previous_rounds, test, [[round | sequence] | others])
+    else
+      do_longest_round_sequence(previous_rounds, test, [[]] ++ [sequence | others])
+    end
+  end
+
 end

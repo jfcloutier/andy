@@ -1,9 +1,13 @@
 defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   @moduledoc "The GM definition for :intentions_of_other"
 
-  alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
+  alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Round}
   import Andy.GM.Utils
   import Andy.Utils, only: [now: 0]
+
+  require Logger
+
+  @moves ~w{go_forward go_backward turn_right turn_left turn move panic}a
 
   def gm_def() do
     %GenerativeModelDef{
@@ -41,9 +45,16 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       name: :other_panicking,
       # Only activate if actively observing the robot
       activator: opinion_activator(:other),
+      self_activated: true,
       predictors: [
         no_change_predictor(:observed,
-          default: %{is: false, proximity: :unknown, direction: :unknown}
+          default: %{
+            is: false,
+            proximity: :unknown,
+            direction: :unknown,
+            duration: 0,
+            recently_believed_or_tried?: false
+          }
         )
       ],
       valuator: other_panicking_belief_valuator(),
@@ -56,9 +67,16 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
     %Conjecture{
       name: :other_homing_on_food,
       activator: opinion_activator(:other),
+      self_activated: true,
       predictors: [
         no_change_predictor(:observed,
-          default: %{is: false, proximity: :unknown, direction: :unknown}
+          default: %{
+            is: false,
+            proximity: :unknown,
+            direction: :unknown,
+            duration: 0,
+            recently_believed_or_tried?: false
+          }
         )
       ],
       valuator: other_homing_on_food_belief_valuator(),
@@ -73,18 +91,28 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       about = conjecture_activation.about
 
       observations =
-        recent_perceived_values(rounds, about, :observed,
-          matching: %{is: true},
-          since: now() - 15_000
-        )
+        rounds_since(rounds, now() - 15_000)
+        |> longest_round_sequence(fn(round) -> not Enum.any?(Round.intent_names(round), &(&1 in @moves)) end)
+        |> perceived_values(about, :observed, matching: %{is: true})
 
-      proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
-      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
+      observation_count = observations |> Enum.count()
+
+      proximity_reversals =
+        Enum.map(observations, &Map.get(&1, :proximity, :unknown)) |> reversals()
+
+      direction_reversals =
+        Enum.map(observations, &Map.get(&1, :direction, :unknown)) |> reversals()
 
       panicking? =
-        Enum.count(observations) > 4 and
-          reversals(proximities) > 3 and
-          reversals(directions) > 3
+        observation_count > 4 and
+          proximity_reversals > 3 and
+          direction_reversals > 3
+
+      Logger.info(
+        "Other panicking is #{panicking?} from observation_count=#{observation_count} > 4, proximity_reversals=#{
+          proximity_reversals
+        } > 3, direction_reversals=#{direction_reversals} > 3"
+      )
 
       %{is: panicking?}
     end
@@ -95,19 +123,32 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       about = conjecture_activation.about
 
       observations =
-        recent_perceived_values(rounds, about, :observed,
-          matching: %{is: true},
-          since: now() - 15_000
-        )
+        rounds_since(rounds, now() - 15_000)
+        |> longest_round_sequence(fn(round) -> not Enum.any?(Round.intent_names(round), &(&1 in @moves)) end)
+        |> perceived_values(about, :observed, matching: %{is: true})
+
+      observation_count = observations |> Enum.count()
 
       proximities = Enum.map(observations, &Map.get(&1, :proximity, :unknown))
-      directions = Enum.map(observations, &Map.get(&1, :direction, :unknown))
+      proximity_changes = proximities |> count_changes()
+      proximity_reversals = proximities |> reversals()
+
+      direction_reversals =
+        Enum.map(observations, &Map.get(&1, :direction, :unknown)) |> reversals()
 
       homing? =
-        Enum.count(observations) > 4 and
-          count_changes(proximities) > 4 and
-          reversals(proximities) <= 1 and
-          reversals(directions) <= 1
+        observation_count > 4 and
+          proximity_changes > 4 and
+          proximity_reversals <= 1 and
+          direction_reversals <= 1
+
+      Logger.info(
+        "Other homing is #{homing?} from observation_count=#{observation_count} > 4, proximity_changes=#{
+          proximity_changes
+        } > 4, proximity_reversals=#{proximity_reversals} <= 1>, direction_reversals=#{
+          direction_reversals
+        } <= 1"
+      )
 
       {believed_proximity, believed_direction} =
         case observations do
@@ -125,12 +166,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   # Intention valuators
 
   defp panicking_opinion_valuator() do
-    fn %{is: true} ->
-      saying("#{Andy.name_of_other()} is freaking out")
-    end
-
-    fn _ ->
-      nil
+    fn %{is: panicking?} ->
+      if panicking?, do: saying("#{Andy.name_of_other()} is freaking out"), else: nil
     end
   end
 

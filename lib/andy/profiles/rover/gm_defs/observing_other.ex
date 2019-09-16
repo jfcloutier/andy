@@ -8,6 +8,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   def gm_def() do
     %GenerativeModelDef{
       name: :observing_other,
+      min_round_duration: 1_000,
       conjectures: [
         conjecture(:observed)
       ],
@@ -65,13 +66,13 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
   # Conjecture belief valuators
 
   defp observed_belief_valuator() do
-    fn conjecture_activation, [round | previous_rounds] = rounds ->
+    fn conjecture_activation, [_round | previous_rounds] = rounds ->
       about = conjecture_activation.about
       conjecture_name = ConjectureActivation.conjecture_name(conjecture_activation)
 
       proximity =
-        current_perceived_value(
-          round,
+        latest_perceived_value(
+          rounds,
           about,
           "*:*:proximity_mod",
           :detected,
@@ -79,7 +80,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         )
 
       direction =
-        current_perceived_value(round, about, "*:*:direction_mod", :detected, default: :unknown)
+        latest_perceived_value(rounds, about, "*:*:direction_mod", :detected, default: :unknown)
 
       facing? = less_than?(absolute(direction), 181)
       now = now()
@@ -94,7 +95,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         end
 
       recently_observed_or_tried? =
-        recent_believed_values(rounds, about, conjecture_name, matching: %{}, since: now - 20_000)
+        recent_believed_values(rounds, about, conjecture_name, matching: %{}, since: now - 10_000)
         |> Enum.any?(&(&1.duration >= 5_000))
 
       %{
@@ -138,13 +139,13 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
           nil
 
         direction == :unknown ->
-          saying("Where are you?")
+          saying(" #{Andy.name_of_other()}, where are you?")
 
         abs(direction) < 181 ->
-          saying("I'm watching you")
+          saying("I'm watching you, #{Andy.name_of_other()}")
 
         true ->
-          saying("There you are")
+          saying("There you are, #{Andy.name_of_other()}")
       end
     end
   end
