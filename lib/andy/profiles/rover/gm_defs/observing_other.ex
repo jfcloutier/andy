@@ -50,7 +50,8 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       activator:
         goal_activator(
           # until observing the other succeeded or failed for at least 5 consecutive seconds
-          fn %{duration: duration} -> duration >= 5_000 end
+          fn %{duration: duration} -> duration >= 5_000 end,
+          :other
         ),
       predictors: [
         no_change_predictor("*:*:proximity_mod", default: %{detected: :unknown}),
@@ -147,5 +148,4 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       end
     end
   end
-
 end

@@ -272,11 +272,11 @@ defmodule Andy.Rover.Actuation do
 
   def waiting() do
     fn intent, motors ->
-    sleep = intent.value.time * 1_000 |> round()
+      sleep = (intent.value.time * 1_000) |> round()
+
       Script.new(:waiting, motors)
       |> Script.add_wait(sleep)
     end
-
   end
 
   # manipulation

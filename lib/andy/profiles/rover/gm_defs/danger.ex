@@ -130,6 +130,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
 
       in_well_lit_area? =
         current_perceived_value(round, :self, :in_well_lit_area, :is, default: true)
+
       %{is: panicking?, well_lit: in_well_lit_area?}
     end
   end
@@ -143,11 +144,12 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
         once_believed?(previous_rounds, about, :panic, :is, true, since: now - 20_000)
 
       unsafe_since = believed_since(rounds, about, :safe, :is, false)
-      very_unsafe? = unsafe_since != nil and unsafe_since > (now - 5_000)
+      very_unsafe? = unsafe_since != nil and unsafe_since > now - 5_000
       panicking? = not recent_panic? and very_unsafe?
 
       in_well_lit_area? =
         current_perceived_value(round, :self, :in_well_lit_area, :is, default: true)
+
       %{is: panicking?, well_lit: in_well_lit_area?}
     end
   end

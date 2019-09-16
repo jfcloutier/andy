@@ -44,7 +44,6 @@ defmodule Andy.GM.Utils do
     end
   end
 
-
   def roam_valuator() do
     fn _ ->
       forward_time = Enum.random(0..4) / 2
@@ -497,15 +496,12 @@ defmodule Andy.GM.Utils do
     else
       count =
         intents
-        |> Enum.filter(
-             &(Intent.name(&1) == intent_name)
-           )
+        |> Enum.filter(&(Intent.name(&1) == intent_name))
         |> Enum.count()
 
       count + count_intents_since(previous_rounds, intent_name, since: since)
     end
   end
-
 
   def less_than?(val1, val2) when is_number(val1) and is_number(val2) do
     val1 < val2

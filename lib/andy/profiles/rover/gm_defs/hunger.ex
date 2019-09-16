@@ -49,7 +49,8 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
         recent_perceived_values(rounds, about, :chewing,
           matching: %{is: true},
           since: now() - 20_000
-        ) |> Enum.count()
+        )
+        |> Enum.count()
 
       %{is: chewing_count > 0}
     end

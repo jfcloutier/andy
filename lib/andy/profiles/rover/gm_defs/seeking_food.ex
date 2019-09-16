@@ -90,6 +90,7 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         ),
         no_change_predictor(
           :observed,
+          :other,
           default: %{
             is: false,
             direction: :unknown,
@@ -156,12 +157,15 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   defp no_food_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
+
       recently_observed_other? =
-        current_perceived_value(round, :other, :observed, :recently_observed_or_tried, default: false)
+        current_perceived_value(round, :other, :observed, :recently_observed_or_tried,
+          default: false
+        )
+
       no_food? = no_food?(round, about)
 
-      %{is: no_food?,
-        recently_observed_other: recently_observed_other?}
+      %{is: no_food?, recently_observed_other: recently_observed_other?}
     end
   end
 

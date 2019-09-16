@@ -259,7 +259,6 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
     end
   end
 
-
   defp go_forward_other_valuator() do
     fn %{proximity: proximity} ->
       if proximity == :unknown do

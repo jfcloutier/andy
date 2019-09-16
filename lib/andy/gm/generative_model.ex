@@ -376,8 +376,8 @@ defmodule Andy.GM.GenerativeModel do
       |> raise_prediction_errors()
       # Tell ASAP parent GMs this GM has completed (even though it still has to execute CoAs if any)
       |> announce_completed()
-        # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
-        # Have the CoAs caused the desired belief validations?
+      # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
+      # Have the CoAs caused the desired belief validations?
       |> update_efficacies()
       # Determine courses of action to achieve each non-yet-achieved goal, or to better validate an opinion (non-goal) conjecture
       |> set_courses_of_action()
@@ -412,8 +412,9 @@ defmodule Andy.GM.GenerativeModel do
     spawn(fn ->
       # Give time to the parents to process any prediction errors from this GM before they maybe complete
       Process.sleep(10)
-      PubSub.notify({:round_completed, gm_name(state)} )
+      PubSub.notify({:round_completed, gm_name(state)})
     end)
+
     state
   end
 

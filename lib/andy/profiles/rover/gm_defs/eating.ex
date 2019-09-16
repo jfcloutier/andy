@@ -85,13 +85,12 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
     end
   end
 
-
   # Intention valuators
 
   defp chewing_valuator() do
     fn %{is: chewing?} = belief_values ->
       if chewing?, do: empty_valuator().(belief_values), else: nil
-       end
+    end
   end
 
   defp chewing_noise() do
@@ -99,5 +98,4 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
       if chewing?, do: saying("Nom de nom de nom"), else: nil
     end
   end
-
- end
+end
