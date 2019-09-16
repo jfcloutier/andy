@@ -265,6 +265,14 @@ defmodule Andy.GM.GenerativeModel do
     end
   end
 
+  def handle_event(
+        {:prediction_error, %PredictionError{}} = event,
+        %State{round_status: round_status} = state
+      )
+      when round_status != :running do
+    buffer_event(state, event)
+  end
+
   # A GM reported a prediction error (a belief not aligned with a received prediction) - add to perceptions if relevant
   def handle_event(
         {
@@ -440,7 +448,7 @@ defmodule Andy.GM.GenerativeModel do
         fn event, acc ->
           handle_event(event, acc)
           # Make sure the GM stays :running
-          round_status(acc, :catching_up)
+          round_status(acc, :running)
         end
       )
       |> round_status(:running)
