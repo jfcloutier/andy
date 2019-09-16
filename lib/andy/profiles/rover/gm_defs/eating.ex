@@ -20,7 +20,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
         chew: [
           %Intention{
             intent_name: :eat,
-            valuator: empty_valuator(),
+            valuator: chewing_valuator(),
             repeatable: true
           },
           %Intention{
@@ -39,12 +39,12 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
   defp conjecture(:chewing) do
     %Conjecture{
       name: :chewing,
-      activator: chewing_activator(),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor(:over_food, default: %{is: false})
       ],
       # always true if activated
-      valuator: constant_valuator(%{is: true}),
+      valuator: chewing_belief_valuator(),
       intention_domain: [:chew]
     }
   end
@@ -63,25 +63,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
     }
   end
 
-  # Conjecture activators
-
-  defp chewing_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      over_food? =
-        current_perceived_value(round, prediction_about, :over_food, :is, default: false)
-
-      if over_food? do
-        [
-          Conjecture.activate(conjecture,
-            about: prediction_about
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
-
   # Conjecture belief valuators
 
   defp found_food_belief_valuator() do
@@ -94,7 +75,24 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
     end
   end
 
+  defp chewing_belief_valuator() do
+    fn conjecture_activation, [round | _previous_rounds] ->
+      about = conjecture_activation.about
+
+      over_food? = current_perceived_value(round, about, :over_food, :is, default: false)
+
+      %{is: over_food?}
+    end
+  end
+
+
   # Intention valuators
+
+  defp chewing_valuator() do
+    fn %{is: chewing?} = belief_values ->
+      if chewing?, do: empty_valuator().(belief_values), else: nil
+       end
+  end
 
   defp chewing_noise() do
     fn %{is: chewing?} ->

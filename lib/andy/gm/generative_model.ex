@@ -374,8 +374,10 @@ defmodule Andy.GM.GenerativeModel do
       # It is a maximal prediction error when no belief supports or contradicts a received prediction.
       # If a prediction error is generated, report it
       |> raise_prediction_errors()
-      # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
-      # Have the CoAs caused the desired belief validations?
+      # Tell parent GMs this GM has completed (even though it still has to execute CoAs if any)
+      |> announce_completed()
+        # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
+        # Have the CoAs caused the desired belief validations?
       |> update_efficacies()
       # Determine courses of action to achieve each non-yet-achieved goal, or to better validate an opinion (non-goal) conjecture
       |> set_courses_of_action()
@@ -404,6 +406,11 @@ defmodule Andy.GM.GenerativeModel do
 
   defp buffer_event(%State{event_buffer: event_buffer} = state, event) do
     %State{state | event_buffer: event_buffer ++ [event]}
+  end
+
+  defp announce_completed(state) do
+    PubSub.notify({:round_completed, gm_name(state)})
+    state
   end
 
   # Activate *not-yet activated* conjectures from the prediction
@@ -1960,8 +1967,7 @@ defmodule Andy.GM.GenerativeModel do
     )
   end
 
-  defp mark_round_completed(%State{gm_def: gm_def, rounds: [round | previous_rounds]} = state) do
-    PubSub.notify({:round_completed, gm_def.name})
+  defp mark_round_completed(%State{rounds: [round | previous_rounds]} = state) do
     %State{state | rounds: [%Round{round | completed_on: now()} | previous_rounds]}
   end
 
