@@ -217,7 +217,7 @@ defmodule Andy.GM.Detector do
           {prior_reading, state}
       end
 
-    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(effective_reading)}")
+    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(effective_reading)} with device in mode #{inspect state.device.type} for sense #{inspect state.sense}")
     {effective_reading, updated_state}
   end
 
