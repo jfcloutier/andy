@@ -11,7 +11,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         conjecture(:closer_to_food),
         conjecture(:closer_to_other_homing)
       ],
-      contradictions: [[:closer_to_food, :closer_to_other_homing]],
+      contradictions: [],
       priors: %{
         closer_to_food: %{
           about: :self,
@@ -19,7 +19,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
         },
         closer_to_other: %{
           about: :other,
-          values: %{is: false, proximity: :unknown, direction: :unknown}
+          values: %{is: false, proximity: :unknown, direction: :unknown, food_detected: true}
         }
       },
       intentions: %{
@@ -82,7 +82,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   defp conjecture(:closer_to_other_homing) do
     %Conjecture{
       name: :closer_to_other_homing,
-      activator: closer_to_other_homing_activator(),
+      activator: goal_activator(fn %{is: closer_to_other_homing?} -> closer_to_other_homing? end, :other) ,
       predictors: [
         no_change_predictor(:other_homing_on_food,
           default: %{is: false, proximity: :unknown, direction: :unknown}
@@ -91,25 +91,6 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
       valuator: closer_to_other_homing_belief_valuator(),
       intention_domain: [:track_other]
     }
-  end
-
-  # Conjecture activators
-
-  defp closer_to_other_homing_activator() do
-    fn conjecture, [round | _previous_rounds], prediction_about ->
-      food_detected? = food_detected?(round, prediction_about)
-
-      if not food_detected? do
-        [
-          Conjecture.activate(conjecture,
-            about: prediction_about,
-            goal: fn %{is: closer_to_other_homing?} -> closer_to_other_homing? end
-          )
-        ]
-      else
-        []
-      end
-    end
   end
 
   # Conjecture belief valuators
@@ -133,7 +114,8 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   end
 
   def closer_to_other_homing_belief_valuator() do
-    fn _conjecture_activation, [round | _previous_rounds] = rounds ->
+    fn conjecture_activation, [round | _previous_rounds] = rounds ->
+      food_detected? = food_detected?(round, conjecture_activation.about)
       approaching? =
         numerical_perceived_value_trend(rounds, :other_homing_on_food, :other, :proximity) ==
           :decreasing
@@ -145,6 +127,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
       %{
         is: approaching?,
+        food_detected: food_detected?,
         proximity: other_vector.proximity,
         direction: other_vector.direction
       }
@@ -225,8 +208,8 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   end
 
   defp turn_other_valuator() do
-    fn %{proximity: proximity, direction: direction} ->
-      if proximity == :unknown do
+    fn %{proximity: proximity, direction: direction, food_detected: food_detected?} ->
+      if food_detected? or proximity == :unknown do
         nil
       else
         turn_direction = if direction < 0, do: :left, else: :right
@@ -253,15 +236,15 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   end
 
   defp wait_track_other_valuator() do
-    fn %{proximity: proximity, direction: direction} ->
-      time = if proximity == :unknown or direction == :unknown, do: 0, else: 0.5
+    fn %{proximity: proximity, direction: direction, food_detected: food_detected?} ->
+      time = if food_detected? or proximity == :unknown or direction == :unknown, do: 0, else: 0.5
       %{value: %{time: time}, duration: time}
     end
   end
 
   defp go_forward_other_valuator() do
-    fn %{proximity: proximity} ->
-      if proximity == :unknown do
+    fn %{proximity: proximity, food_detected: food_detected?} ->
+      if food_detected? or proximity == :unknown do
         nil
       else
         speed =

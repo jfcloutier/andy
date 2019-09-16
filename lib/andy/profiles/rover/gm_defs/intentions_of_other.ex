@@ -109,7 +109,7 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
       panicking? =
         observation_count > 4 and
           proximity_reversals > 3 and
-          direction_reversals > 3
+          direction_reversals > 2
 
       Logger.info(
         "Other panicking is #{panicking?} from observation_count=#{observation_count} > 4, proximity_reversals=#{
