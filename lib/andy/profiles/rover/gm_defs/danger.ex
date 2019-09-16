@@ -3,17 +3,21 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
   import Andy.GM.Utils
+  import Andy.Utils, only: [now: 0]
 
   def gm_def() do
     %GenerativeModelDef{
       name: :danger,
       conjectures: [
-        conjecture(:safe)
+        conjecture(:safe),
+        conjecture(:panic),
+        conjecture(:group_panic)
       ],
-      contradictions: [[:safe, :group_panic]],
+      contradictions: [],
       priors: %{
         safe: %{about: :self, values: %{is: true}},
-        group_panic: %{about: :self, values: %{is: false}}
+        group_panic: %{about: :self, values: %{is: false, well_lit: true}},
+        panic: %{about: :self, values: %{is: false, well_lit: true}}
       },
       intentions: %{
         express_opinion_about_safety: %Intention{
@@ -21,11 +25,18 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
           valuator: opinion_about_safety(),
           repeatable: false
         },
-        panicking: %Intention{
-          intent_name: :panic,
-          valuator: panic_valuator(),
-          repeatable: false
-        }
+        panicking: [
+          %Intention{
+            intent_name: :panic,
+            valuator: panic_valuator(),
+            duplicable: false
+          },
+          %Intention{
+            intent_name: :say,
+            valuator: opinion_about_panic(),
+            repeatable: false
+          }
+        ]
       }
     }
   end
@@ -36,11 +47,10 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
   defp conjecture(:safe) do
     %Conjecture{
       name: :safe,
-      activator: safe_activator(),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor(:clear_of_obstacle, default: %{is: true}),
-        no_change_predictor(:clear_of_other, default: %{is: true}),
-        no_change_predictor(:other_panicking, :other, default: %{is: false})
+        no_change_predictor(:clear_of_other, default: %{is: true})
       ],
       valuator: safe_belief_valuator(),
       intention_domain: [:express_opinion_about_safety]
@@ -48,66 +58,32 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
   end
 
   # opinion
+  defp conjecture(:panic) do
+    %Conjecture{
+      name: :panic,
+      activator: opinion_activator(:self),
+      predictors: [
+        no_change_predictor(:in_well_lit_area, default: %{is: true})
+      ],
+      valuator: panic_belief_valuator(),
+      self_activated: true,
+      intention_domain: [:panicking]
+    }
+  end
+
+  # opinion
   defp conjecture(:group_panic) do
     %Conjecture{
       name: :group_panic,
-      activator: group_panic_activator(),
+      activator: opinion_activator(:self),
       predictors: [
         no_change_predictor(:in_well_lit_area, default: %{is: true}),
         no_change_predictor(:other_panicking, default: %{is: false})
       ],
       valuator: group_panic_belief_valuator(),
+      self_activated: true,
       intention_domain: [:panicking]
     }
-  end
-
-  # Conjecture activators
-
-  defp safe_activator() do
-    fn conjecture, [round | _previous_rounds], _prediction_about ->
-      other_panicking? =
-        current_perceived_value(
-          round,
-          :other,
-          :other_panicking,
-          :is,
-          default: false
-        )
-
-      if not other_panicking? do
-        [
-          Conjecture.activate(conjecture,
-            about: :self,
-            goal: fn %{is: safe?} -> safe? end
-          )
-        ]
-      else
-        []
-      end
-    end
-  end
-
-  defp group_panic_activator() do
-    fn conjecture, [round | _previous_rounds], _prediction_about ->
-      other_panicking? =
-        current_perceived_value(
-          round,
-          :other,
-          :other_panicking,
-          :is,
-          default: true
-        )
-
-      if other_panicking? do
-        [
-          Conjecture.activate(conjecture,
-            about: :self
-          )
-        ]
-      else
-        []
-      end
-    end
   end
 
   # Conjecture belief valuators
@@ -116,18 +92,30 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
 
+      group_panic? =
+        current_believed_value(
+          round,
+          about,
+          :group_panic,
+          :is,
+          default: false
+        )
+
       clear_of_obstacle? =
         current_perceived_value(round, about, :clear_of_obstacle, :is, default: true)
 
       clear_of_other? = current_perceived_value(round, about, :clear_of_other, :is, default: true)
 
-      %{is: clear_of_obstacle? and clear_of_other?}
+      %{is: not group_panic? and clear_of_obstacle? and clear_of_other?}
     end
   end
 
   defp group_panic_belief_valuator() do
-    fn conjecture_activation, [round | _previous_rounds] ->
+    fn conjecture_activation, [round | previous_rounds] ->
       about = conjecture_activation.about
+
+      recent_group_panic? =
+        once_believed?(previous_rounds, about, :group_panic, :is, true, since: now() - 20_000)
 
       other_panicking? =
         current_perceived_value(
@@ -138,10 +126,29 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
           default: false
         )
 
+      panicking? = not recent_group_panic? and other_panicking?
+
       in_well_lit_area? =
         current_perceived_value(round, :self, :in_well_lit_area, :is, default: true)
+      %{is: panicking?, well_lit: in_well_lit_area?}
+    end
+  end
 
-      %{is: other_panicking?, well_lit: in_well_lit_area?}
+  defp panic_belief_valuator() do
+    fn conjecture_activation, [round | previous_rounds] = rounds ->
+      about = conjecture_activation.about
+      now = now()
+
+      recent_panic? =
+        once_believed?(previous_rounds, about, :panic, :is, true, since: now - 20_000)
+
+      unsafe_since = believed_since(rounds, about, :safe, :is, false)
+      very_unsafe? = unsafe_since != nil and unsafe_since > (now - 5_000)
+      panicking? = not recent_panic? and very_unsafe?
+
+      in_well_lit_area? =
+        current_perceived_value(round, :self, :in_well_lit_area, :is, default: true)
+      %{is: panicking?, well_lit: in_well_lit_area?}
     end
   end
 
@@ -150,6 +157,12 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
   defp opinion_about_safety() do
     fn %{is: safe?} ->
       if safe?, do: saying("I feel safe"), else: saying("Danger!")
+    end
+  end
+
+  defp opinion_about_panic() do
+    fn %{is: panicking?} ->
+      if panicking?, do: saying("Time to panic!"), else: nil
     end
   end
 

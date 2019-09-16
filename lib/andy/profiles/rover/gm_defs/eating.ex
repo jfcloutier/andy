@@ -17,11 +17,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
         found_food: %{about: :self, values: %{is: false}}
       },
       intentions: %{
-        declare_looking_for_food: %Intention{
-          intent_name: :say,
-          valuator: looking_for_food_declaration(),
-          repeatable: false
-        },
         chew: [
           %Intention{
             intent_name: :eat,
@@ -64,7 +59,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
         no_change_predictor(:approaching_food, default: %{is: false})
       ],
       valuator: found_food_belief_valuator(),
-      intention_domain: [:declare_looking_for_food]
+      intention_domain: []
     }
   end
 
@@ -107,9 +102,4 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
     end
   end
 
-  defp looking_for_food_declaration() do
-    fn %{is: found_food?} ->
-      if found_food?, do: nil, else: saying("I am looking for food")
-    end
-  end
-end
+ end

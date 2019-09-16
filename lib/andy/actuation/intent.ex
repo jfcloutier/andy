@@ -56,6 +56,11 @@ defmodule Andy.Intent do
     now() - intent.since
   end
 
+  @doc "The name of the intent (what it's about)"
+  def name(intent) do
+    intent.about
+  end
+
   @doc "Whether the intent was executed"
   def executed?(intent) do
     intent.executed

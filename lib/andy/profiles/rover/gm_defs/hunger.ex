@@ -42,13 +42,12 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   # Conjecture belief valuators
 
   defp sated_belief_valuator() do
-    fn conjecture_activation, rounds ->
-      about = conjecture_activation.about
+    fn _conjecture_activation, rounds ->
 
-      chewings_count =
-        count_perceived_since(rounds, about, :chewing, %{is: true}, since: now() - 20_000)
+      eat_count =
+        count_intents_since(rounds, :eat, since: now() - 20_000)
 
-      %{is: chewings_count > 3}
+      %{is: eat_count > 2}
     end
   end
 
@@ -56,7 +55,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
 
   defp opinion_about_sated() do
     fn %{is: sated?} ->
-      if sated?, do: nil, else: saying("I am hungry")
+      if sated?, do: saying("I am full"), else: saying("I am hungry")
     end
   end
 end

@@ -1,5 +1,6 @@
 defmodule Andy.GM.Utils do
   alias Andy.GM.{Perception, Belief, Prediction, Round, Intention, Conjecture}
+  alias Andy.Intent
 
   require Logger
 
@@ -479,6 +480,32 @@ defmodule Andy.GM.Utils do
       count + count_perceived_since(previous_rounds, about, conjecture_name, values, since: since)
     end
   end
+
+  # count_intents_since(rounds, :eat, since: now() - 20_000)
+
+  def count_intents_since([], _intent_name, since: _since) do
+    0
+  end
+
+  def count_intents_since(
+        [%Round{completed_on: completed_on, intents: intents} | previous_rounds],
+        intent_name,
+        since: since
+      ) do
+    if completed_on < since do
+      0
+    else
+      count =
+        intents
+        |> Enum.filter(
+             &(Intent.name(&1) == intent_name)
+           )
+        |> Enum.count()
+
+      count + count_intents_since(previous_rounds, intent_name, since: since)
+    end
+  end
+
 
   def less_than?(val1, val2) when is_number(val1) and is_number(val2) do
     val1 < val2
