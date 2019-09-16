@@ -47,7 +47,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
       eat_count =
         count_intents_since(rounds, :eat, since: now() - 20_000)
 
-      %{is: eat_count > 2}
+      %{is: eat_count > 0}
     end
   end
 
