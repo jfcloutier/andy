@@ -56,7 +56,7 @@ defmodule Andy.Profiles.Rover do
         collision_course_with_other: [],
         lighting: [],
         eating: [:seeking_food],
-        seeking_food: [:food_approach, :food_location],
+        seeking_food: [:food_approach, :food_location, :observing_other],
         food_approach: [:intentions_of_other, :food_location],
         intentions_of_other: [:observing_other],
         observing_other: []

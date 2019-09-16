@@ -25,11 +25,18 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
         }
       },
       intentions: %{
-        face: %Intention{
-          intent_name: :turn,
-          valuator: face_valuator(),
-          repeatable: true
-        }
+        face: [
+          %Intention{
+            intent_name: :turn,
+            valuator: face_turning_valuator(),
+            repeatable: true
+          },
+          %Intention{
+            intent_name: :say,
+            valuator: face_saying_valuator(),
+            repeatable: false
+          }
+        ]
       }
     }
   end
@@ -101,7 +108,7 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
 
   # Intention valuators
 
-  defp face_valuator() do
+  defp face_turning_valuator() do
     fn %{direction: direction, recently_observed_or_tried: recently_observed_or_tried?} ->
       cond do
         # don't bother if in the last 20 secs we observed the other, or failed to, for at least 5 consecutive secs
@@ -121,4 +128,24 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
       end
     end
   end
+
+  defp face_saying_valuator() do
+    fn %{direction: direction, recently_observed_or_tried: recently_observed_or_tried?} ->
+      cond do
+        # don't bother if in the last 20 secs we observed the other, or failed to, for at least 5 consecutive secs
+        recently_observed_or_tried? ->
+          nil
+
+        direction == :unknown ->
+          saying("Where are you?")
+
+        abs(direction) < 181 ->
+          saying("I'm watching you")
+
+        true ->
+          saying("There you are")
+      end
+    end
+  end
+
 end

@@ -29,7 +29,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   defp conjecture(:sated) do
     %Conjecture{
       name: :sated,
-      activator: goal_activator(fn %{is: sated?} -> sated? end),
+      activator: opinion_activator(),
       predictors: [
         no_change_predictor(:chewing, default: %{is: false}),
         no_change_predictor(:found_food, default: %{is: false})

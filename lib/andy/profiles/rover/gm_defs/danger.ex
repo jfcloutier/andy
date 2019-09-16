@@ -162,7 +162,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Danger do
 
   defp opinion_about_panic() do
     fn %{is: panicking?} ->
-      if panicking?, do: saying("Time to panic!"), else: nil
+      if panicking?, do: saying("Help! Help!"), else: nil
     end
   end
 

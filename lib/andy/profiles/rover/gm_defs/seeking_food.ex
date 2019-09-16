@@ -19,7 +19,8 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
         no_food: %{
           about: :self,
           values: %{
-            is: false
+            is: false,
+            recently_observed_other: false
           }
         },
         over_food: %{
@@ -86,6 +87,16 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
           default: %{
             detected: :unknown
           }
+        ),
+        no_change_predictor(
+          :observed,
+          default: %{
+            is: false,
+            direction: :unknown,
+            proximity: :unknown,
+            duration: 0,
+            recently_observed_or_tried: false
+          }
         )
       ],
       valuator: over_food_belief_valuator(),
@@ -145,10 +156,12 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
   defp no_food_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
-
+      recently_observed_other? =
+        current_perceived_value(round, :other, :observed, :recently_observed_or_tried, default: false)
       no_food? = no_food?(round, about)
 
-      %{is: no_food?}
+      %{is: no_food?,
+        recently_observed_other: recently_observed_other?}
     end
   end
 
@@ -189,9 +202,10 @@ defmodule Andy.Profiles.Rover.GMDefs.SeekingFood do
     end
   end
 
+  # Enable roaming if no food and other was recently observed
   defp no_food_roam_valuator() do
-    fn %{is: no_food?} = belief_values ->
-      if no_food?, do: roam_valuator().(belief_values), else: nil
+    fn %{is: no_food?, recently_observed_other: recently_observed_other?} = belief_values ->
+      if no_food? and recently_observed_other?, do: roam_valuator().(belief_values), else: nil
     end
   end
 
