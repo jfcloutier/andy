@@ -95,8 +95,8 @@ defmodule Andy.Profiles.Rover.GMDefs.AvoidingObstacle do
       %{
         is:
           not approaching_obstacle? and
-            distance_to_obstacle != :unknown and
-            greater_than?(distance_to_obstacle, 20)
+            (distance_to_obstacle == :unknown or
+               greater_than?(distance_to_obstacle, 20))
       }
     end
   end
