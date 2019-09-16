@@ -58,7 +58,6 @@ defmodule Andy.GM.Round do
   end
 
   def intent_names(%Round{intents: intents}) do
-    Enum.map(intents, &(Intent.name(&1)))
+    Enum.map(intents, &Intent.name(&1))
   end
-
 end

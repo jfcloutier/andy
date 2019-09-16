@@ -445,7 +445,8 @@ defmodule Andy.GM.GenerativeModel do
       nil ->
         %{efficacies: %{}, courses_of_action_indices: %{}}
 
-      %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices} ->
+      %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices} = recalled ->
+        Logger.info("#{inspect(gm_name)}: Recalled #{inspect(recalled)}")
         %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices}
     end
   end

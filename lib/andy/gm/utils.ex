@@ -692,5 +692,4 @@ defmodule Andy.GM.Utils do
       do_longest_round_sequence(previous_rounds, test, [[]] ++ [sequence | others])
     end
   end
-
 end
