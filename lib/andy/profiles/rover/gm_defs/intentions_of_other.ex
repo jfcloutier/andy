@@ -87,11 +87,12 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   # Conjecture belief valuators
 
   defp other_panicking_belief_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [_round | previous_rounds] ->
       about = conjecture_activation.about
 
       observations =
-        rounds_since(rounds, now() - 15_000)
+        previous_rounds
+        |> rounds_since(now() - 15_000)
         |> longest_round_sequence(fn round ->
           not Enum.any?(Round.intent_names(round), &(&1 in @moves))
         end)
@@ -121,11 +122,12 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
   end
 
   defp other_homing_on_food_belief_valuator() do
-    fn conjecture_activation, rounds ->
+    fn conjecture_activation, [_round | previous_rounds] ->
       about = conjecture_activation.about
 
       observations =
-        rounds_since(rounds, now() - 15_000)
+        previous_rounds
+        |> rounds_since(now() - 15_000)
         |> longest_round_sequence(fn round ->
           not Enum.any?(Round.intent_names(round), &(&1 in @moves))
         end)

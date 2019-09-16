@@ -186,7 +186,9 @@ defmodule Andy.GM.Utils do
   end
 
   def longest_round_sequence(rounds, test) do
-    do_longest_round_sequence(rounds, test, [[]])
+    longest = do_longest_round_sequence(rounds, test, [[]])
+    Logger.info("Longest sequence of rounds #{inspect longest}")
+    longest
   end
 
   def once_believed?([], _about, _conjecture_name, _value_name, _value, since: _since) do
@@ -492,8 +494,10 @@ defmodule Andy.GM.Utils do
 
   # The number of times the value went from decreasing to increasing, increasing to decreasing, increasing to none etc.
   def reversals(values) do
-    changes_of_direction = find_changes_of_directions(values)
-    count_changes(changes_of_direction)
+    values
+    |> find_changes_of_directions()
+    |> Enum.reject(&(&1 == :none))
+    |> count_changes()
   end
 
   def count_changes([]) do
