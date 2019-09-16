@@ -374,7 +374,7 @@ defmodule Andy.GM.GenerativeModel do
       # It is a maximal prediction error when no belief supports or contradicts a received prediction.
       # If a prediction error is generated, report it
       |> raise_prediction_errors()
-      # Tell parent GMs this GM has completed (even though it still has to execute CoAs if any)
+      # Tell ASAP parent GMs this GM has completed (even though it still has to execute CoAs if any)
       |> announce_completed()
         # Re-assess efficacies of courses of action taken in previous rounds given current beliefs
         # Have the CoAs caused the desired belief validations?
