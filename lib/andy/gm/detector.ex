@@ -212,12 +212,12 @@ defmodule Andy.GM.Detector do
 
         # Prior read not yet expired
         prior_read ->
-          {prior_reading, _updated_device} = prior_read.value
+          {prior_reading, _prior_device} = prior_read.value
           # No change of state
           {prior_reading, state}
       end
 
-    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(effective_reading)} with device in mode #{inspect state.device.type} for sense #{inspect state.sense}")
+    Logger.info("#{inspect(detector_name(state))}: Read #{inspect(effective_reading)}")
     {effective_reading, updated_state}
   end
 
