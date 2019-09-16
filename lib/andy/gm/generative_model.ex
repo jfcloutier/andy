@@ -108,7 +108,7 @@ defmodule Andy.GM.GenerativeModel do
               efficacies: %{},
               # conjecture_activation_subject => index of next course of action to try
               courses_of_action_indices: %{},
-              # one [:initializing, :running, :completing, :closing]
+              # one [:initializing, :running, :completing, :closing, :shutdown]
               round_status: :initializing,
               # event bufer for when current round in not running
               event_buffer: []
@@ -315,7 +315,8 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   def handle_event(:shutdown, state) do
-    shutdown(state)
+    delay_cast(gm_name(state), fn state -> shutdown(state) end)
+    %State{round_status(state, :shutdown) | started: false}
   end
 
   # Ignore any other event
@@ -2027,6 +2028,7 @@ defmodule Andy.GM.GenerativeModel do
       :experience,
       %{efficacies: efficacies, courses_of_action_indices: indices}
     )
+    state
   end
 
   defp info(state) do
