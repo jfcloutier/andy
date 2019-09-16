@@ -1,7 +1,7 @@
 defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   @moduledoc "The GM definition for :hunger"
 
-  alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
+  alias Andy.GM.{GenerativeModelDef, Intention, Conjecture, Prediction}
   import Andy.GM.Utils
   import Andy.Utils, only: [now: 0]
 
@@ -30,14 +30,48 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
     %Conjecture{
       name: :sated,
       activator: opinion_activator(),
-      predictors: [
-        no_change_predictor(:chewing, default: %{is: false}),
-        no_change_predictor(:found_food, default: %{is: false})
-      ],
+      predictors: [found_food_predictor(), chewing_predictor()],
       valuator: sated_belief_valuator(),
       intention_domain: [:express_opinion_about_sated]
     }
   end
+
+  # Conjecture predictors
+
+  defp found_food_predictor() do
+    fn conjecture_activation, [round | _previous_rounds] ->
+      about = conjecture_activation.about
+      sated? = current_believed_value(round, about, :sated, :is, default: false)
+
+      if sated? do
+        nil
+      else
+        %Prediction{
+          conjecture_name: :found_food,
+          about: about,
+          expectations: current_perceived_values(round, about, :found_food, default: %{is: false})
+        }
+      end
+    end
+  end
+
+  defp chewing_predictor() do
+    fn conjecture_activation, [round | _previous_rounds]  ->
+      about = conjecture_activation.about
+      sated? = current_believed_value(round, about, :sated, :is, default: false)
+
+      if sated? do
+        nil
+      else
+        %Prediction{
+          conjecture_name: :chewing,
+          about: about,
+          expectations: current_perceived_values(round, about, :chewing, default: %{is: false})
+        }
+      end
+    end
+  end
+
 
   # Conjecture belief valuators
 

@@ -11,7 +11,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
         conjecture(:chewing),
         conjecture(:found_food)
       ],
-      contradictions: [[:chewing, :found_food]],
+      contradictions: [],
       priors: %{
         chewing: %{about: :self, values: %{is: false}},
         found_food: %{about: :self, values: %{is: false}}
@@ -39,7 +39,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Eating do
   defp conjecture(:chewing) do
     %Conjecture{
       name: :chewing,
-      activator: opinion_activator(),
+      activator: opinion_activator(:self),
       predictors: [
         no_change_predictor(:over_food, default: %{is: false})
       ],
