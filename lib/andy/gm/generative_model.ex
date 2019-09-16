@@ -409,7 +409,11 @@ defmodule Andy.GM.GenerativeModel do
   end
 
   defp announce_completed(state) do
-    PubSub.notify({:round_completed, gm_name(state)})
+    spawn(fn ->
+      # Give time to the parents to process any prediction errors from this GM before they maybe complete
+      Process.sleep(100)
+      PubSub.notify({:round_completed, gm_name(state)} )
+    end)
     state
   end
 
