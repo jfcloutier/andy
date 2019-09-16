@@ -42,12 +42,16 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   # Conjecture belief valuators
 
   defp sated_belief_valuator() do
-    fn _conjecture_activation, rounds ->
+    fn conjecture_activation, rounds ->
+      about = conjecture_activation.about
 
-      eat_count =
-        count_intents_since(rounds, :eat, since: now() - 20_000)
+      chewing_count =
+        recent_perceived_values(rounds, about, :chewing,
+          matching: %{is: true},
+          since: now() - 20_000
+        ) |> Enum.count()
 
-      %{is: eat_count > 0}
+      %{is: chewing_count > 0}
     end
   end
 
