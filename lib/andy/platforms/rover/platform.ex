@@ -106,7 +106,7 @@ defmodule Andy.Rover.Platform do
 
   # Scotty!
   def voice() do
-    "en-sc"
+    "en-us"
   end
 
   def sensor_read_sense(device, sense) do
