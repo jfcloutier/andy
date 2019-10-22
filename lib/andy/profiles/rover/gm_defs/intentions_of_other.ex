@@ -92,8 +92,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
 
       observations =
         previous_rounds
-        |> rounds_since(now() - 15_000)
-        |> longest_round_sequence(fn round ->
+        |> Round.rounds_since(now() - 15_000)
+        |> Round.longest_round_sequence(fn round ->
           not Enum.any?(Round.intent_names(round), &(&1 in @moves))
         end)
         |> perceived_values(about, :observed, matching: %{is: true})
@@ -127,8 +127,8 @@ defmodule Andy.Profiles.Rover.GMDefs.IntentionsOfOther do
 
       observations =
         previous_rounds
-        |> rounds_since(now() - 15_000)
-        |> longest_round_sequence(fn round ->
+        |> Round.rounds_since(now() - 15_000)
+        |> Round.longest_round_sequence(fn round ->
           not Enum.any?(Round.intent_names(round), &(&1 in @moves))
         end)
         |> perceived_values(about, :observed, matching: %{is: true})

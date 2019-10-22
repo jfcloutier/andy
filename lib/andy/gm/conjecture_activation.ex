@@ -4,7 +4,7 @@ defmodule Andy.GM.ConjectureActivation do
   """
 
   alias __MODULE__
-  alias Andy.GM.Conjecture
+  alias Andy.GM.{Conjecture, Belief, Round}
 
   defstruct conjecture: nil,
             # e.g. "robot1" vs "robot2"; two conjecture activations can be the same kind of conjecture
@@ -80,6 +80,36 @@ defmodule Andy.GM.ConjectureActivation do
       ) do
     %ConjectureActivation{conjecture_activation | carry_overs: carry_overs + 1}
   end
+
+  def satisfied_now?(%ConjectureActivation{} = conjecture_activation, state) do
+    if goal?(conjecture_activation) do
+      achieved_now?(conjecture_activation, state)
+    else
+      believed_now?(conjecture_activation, state)
+    end
+  end
+
+  def achieved_now?(%ConjectureActivation{goal: goal} = conjecture_activation, state)
+      when goal != nil do
+    %Round{beliefs: beliefs} = Round.current_round(state)
+
+    Enum.any?(
+      beliefs,
+      &(ConjectureActivation.subject(conjecture_activation) == Belief.subject(&1) and
+        goal.(Belief.values(&1)))
+    )
+  end
+
+  def believed_now?(%ConjectureActivation{goal: nil} = conjecture_activation, state) do
+    %Round{beliefs: beliefs} = Round.current_round(state)
+
+    Enum.any?(
+      beliefs,
+      &(ConjectureActivation.subject(conjecture_activation) == Belief.subject(&1) and
+        Belief.believed?(&1))
+    )
+  end
+
 end
 
 defimpl Inspect, for: Andy.GM.ConjectureActivation do
