@@ -8,9 +8,7 @@ defmodule Andy.MockRover.InfraredSensor do
   require Logger
 
   @max_distance 70
-  @nudge_distance 5
   @max_heading 25
-  @nudge_heading 5
 
   def new() do
     %Device{
@@ -56,15 +54,6 @@ defmodule Andy.MockRover.InfraredSensor do
     {_, updated_sensor} = do_read(sensor, expanded_sense)
     # double read seems necessary after a mode change
     do_read(updated_sensor, expanded_sense)
-  end
-
-  def nudge(_sensor, sense, value, previous_value) do
-    case expand_sense(sense) do
-      {:beacon_heading, channel} -> nudge_heading(channel, value, previous_value)
-      {:beacon_distance, channel} -> nudge_distance(channel, value, previous_value)
-      {:beacon_on, channel} -> nudge_beacon_on?(channel, value, previous_value)
-      :beacon_proximity -> nudge_proximity(value, previous_value)
-    end
   end
 
   def sensitivity(_sensor, _sense) do
@@ -115,72 +104,14 @@ defmodule Andy.MockRover.InfraredSensor do
     {value, sensor}
   end
 
-  defp nudge_heading(_channel, value, previous_value) do
-    if previous_value == nil do
-      double_max_heading = 2 * @max_heading
-      25 - Enum.random(0..double_max_heading)
-    else
-      direction = if value - previous_value >= 0, do: 1, else: -1
-      nudge = Enum.random(0..@nudge_heading)
-
-      (previous_value + direction * nudge)
-      |> max(-@max_heading)
-      |> min(@max_heading)
-    end
-  end
-
   defp seek_distance(sensor, _channel) do
     value = Enum.random(0..@max_distance)
     {value, sensor}
   end
 
-  defp nudge_distance(_channel, value, previous_value) do
-    case previous_value do
-      nil ->
-        Enum.random(0..@max_distance)
-
-      _ ->
-        direction = if value - previous_value >= 0, do: 1, else: -1
-        nudge = Enum.random(0..@nudge_distance)
-
-        (previous_value + direction * nudge)
-        |> max(0)
-        |> min(@max_distance)
-    end
-  end
-
-  defp nudge_proximity(value, previous_value) do
-    case previous_value do
-      nil ->
-        Enum.random(0..@max_distance)
-
-      _ ->
-        direction = if value - previous_value >= 0, do: 1, else: -1
-        nudge = Enum.random(0..@nudge_distance)
-
-        (previous_value + direction * nudge)
-        |> max(0)
-        |> min(@max_distance)
-    end
-  end
-
   defp seek_beacon_on?(sensor, _channel) do
     value = :rand.uniform(2) == 2
     {value, sensor}
-  end
-
-  defp nudge_beacon_on?(_channel, value, previous_value) do
-    case previous_value do
-      nil ->
-        value
-
-      _ ->
-        if :rand.uniform(4) == 4 do
-          value
-        else
-          previous_value
-        end
-    end
   end
 
   defp remote_buttons(sensor, _channel) do

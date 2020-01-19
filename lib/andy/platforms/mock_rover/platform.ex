@@ -14,26 +14,17 @@ defmodule Andy.MockRover.Platform do
     LED
   }
 
-  alias Andy.{Device, SoundPlayer, BrickPi}
-  import Andy.Utils, only: [get_andy_env: 1]
+  alias Andy.{Device, SoundPlayer}
   require Logger
 
   ### PlatformBehaviour
 
   def start() do
     Logger.info("Platform mock_rover started")
-
-    if get_andy_env("ANDY_SYSTEM") == "brickpi" do
-      BrickPi.Brick.start()
-    end
   end
 
   def ready?() do
-    if get_andy_env("ANDY_SYSTEM") == "brickpi" do
-      BrickPi.Brick.ready?()
-    else
-      true
-    end
+    true
   end
 
   def ports_config() do
@@ -134,8 +125,4 @@ defmodule Andy.MockRover.Platform do
     apply(device.mod, command, [device | params])
   end
 
-  @doc "Nudge the value of a sense from a mock device"
-  def nudge(%Device{mock: true} = device, sense, value, previous_value) do
-    apply(device.mod, :nudge, [device, sense, value, previous_value])
-  end
 end

@@ -33,15 +33,6 @@ defmodule Andy.MockRover.Tachomotor do
     end
   end
 
-  def nudge(_motor, sense, value, previous_value) do
-    case sense do
-      :speed -> nudge_speed(value, previous_value)
-      :position -> nudge_position(value, previous_value)
-      :duty_cycle -> nudge_duty_cycle(value, previous_value)
-      :run_status -> nudge_run_status(value, previous_value)
-    end
-  end
-
   def sensitivity(_motor, _sense) do
     nil
   end
@@ -121,36 +112,14 @@ defmodule Andy.MockRover.Tachomotor do
     {value, motor}
   end
 
-  defp nudge_speed(_value, nil) do
-    :rand.uniform() * :rand.uniform(10)
-  end
-
-  defp nudge_speed(value, previous_value) do
-    (previous_value + value) |> max(0) |> min(10)
-  end
-
   defp current_position(motor) do
     value = :rand.uniform(20) - 10
     {value, motor}
   end
 
-  defp nudge_position(value, previous_value) do
-    case previous_value do
-      nil -> value
-      _ -> previous_value + value
-    end
-  end
-
   defp current_duty_cycle(motor) do
     value = :rand.uniform(30)
     {value, motor}
-  end
-
-  defp nudge_duty_cycle(value, previous_value) do
-    case previous_value do
-      nil -> 100
-      _ -> (previous_value + value) |> max(0) |> min(100)
-    end
   end
 
   defp current_run_status(motor) do
@@ -163,9 +132,5 @@ defmodule Andy.MockRover.Tachomotor do
       end
 
     {value, motor}
-  end
-
-  defp nudge_run_status(value, _previous_value) do
-    value
   end
 end

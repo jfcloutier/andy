@@ -131,10 +131,5 @@ defmodule Andy.Rover.Platform do
     InfraredSensor.beacon_senses_for(channel)
   end
 
-  # TODO - Unused
-  def nudge(_device, _sense, value, _previous_value) do
-    value
-  end
-
   ###
 end

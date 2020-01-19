@@ -53,10 +53,6 @@ defmodule Andy.PlatformBehaviour do
   @doc "Get a list of senses associated with a smart thing's id channel"
   @callback senses_for_id_channel(id_channel :: binary) :: [any]
 
-  @doc "Nudge the current sensed value, if appropriate"
-  @callback nudge(device :: %Andy.Device{}, sense :: any, value :: any, previous_value :: any) ::
-              any
-
   @doc "The actuation logic as actuator configs"
   @callback actuation_logic() :: [any]
 end

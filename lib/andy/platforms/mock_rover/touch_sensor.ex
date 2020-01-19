@@ -27,20 +27,6 @@ defmodule Andy.MockRover.TouchSensor do
     {value, sensor}
   end
 
-  def nudge(_sensor, _sense, value, previous_value) do
-    case previous_value do
-      nil ->
-        value
-
-      _ ->
-        if Enum.random(0..10) == 0 do
-          value
-        else
-          previous_value
-        end
-    end
-  end
-
   def sensitivity(_sensor, _sense) do
     nil
   end
