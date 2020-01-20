@@ -48,21 +48,13 @@ defmodule Andy do
     platform_dispatch(:display, [words])
   end
 
-  def community_name() do
-    get_andy_env("ANDY_COMMUNITY", "andy")
-  end
-
   def default_ttl(kind) do
     (Application.get_env(:andy, :ttl) || [])
     |> Keyword.get(kind, @default_ttl)
   end
 
-  def rest_port() do
-    {port, _} =
-      get_andy_env("ANDY_PORT", "4000")
-      |> Integer.parse()
-
-    port
+  def name() do
+    get_andy_env("ANDY_NAME", "andy")
   end
 
   def name_of_other() do

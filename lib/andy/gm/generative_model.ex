@@ -35,7 +35,7 @@ defmodule Andy.GM.GenerativeModel do
   #           - Receive prediction errors from sub-GMs and detectors as perceptions and replace overridden perceptions
   #             (a prediction error overrides the prediction it corrects)
   #               - After receiving a prediction error from a detector, see if all detectors activated by the GM
-  #               - have reported a (possibly zero-sized) prediction error. Then maybe complete the round.
+  #                 have reported a (possibly zero-sized) prediction error. Then maybe complete the round.
   #
   # Completing the current round (no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting):
   #           - Update precision weighing of sub-GMs given prediction errors from competing sources of perceptions
@@ -359,7 +359,7 @@ defmodule Andy.GM.GenerativeModel do
 
     new_state
   end
-  
+
   defp buffer_event(%State{event_buffer: event_buffer} = state, event) do
     %State{state | event_buffer: event_buffer ++ [event]}
   end
@@ -471,12 +471,12 @@ defmodule Andy.GM.GenerativeModel do
     index = Round.next_round_index(rounds)
 
     updated_state =
-      %State{state | rounds: [Round.new(gm_def, index) | rounds]} |> Round.round_status(:initializing)
+      %State{state | rounds: [Round.new(gm_def, index) | rounds]}
+      |> Round.round_status(:initializing)
 
     delay_cast(gm_name(state), fn state -> initialize_round(state) end)
     updated_state
   end
-
 
   defp intent_relevant?(%Intent{id: id}, state) do
     %Round{intents: intents} = Round.current_round(state)
@@ -908,23 +908,33 @@ defmodule Andy.GM.GenerativeModel do
 
   defp round_ready_to_complete?(%State{sub_gm_names: sub_gm_names} = state) do
     %Round{reported_in: reported_in, perceptions: perceptions} = Round.current_round(state)
-    activated_detectors = activated_detectors(perceptions)
-    Logger.info("#{info(state)}: Activated detectors #{inspect(activated_detectors)} ")
+
+    sub_gms_reported_in?(sub_gm_names, reported_in, state) and
+      activated_detectors_reported_in?(reported_in, perceptions, state)
+  end
+
+  defp sub_gms_reported_in?(sub_gm_names, reported_in, state) do
     Logger.info("#{info(state)}: Reported in #{inspect(reported_in)} ")
 
     Enum.all?(
       sub_gm_names,
       &(not_considered?(&1, state) or &1 in reported_in)
-    ) and
-      Enum.all?(
-        activated_detectors,
-        fn detector_pattern ->
-          Enum.any?(
-            reported_in,
-            &(Detector.detector_name?(&1) and Detector.name_matches_pattern?(&1, detector_pattern))
-          )
-        end
-      )
+    )
+  end
+
+  defp activated_detectors_reported_in?(reported_in, perceptions, state) do
+    activated_detectors = activated_detectors(perceptions)
+    Logger.info("#{info(state)}: Activated detectors #{inspect(activated_detectors)} ")
+
+    Enum.all?(
+      activated_detectors,
+      fn detector_pattern ->
+        Enum.any?(
+          reported_in,
+          &(Detector.detector_name?(&1) and Detector.name_matches_pattern?(&1, detector_pattern))
+        )
+      end
+    )
   end
 
   defp activated_detectors(perceptions) do
@@ -1249,7 +1259,7 @@ defmodule Andy.GM.GenerativeModel do
         coa_selections,
         {[], courses_of_action_indices, efficacies},
         fn {%CourseOfAction{conjecture_activation: conjecture_activation} = course_of_action,
-             maybe_updated_coa_index, new_coa?},
+            maybe_updated_coa_index, new_coa?},
            {coas, indices, efficacies_acc} = _acc ->
           conjecture_activation_subject = ConjectureActivation.subject(conjecture_activation)
 
@@ -1257,7 +1267,8 @@ defmodule Andy.GM.GenerativeModel do
             Enum.uniq([course_of_action | coas]),
             Map.put(indices, conjecture_activation_subject, maybe_updated_coa_index),
             if(new_coa?,
-              do: Efficacy.update_efficacies_with_new_coa(efficacies_acc, course_of_action, state),
+              do:
+                Efficacy.update_efficacies_with_new_coa(efficacies_acc, course_of_action, state),
               else: efficacies_acc
             )
           }
@@ -1275,9 +1286,9 @@ defmodule Andy.GM.GenerativeModel do
 
     %State{
       state
-    | courses_of_action_indices: updated_courses_of_action_indices,
-      rounds: [updated_round | previous_rounds],
-      efficacies: updated_efficacies
+      | courses_of_action_indices: updated_courses_of_action_indices,
+        rounds: [updated_round | previous_rounds],
+        efficacies: updated_efficacies
     }
   end
 
@@ -1320,7 +1331,13 @@ defmodule Andy.GM.GenerativeModel do
             acc,
             fn intention_name, %Round{} = acc1 ->
               intentions = GenerativeModelDef.intentions(gm_def, intention_name)
-              CourseOfAction.execute_intentions(intentions, belief_values, [acc1 | previous_rounds], state)
+
+              CourseOfAction.execute_intentions(
+                intentions,
+                belief_values,
+                [acc1 | previous_rounds],
+                state
+              )
             end
           )
         end
@@ -1358,7 +1375,7 @@ defmodule Andy.GM.GenerativeModel do
       :experience,
       %{efficacies: efficacies, courses_of_action_indices: indices}
     )
+
     state
   end
-
 end
