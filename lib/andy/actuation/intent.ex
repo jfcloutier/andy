@@ -10,6 +10,7 @@ defmodule Andy.Intent do
 
   @type t :: %__MODULE__{
           id: String.t(),
+          kind: atom,
           about: atom,
           value: any,
           since: non_neg_integer,
@@ -19,12 +20,14 @@ defmodule Andy.Intent do
         }
 
   @doc """
+  kind: A category of intent, e.g. locomotion, manipulation or sounds
   about: The nature of the intent
   value: The measure of the intent (a number, atom...)
   since: When the intent was created
   source: The source of the intent
   """
   defstruct id: nil,
+            kind: nil,
             about: nil,
             value: nil,
             since: nil,
@@ -59,6 +62,15 @@ defmodule Andy.Intent do
   @doc "The name of the intent (what it's about)"
   def name(intent) do
     intent.about
+  end
+
+  @doc "The kind of the intent (its category)"
+  def kind(intent) do
+    intent.kind
+  end
+
+  def set_kind(intent, kind) do
+    %Intent{intent | kind: kind}
   end
 
   @doc "Whether the intent was executed"
