@@ -5,7 +5,7 @@ defmodule Andy do
   import Andy.Utils,
     only: [platform_dispatch: 1, platform_dispatch: 2, profile_dispatch: 1, get_andy_env: 2]
 
-  @default_ttl 10_000
+  @default_ttl 11_000
 
   def shutdown() do
     PubSub.notify_shutdown()
