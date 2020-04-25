@@ -7,8 +7,8 @@ defmodule Andy.MockRover.ColorSensor do
 
   @max_light 100
 
-  def new() do
-    %Device{mod: __MODULE__, class: :sensor, path: "/mock/color_sensor", type: :color, mock: true}
+  def new(port) do
+    %Device{mod: __MODULE__, class: :sensor, port: port, path: "/mock/color_sensor", type: :color, mock: true}
   end
 
   # Sensing
@@ -18,6 +18,7 @@ defmodule Andy.MockRover.ColorSensor do
   end
 
   def read(sensor, sense) do
+    # TODO - get ready from andy_world
     case sense do
       :color -> color(sensor)
       :ambient -> ambient_light(sensor)

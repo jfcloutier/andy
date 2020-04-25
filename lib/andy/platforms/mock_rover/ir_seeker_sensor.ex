@@ -5,10 +5,11 @@ defmodule Andy.MockRover.IRSeekerSensor do
 
   alias Andy.Device
 
-  def new() do
+  def new(port) do
     %Device{
       mod: __MODULE__,
       class: :sensor,
+      port: port,
       path: "/mock/ir_seeker",
       type: :ir_seeker,
       mock: true
@@ -22,10 +23,12 @@ defmodule Andy.MockRover.IRSeekerSensor do
   end
 
   def read(sensor, sense) when sense in [:direction, :direction_mod] do
+    # TODO - get ready from andy_world
     direction(sensor)
   end
 
   def read(sensor, sense) when sense in [:proximity, :proximity_mod] do
+    # TODO - get ready from andy_world
     proximity(sensor)
   end
 

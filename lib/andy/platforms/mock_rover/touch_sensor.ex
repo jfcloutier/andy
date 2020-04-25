@@ -5,8 +5,8 @@ defmodule Andy.MockRover.TouchSensor do
 
   alias Andy.Device
 
-  def new() do
-    %Device{mod: __MODULE__, class: :sensor, path: "/mock/touch_sensor", type: :touch, mock: true}
+  def new(port) do
+    %Device{mod: __MODULE__, class: :sensor, port: port, path: "/mock/touch_sensor", type: :touch, mock: true}
   end
 
   ### Sensing
@@ -16,6 +16,7 @@ defmodule Andy.MockRover.TouchSensor do
   end
 
   def read(sensor, _sense) do
+    # TODO - get ready from andy_world
     random = Enum.random(0..10)
 
     value =

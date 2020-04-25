@@ -21,6 +21,7 @@ defmodule Andy.MockRover.Platform do
 
   def start() do
     Logger.info("Platform mock_rover started")
+    # TODO place robot in andy_world's playground
   end
 
   def ready?() do
@@ -64,12 +65,12 @@ defmodule Andy.MockRover.Platform do
 
   def sensors() do
     [
-      TouchSensor.new(),
-      ColorSensor.new(),
-      InfraredSensor.new(),
-      IRSeekerSensor.new(),
-      UltrasonicSensor.new(),
-      GyroSensor.new()
+      # TouchSensor.new(nil),
+      ColorSensor.new("in2"),
+      InfraredSensor.new("in3"),
+      IRSeekerSensor.new("in1"),
+      UltrasonicSensor.new("in4")
+      # GyroSensor.new(nil)
     ]
   end
 
@@ -93,6 +94,7 @@ defmodule Andy.MockRover.Platform do
 
   def shutdown() do
     Logger.info("Shutting down")
+    # TODO - remove robot from andy_world's playground
     Process.sleep(3000)
     Application.stop(:andy)
   end

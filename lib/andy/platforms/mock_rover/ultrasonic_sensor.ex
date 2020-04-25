@@ -8,10 +8,11 @@ defmodule Andy.MockRover.UltrasonicSensor do
   # actual max is 250 cms
   @max_distance 250
 
-  def new() do
+  def new(port) do
     %Device{
       mod: __MODULE__,
       class: :sensor,
+      port: port,
       path: "/mock/ultrasonic_sensor",
       type: :ultrasonic,
       mock: true
@@ -25,7 +26,8 @@ defmodule Andy.MockRover.UltrasonicSensor do
   end
 
   def read(sensor, :distance) do
-    distance_cm(sensor)
+   # TODO - get ready from andy_world
+   distance_cm(sensor)
   end
 
   def sensitivity(_sensor, _sense) do

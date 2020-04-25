@@ -25,6 +25,7 @@ defmodule Andy.MockRover.Tachomotor do
   end
 
   def read(motor, sense) do
+    # TODO - get ready from andy_world
     case sense do
       :speed -> current_speed(motor)
       :position -> current_position(motor)

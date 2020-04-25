@@ -10,10 +10,11 @@ defmodule Andy.MockRover.InfraredSensor do
   @max_distance 70
   @max_heading 25
 
-  def new() do
+  def new(port) do
     %Device{
       mod: __MODULE__,
       class: :sensor,
+      port: port,
       path: "/mock/infrared_sensor",
       type: :infrared,
       mock: true
@@ -23,6 +24,7 @@ defmodule Andy.MockRover.InfraredSensor do
   ### Sensing
 
   def senses(_) do
+    # TODO - get ready from andy_world
     beacon_senses =
       Enum.reduce(
         1..max_beacon_channels(),

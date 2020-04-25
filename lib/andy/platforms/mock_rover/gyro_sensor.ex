@@ -5,8 +5,8 @@ defmodule Andy.MockRover.GyroSensor do
 
   alias Andy.Device
 
-  def new() do
-    %Device{mod: __MODULE__, class: :sensor, path: "/mock/gyro_sensor", type: :gyro, mock: true}
+  def new(port) do
+    %Device{mod: __MODULE__, class: :sensor, port: port, path: "/mock/gyro_sensor", type: :gyro, mock: true}
   end
 
   ### Sensing
@@ -16,6 +16,7 @@ defmodule Andy.MockRover.GyroSensor do
   end
 
   def read(sensor, sense) do
+    # TODO - get ready from andy_world
     case sense do
       :angle -> angle(sensor)
       :rotational_speed -> rotational_speed(sensor)
