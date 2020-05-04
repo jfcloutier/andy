@@ -25,6 +25,10 @@ defmodule Andy.Application do
       Speaker
     ]
 
+    # TODO - If platform is mock, add an AndyWorldProxy as child.
+    # Make all calls to AndyWorld through it
+    # Have it subscribe to PubSub events and cast them all to AndyWorld,
+
     opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(children, opts)
     go()

@@ -23,7 +23,7 @@ defmodule Andy.MockRover.Platform do
 
     :ok =
       GenServer.call(
-        {:global, :playground},
+        {:global, :andy_world},
         {:place_robot,
          name: name,
          node: node(),
@@ -33,7 +33,7 @@ defmodule Andy.MockRover.Platform do
          sensor_data: sensor_data(),
          motor_data: motor_data()}
       )
-
+    # Start
     Logger.info("Platform mock_rover #{name} placed at #{inspect(start_state)}")
   end
 
@@ -117,10 +117,15 @@ defmodule Andy.MockRover.Platform do
   end
 
   def sensor_read_sense(%Device{mock: true} = device, sense) do
-    apply(device.mod, :read, [device, sense])
+    # TODO - Go thru AndyWorldProxy
+    {:ok, value} = GenServer.call({:global, :andy_world},
+     {:read, Andy.name(), device.port, sense})
+     {value, device}
+    # apply(device.mod, :read, [device, sense])
   end
 
   def motor_read_sense(%Device{mock: true} = device, sense) do
+    # Not yet simulated in AndyWorld
     apply(device.mod, :read, [device, sense])
   end
 

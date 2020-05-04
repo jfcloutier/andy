@@ -25,7 +25,7 @@ defmodule Andy.MockRover.Tachomotor do
   end
 
   def read(motor, sense) do
-    # TODO - get ready from andy_world
+    # Not yet supported in AndyWorld
     case sense do
       :speed -> current_speed(motor)
       :position -> current_position(motor)
@@ -47,39 +47,45 @@ defmodule Andy.MockRover.Tachomotor do
 
   def set_speed(motor, mode, speed) do
     Logger.info("Setting the speed of #{motor.path} to #{speed} #{mode}")
-    motor
+
+    set_motor_control(motor, :speed_mode, mode)
+    |> set_motor_control(:speed, speed)
   end
 
-  def reverse_polarity(motor) do
+  def reverse_polarity_control(motor) do
     Logger.info("Reversing polarity of #{motor.path}")
-    motor
+    reverse_polarity = reverse_polarity(motor)
+    set_motor_control(motor, :polarity, reverse_polarity)
   end
 
   def set_duty_cycle(motor, duty_cycle) do
     Logger.info("Setting the duty cycle of #{motor.path} to #{duty_cycle}")
-    motor
+    set_motor_control(motor, :duty_cycle, duty_cycle)
   end
 
   def set_ramp_up(motor, msecs) do
     Logger.info("Setting ramp-up of #{motor.path} to #{msecs} msecs")
-    motor
+    set_motor_control(motor, :ramp_up, msecs)
   end
 
   def set_ramp_down(motor, msecs) do
     Logger.info("Setting ramp-up of #{motor.path} to #{msecs} msecs")
-    motor
+    set_motor_control(motor, :ramp_down, msecs)
   end
 
+  # Not yet supported by AndyWorld
   def run(motor) do
     Logger.info("Running #{motor.path}")
     motor
   end
 
+  # Not yet supported by AndyWorld
   def run_to_absolute(motor, degrees) do
     Logger.info("Running #{motor.path} to #{degrees} absolute degrees")
     motor
   end
 
+  # Not yet supported by AndyWorld
   def run_to_relative(motor, degrees) do
     Logger.info("Running #{motor.path} to #{degrees} relative degrees")
     motor
@@ -87,25 +93,60 @@ defmodule Andy.MockRover.Tachomotor do
 
   def run_for(motor, msecs) when is_integer(msecs) do
     Logger.info("Running #{motor.path} for #{msecs} msecs")
-    motor
+    set_motor_control(motor, :time, msecs / 1000)
   end
 
+  # Not yet supported by AndyWorld
   def coast(motor) do
     Logger.info("Coasting #{motor.path}")
     motor
   end
 
+  # Not yet supported by AndyWorld
   def brake(motor) do
     Logger.info("Braking #{motor.path}")
     motor
   end
 
+  # Not yet supported by AndyWorld
   def hold(motor) do
     Logger.info("Holding #{motor.path}")
     motor
   end
 
+  # TODO - duplicated from Tachymotor
+  def reverse_polarity(motor) do
+    case get_control(motor, :polarity) do
+      :normal -> set_control(motor, :polarity, :inversed)
+      :inversed -> set_control(motor, :polarity, :normal)
+    end
+  end
+
   ### PRIVATE
+
+  # TODO - Go thru AndyWorldProxy
+  defp set_motor_control(motor, control, value) do
+    :ok =
+      GenServer.call(
+        {:global, :andy_world},
+        {:set_motor_control, Andy.name(), motor.port, control, value}
+      )
+
+    set_control(motor, :duty_cycle, value)
+  end
+
+  # TODO - duplicated from Tachymotor
+  defp set_control(motor, control, value) do
+    %Device{
+      motor
+      | props: %{motor.props | controls: Map.put(motor.props.controls, control, value)}
+    }
+  end
+
+  # TODO - duplicated from Tachymotor
+  defp get_control(motor, control) do
+    Map.get(motor.props.controls, control)
+  end
 
   defp current_speed(motor) do
     # delta speed
