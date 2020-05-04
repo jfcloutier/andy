@@ -61,6 +61,7 @@ defmodule Andy.Actuator do
         %{actuator_config: actuator_config} = state
       ) do
     intent = Intent.set_kind(unrealized_intent, actuator_config.name)
+
     if Intent.stale?(intent),
       do: Logger.warn("Stale #{inspect(intent)}! Age = #{Intent.age(intent)}")
 

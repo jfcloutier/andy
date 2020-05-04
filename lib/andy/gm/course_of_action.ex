@@ -3,7 +3,20 @@ defmodule Andy.GM.CourseOfAction do
     to validate some activation of a conjecture"
 
   require Logger
-  alias Andy.GM.{GenerativeModelDef, CourseOfAction, Conjecture, ConjectureActivation, Efficacy, Round, Belief, Intention, PubSub, State}
+
+  alias Andy.GM.{
+    GenerativeModelDef,
+    CourseOfAction,
+    Conjecture,
+    ConjectureActivation,
+    Efficacy,
+    Round,
+    Belief,
+    Intention,
+    PubSub,
+    State
+  }
+
   alias Andy.Intent
   import Andy.GM.Utils, only: [info: 1]
   alias __MODULE__
@@ -64,7 +77,7 @@ defmodule Andy.GM.CourseOfAction do
             )
 
           if not (Intention.not_repeatable?(intention) and
-                  would_be_repeated?(intent, rounds)) do
+                    would_be_repeated?(intent, rounds)) do
             PubSub.notify_intended(intent)
             %Round{acc | intents: [intent | intents]}
           else
@@ -180,20 +193,20 @@ defmodule Andy.GM.CourseOfAction do
         when_already_satisfied? == satisfied?
       end)
       |> Enum.map(
-           &{%CourseOfAction{
-             conjecture_activation: conjecture_activation,
-             intention_names: &1.intention_names
-           }, &1.degree}
-         )
+        &{%CourseOfAction{
+           conjecture_activation: conjecture_activation,
+           intention_names: &1.intention_names
+         }, &1.degree}
+      )
 
     average_efficacy = Efficacy.average_efficacy(tried)
 
     # Candidates CoA are the previously tried CoAs plus a new one given the average efficacy of the other candidates.
     candidates =
       if maybe_untried_coa == nil or CourseOfAction.empty?(maybe_untried_coa) or
-         course_of_action_already_tried?(maybe_untried_coa, tried) do
+           course_of_action_already_tried?(maybe_untried_coa, tried) do
         if tried == [],
-           do: Logger.info("#{info(state)}: Empty tried CoAs and no new untried CoA!")
+          do: Logger.info("#{info(state)}: Empty tried CoAs and no new untried CoA!")
 
         tried
       else
@@ -276,7 +289,7 @@ defmodule Andy.GM.CourseOfAction do
 
     # Should never happen
     if Enum.count(unduplicated_intention_names) == 0,
-       do: Logger.warn("#{info(state)}: Empty intention names for new CoA")
+      do: Logger.warn("#{info(state)}: Empty intention names for new CoA")
 
     index_of_coa = index_of_coa(unduplicated_intention_names, intention_domain)
 
@@ -389,8 +402,6 @@ defmodule Andy.GM.CourseOfAction do
     intention_names = ConjectureActivation.intention_domain(conjecture_activation)
     Enum.all?(intention_names, &GenerativeModelDef.non_repeatable_intentions?(gm_def, &1))
   end
-
-
 end
 
 defimpl Inspect, for: Andy.GM.CourseOfAction do

@@ -90,7 +90,7 @@ defmodule Andy.GM.Round do
 
     state
     |> mark_round_completed()
-      # Drop obsolete rounds (forget the distant past)
+    # Drop obsolete rounds (forget the distant past)
     |> drop_obsolete_rounds()
   end
 
@@ -158,5 +158,4 @@ defmodule Andy.GM.Round do
       do_longest_round_sequence(previous_rounds, test, [[]] ++ [sequence | others])
     end
   end
-
 end

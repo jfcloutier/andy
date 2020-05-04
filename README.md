@@ -77,7 +77,7 @@ To reset the robot (erase its accumulated experience)
 
 To launch on the robot:
 
-    > ANDY_SYSTEM=brickpi ANDY_PLATFORM=rover iex -S mix
+    > ANDY_SYSTEM=brickpi ANDY_PLATFORM=rover ANDY_NAME=andy; iex -S mix
     
 To stop the robot and retain newly acquired experience:
 
@@ -86,5 +86,5 @@ To stop the robot and retain newly acquired experience:
 
 To test on PC with mock rover: 
 
-    > iex -S mix
+    > ANDY_NAME=andy; iex -S mix
 

@@ -6,7 +6,14 @@ defmodule Andy.MockRover.TouchSensor do
   alias Andy.Device
 
   def new(port) do
-    %Device{mod: __MODULE__, class: :sensor, port: port, path: "/mock/touch_sensor", type: :touch, mock: true}
+    %Device{
+      mod: __MODULE__,
+      class: :sensor,
+      port: port,
+      path: "/mock/touch_sensor",
+      type: :touch,
+      mock: true
+    }
   end
 
   ### Sensing

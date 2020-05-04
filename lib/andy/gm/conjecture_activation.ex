@@ -96,7 +96,7 @@ defmodule Andy.GM.ConjectureActivation do
     Enum.any?(
       beliefs,
       &(ConjectureActivation.subject(conjecture_activation) == Belief.subject(&1) and
-        goal.(Belief.values(&1)))
+          goal.(Belief.values(&1)))
     )
   end
 
@@ -106,10 +106,9 @@ defmodule Andy.GM.ConjectureActivation do
     Enum.any?(
       beliefs,
       &(ConjectureActivation.subject(conjecture_activation) == Belief.subject(&1) and
-        Belief.believed?(&1))
+          Belief.believed?(&1))
     )
   end
-
 end
 
 defimpl Inspect, for: Andy.GM.ConjectureActivation do

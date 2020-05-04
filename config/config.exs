@@ -33,3 +33,59 @@ config :andy,
   normal_rps: 0.5,
   slow_rps: 0.25,
   very_slow_rps: 0.15
+
+config :andy, :mock_config,
+  start: %{
+    andy: %{row: 3, column: 3, orientation: 0},
+    karl: %{row: 2, column: 15, orientation: -30}
+  },
+  sensor_data: [
+    %{
+      port: "in1",
+      type: :ir_seeker,
+      position: :front,
+      height_cm: 10,
+      aim: 0
+    },
+    %{
+      port: "in2",
+      type: :color,
+      position: :front,
+      height_cm: 2,
+      aim: 0
+    },
+    %{
+      port: "in3",
+      type: :infrared,
+      position: :front,
+      height_cm: 10,
+      aim: 0
+    },
+    %{
+      port: "in4",
+      type: :ultrasonic,
+      position: :front,
+      height_cm: 10,
+      aim: 0
+    }
+  ],
+  motor_data: [
+    %{
+      port: "outA",
+      direction: 1,
+      side: :left,
+      controls: %{speed_mode: :rps, speed: 0, time: 0}
+    },
+    %{
+      port: "outB",
+      direction: 1,
+      side: :right,
+      controls: %{speed_mode: :rps, speed: 0, time: 0}
+    },
+    %{
+      port: "outC",
+      direction: 1,
+      side: :center,
+      controls: %{speed_mode: :rps, speed: 0, time: 0}
+    }
+  ]

@@ -216,7 +216,6 @@ defmodule Andy.GM.Utils do
     end
   end
 
-
   def perceived_value_range(rounds, about, conjecture_name, value_name, since: since) do
     since_rounds = Enum.filter(rounds, &{&1.completed_on >= since})
 
@@ -245,8 +244,8 @@ defmodule Andy.GM.Utils do
       count =
         round.perceptions
         |> Enum.filter(
-             &(Perception.subject(&1) == subject_counted and Perception.values_match?(&1, values))
-           )
+          &(Perception.subject(&1) == subject_counted and Perception.values_match?(&1, values))
+        )
         |> Enum.count()
 
       count + count_perceived_since(previous_rounds, about, conjecture_name, values, since: since)
@@ -370,10 +369,10 @@ defmodule Andy.GM.Utils do
         |> Enum.map(&Perception.values(&1))
 
       matching_perception_values ++
-      recent_perceived_values(previous_rounds, about, conjecture_name,
-        matching: match,
-        since: since
-      )
+        recent_perceived_values(previous_rounds, about, conjecture_name,
+          matching: match,
+          since: since
+        )
     end
   end
 
@@ -401,10 +400,10 @@ defmodule Andy.GM.Utils do
         |> Enum.map(&Belief.values(&1))
 
       matching_belief_values ++
-      recent_believed_values(previous_rounds, about, conjecture_name,
-        matching: match,
-        since: since
-      )
+        recent_believed_values(previous_rounds, about, conjecture_name,
+          matching: match,
+          since: since
+        )
     end
   end
 
@@ -557,7 +556,6 @@ defmodule Andy.GM.Utils do
     count_changes([val2 | rest]) + 1
   end
 
-
   def less_than?(val1, val2) when is_number(val1) and is_number(val2) do
     val1 < val2
   end
@@ -631,11 +629,11 @@ defmodule Andy.GM.Utils do
         [
           value
           | collect_all_perceived_values(
-            previous_rounds,
-            about,
-            predicted_conjecture_name,
-            value_name
-          )
+              previous_rounds,
+              about,
+              predicted_conjecture_name,
+              value_name
+            )
         ]
     end
   end
@@ -687,5 +685,4 @@ defmodule Andy.GM.Utils do
   defp move_valuator() do
     fn _ -> %{value: %{speed: :normal, time: 2}, duration: 2} end
   end
-
 end

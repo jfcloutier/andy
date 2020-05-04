@@ -168,7 +168,7 @@ defmodule Andy.GM.Efficacy do
           if Enum.any?(
                courses_of_action,
                &(CourseOfAction.of_type?(&1, conjecture_activation_subject, intention_names) and
-                 when_already_satisfied? == conjecture_satisfied?)
+                   when_already_satisfied? == conjecture_satisfied?)
              ) do
             [index | acc]
           else
@@ -207,7 +207,6 @@ defmodule Andy.GM.Efficacy do
     # in achieving belief in the same conjecture in all previous rounds.
     (normalized_correlation + degree) / 2.0
   end
-
 end
 
 defimpl Inspect, for: Andy.GM.Efficacy do

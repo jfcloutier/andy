@@ -56,7 +56,7 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
   end
 
   defp chewing_predictor() do
-    fn conjecture_activation, [round | _previous_rounds]  ->
+    fn conjecture_activation, [round | _previous_rounds] ->
       about = conjecture_activation.about
       sated? = current_believed_value(round, about, :sated, :is, default: false)
 
@@ -71,7 +71,6 @@ defmodule Andy.Profiles.Rover.GMDefs.Hunger do
       end
     end
   end
-
 
   # Conjecture belief valuators
 

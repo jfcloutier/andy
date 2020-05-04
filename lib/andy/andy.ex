@@ -54,7 +54,7 @@ defmodule Andy do
   end
 
   def name() do
-    get_andy_env("ANDY_NAME", "andy")
+    get_andy_env("ANDY_NAME", "andy") |> String.to_atom()
   end
 
   def name_of_other() do

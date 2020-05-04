@@ -26,8 +26,8 @@ defmodule Andy.MockRover.UltrasonicSensor do
   end
 
   def read(sensor, :distance) do
-   # TODO - get ready from andy_world
-   distance_cm(sensor)
+    # TODO - get ready from andy_world
+    distance_cm(sensor)
   end
 
   def sensitivity(_sensor, _sense) do
@@ -40,5 +40,4 @@ defmodule Andy.MockRover.UltrasonicSensor do
     value = Enum.random(0..@max_distance)
     {value, sensor}
   end
-
 end

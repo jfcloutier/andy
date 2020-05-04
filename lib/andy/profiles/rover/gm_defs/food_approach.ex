@@ -82,7 +82,8 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   defp conjecture(:closer_to_other_homing) do
     %Conjecture{
       name: :closer_to_other_homing,
-      activator: goal_activator(fn %{is: closer_to_other_homing?} -> closer_to_other_homing? end, :other) ,
+      activator:
+        goal_activator(fn %{is: closer_to_other_homing?} -> closer_to_other_homing? end, :other),
       predictors: [
         no_change_predictor(:other_homing_on_food,
           default: %{is: false, proximity: :unknown, direction: :unknown}
@@ -116,6 +117,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
   def closer_to_other_homing_belief_valuator() do
     fn conjecture_activation, [round | _previous_rounds] = rounds ->
       food_detected? = food_detected?(round, conjecture_activation.about)
+
       approaching? =
         numerical_perceived_value_trend(rounds, :other_homing_on_food, :other, :proximity) ==
           :decreasing
