@@ -12,30 +12,15 @@ defmodule Andy.MockRover.Platform do
     LED
   }
 
-  alias Andy.{Device, SoundPlayer}
+  alias Andy.{Device, SoundPlayer, AndyWorldGateway}
   require Logger
 
   ### PlatformBehaviour
 
   def start() do
-    name = Andy.name()
-    %{row: row, column: column, orientation: orientation} = start_state = start_state(name)
-
-    :ok =
-      GenServer.call(
-        {:global, :andy_world},
-        {:place_robot,
-         name: name,
-         node: node(),
-         row: row,
-         column: column,
-         orientation: orientation,
-         sensor_data: sensor_data(),
-         motor_data: motor_data()}
-      )
-    # Start
-    Logger.info("Platform mock_rover #{name} placed at #{inspect(start_state)}")
-  end
+     # Start
+     AndyWorldGateway.place_robot()
+   end
 
   def ready?() do
     true
@@ -117,10 +102,7 @@ defmodule Andy.MockRover.Platform do
   end
 
   def sensor_read_sense(%Device{mock: true} = device, sense) do
-    # TODO - Go thru AndyWorldProxy
-    {:ok, value} = GenServer.call({:global, :andy_world},
-     {:read, Andy.name(), device.port, sense})
-     {value, device}
+    AndyWorldGateway.read_sense(device, sense)
     # apply(device.mod, :read, [device, sense])
   end
 
@@ -144,23 +126,5 @@ defmodule Andy.MockRover.Platform do
   def execute_command(%Device{mock: true} = device, command, params) do
     apply(device.mod, command, [device | params])
   end
-
-  ### PRIVATE
-
-  defp start_state(name) do
-    start = Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:start) |> Map.fetch!(name)
-    Logger.info("#{name} is starting with #{inspect(start)}")
-    start
-  end
-
-  defp sensor_data() do
-    Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:sensor_state)
-  end
-
-  defp motor_data() do
-    Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:motor_state)
-  end
-
-
 
 end

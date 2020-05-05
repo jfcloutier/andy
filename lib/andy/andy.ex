@@ -31,6 +31,9 @@ defmodule Andy do
     get_andy_env("ANDY_SYSTEM", "pc")
   end
 
+  def simulation?() do
+    system() == "pc"
+  end
   def start_platform() do
     platform_dispatch(:start)
   end

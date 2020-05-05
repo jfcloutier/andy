@@ -8,7 +8,7 @@ defmodule Andy.Application do
   use Application
   require Logger
   alias Andy.GM.{EmbodiedCognitionSupervisor}
-  alias Andy.Speaker
+  alias Andy.{Speaker, AndyWorldGateway}
   import Supervisor.Spec
 
   def start(_type, _args) do
@@ -27,10 +27,12 @@ defmodule Andy.Application do
 
     # TODO - If platform is mock, add an AndyWorldProxy as child.
     # Make all calls to AndyWorld through it
-    # Have it subscribe to PubSub events and cast them all to AndyWorld,
+    # Have it subscribe to PubSub events and cast them all to AndyWorld
+
+    all_my_children = if Andy.simulation?(), do: [AndyWorldGateway | children], else: children
 
     opts = [strategy: :one_for_one, name: :andy_supervisor]
-    result = Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(all_my_children, opts)
     go()
     result
   end
