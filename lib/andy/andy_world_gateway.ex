@@ -16,11 +16,15 @@ defmodule Andy.AndyWorldGateway do
     }
   end
 
-  def start_link(_) do
+  def start_link() do
     {:ok, pid} =
       Agent.start_link(
         fn ->
-          %{listening?: false, placed?: false}
+          playground_node = Andy.playground_node()
+          Logger.info("Trying to connect to  node #{playground_node}")
+          true = Node.connect(playground_node)
+          place_robot()
+          %{listening?: false, placed?: true}
         end,
         name: @name
       )
@@ -36,7 +40,6 @@ defmodule Andy.AndyWorldGateway do
       ) do
     if @name == name do
       Logger.info("#{name} is listening to events")
-
       %{state | listening?: true}
     else
       state
@@ -45,69 +48,61 @@ defmodule Andy.AndyWorldGateway do
 
   def handle_event({:actuated, intent}, %{placed?: placed?} = state) do
     name = Andy.name()
-    Logger.info("Notifying Andy World that #{name} actuated")
+    Logger.warn("Notifying Andy World that #{name} actuated with intent #{inspect(intent)}")
+
     if placed? do
-      :ok = GenServer.call(
-        {:global, :andy_world},
-        {:actuate, name, intent.kind})
+      :ok =
+        GenServer.call(
+          playground(),
+          {:actuate, name, intent.kind}
+        )
     else
       Logger.warn("Failed to notify Andy World of actuation. #{name} is not placed.")
     end
+
     state
   end
 
   def handle_event({event_name}, state) do
     name = Andy.name()
-    :ok = GenServer.cast(
-        {:global, :andy_world},
-        {:event, name, event_name})
+
+    :ok =
+      GenServer.cast(
+        playground(),
+        {:event, name, event_name}
+      )
+
     state
   end
 
   def handle_event({event_name, payload}, state) do
     name = Andy.name()
-    :ok = GenServer.cast(
-        {:global, :andy_world},
-        {:event, name, {event_name, "#{inspect payload}"}})
+
+    :ok =
+      GenServer.cast(
+        playground(),
+        {:event, name, {event_name, "#{inspect(payload)}"}}
+      )
+
     state
   end
 
-  def place_robot() do
-    name = Andy.name()
-    Logger.info("Placing #{name} in Andy World")
-    Agent.cast(
-      @name,
-      fn state ->
-        %{row: row, column: column, orientation: orientation} = start_state(name)
-
-        :ok =
-          GenServer.call(
-            {:global, :andy_world},
-            {:place_robot,
-             name: name,
-             node: node(),
-             row: row,
-             column: column,
-             orientation: orientation,
-             sensor_data: sensor_data(),
-             motor_data: motor_data()}
-          )
-
-        %{state | placed?: true}
-      end
-    )
-  end
+  def handle_event(_event, state), do: state
 
   def read_sense(device, sense) do
     name = Andy.name()
-    Logger.info("Reading #{sense} of #{name} from Andy World")
+
+    Logger.warn(
+      "Reading #{inspect(sense)} of device at #{device.port} #{inspect(name)} from Andy World"
+    )
+
     Agent.get(
       @name,
       fn %{placed?: placed?} = _state ->
         if placed? do
           {:ok, value} =
             GenServer.call(
-              {:global, :andy_world},
+              playground(),
               {:read, name, device.port, sense}
             )
 
@@ -120,7 +115,53 @@ defmodule Andy.AndyWorldGateway do
     )
   end
 
+  def set_motor_control(motor_port, control, value) do
+    name = Andy.name()
+
+    Logger.warn(
+      "Setting motor control #{inspect(control)}, to #{inspect(value)} for #{inspect(motor_port)}"
+    )
+
+    Agent.get(
+      @name,
+      fn %{placed?: placed?} = _state ->
+        if placed? do
+          GenServer.call(
+            playground(),
+            {:set_motor_control, name, motor_port, control, value}
+          )
+        else
+          Logger.warn("#{name} not placed yet. Can't set motor control.")
+          :ok
+        end
+      end
+    )
+  end
+
   #### PRIVATE
+
+  defp place_robot() do
+    name = Andy.name()
+    Logger.info("Placing #{name} in Andy World")
+    %{row: row, column: column, orientation: orientation} = start_state(name)
+
+    :ok =
+      GenServer.call(
+        playground(),
+        {:place_robot,
+         name: name,
+         node: node(),
+         row: row,
+         column: column,
+         orientation: orientation,
+         sensor_data: sensor_data(),
+         motor_data: motor_data()}
+      )
+  end
+
+  defp playground() do
+    {:playground, Andy.playground_node()}
+  end
 
   defp start_state(name) do
     start =
@@ -131,10 +172,10 @@ defmodule Andy.AndyWorldGateway do
   end
 
   defp sensor_data() do
-    Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:sensor_state)
+    Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:sensor_data)
   end
 
   defp motor_data() do
-    Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:motor_state)
+    Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:motor_data)
   end
 end

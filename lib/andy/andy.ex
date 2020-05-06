@@ -31,6 +31,10 @@ defmodule Andy do
     get_andy_env("ANDY_SYSTEM", "pc")
   end
 
+  def playground_node() do
+    get_andy_env("ANDY_PLAYGROUND", "playground@127.0.0.1") |> String.to_atom()
+  end
+
   def simulation?() do
     system() == "pc"
   end
@@ -57,7 +61,8 @@ defmodule Andy do
   end
 
   def name() do
-    get_andy_env("ANDY_NAME", "andy") |> String.to_atom()
+    [name_s, _] = "#{node()}" |> String.split("@")
+    String.to_atom(name_s)
   end
 
   def name_of_other() do

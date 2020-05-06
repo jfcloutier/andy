@@ -29,7 +29,7 @@ defmodule Andy.Application do
     # Make all calls to AndyWorld through it
     # Have it subscribe to PubSub events and cast them all to AndyWorld
 
-    all_my_children = if Andy.simulation?(), do: [AndyWorldGateway | children], else: children
+    all_my_children = if Andy.simulation?(), do: children ++ [AndyWorldGateway], else: children
 
     opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(all_my_children, opts)

@@ -84,7 +84,8 @@ To stop the robot and retain newly acquired experience:
     > Andy.shutdown
 
 
-To test on PC with mock rover: 
+To test on PC with mock rover named karl, do: 
 
-    > ANDY_NAME=andy; iex -S mix
+    > export ANDY_PLAYGROUND='playground@ukemi';iex --sname karl --cookie 'predictive processing'
+
 

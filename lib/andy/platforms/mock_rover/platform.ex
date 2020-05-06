@@ -19,7 +19,7 @@ defmodule Andy.MockRover.Platform do
 
   def start() do
      # Start
-     AndyWorldGateway.place_robot()
+     :ok
    end
 
   def ready?() do

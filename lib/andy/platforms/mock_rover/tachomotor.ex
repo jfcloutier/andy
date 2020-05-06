@@ -4,7 +4,7 @@ defmodule Andy.MockRover.Tachomotor do
   @behaviour Andy.Sensing
   @behaviour Andy.Moving
 
-  alias Andy.Device
+  alias Andy.{Device, AndyWorldGateway}
   require Logger
 
   def new(type, port_name) do
@@ -124,28 +124,19 @@ defmodule Andy.MockRover.Tachomotor do
 
   ### PRIVATE
 
-  # TODO - Go thru AndyWorldProxy
   defp set_motor_control(motor, control, value) do
-    :ok =
-      GenServer.call(
-        {:global, :andy_world},
-        {:set_motor_control, Andy.name(), motor.port, control, value}
-      )
-
+    :ok = AndyWorldGateway.set_motor_control(motor.port, control, value)
     set_control(motor, :duty_cycle, value)
   end
 
-  # TODO - duplicated from Tachymotor
   defp set_control(motor, control, value) do
-    %Device{
-      motor
-      | props: %{motor.props | controls: Map.put(motor.props.controls, control, value)}
-    }
+    controls = Map.get(motor.props, :controls, %{})
+    updated_props = Map.put(motor.props, :controls, Map.put(controls, control, value))
+    %Device{motor | props: updated_props}
   end
 
-  # TODO - duplicated from Tachymotor
   defp get_control(motor, control) do
-    Map.get(motor.props.controls, control)
+    Map.get(motor.props, :controls, %{}) |> Map.get(control)
   end
 
   defp current_speed(motor) do
