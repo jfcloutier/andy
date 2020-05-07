@@ -38,6 +38,7 @@ defmodule Andy do
   def simulation?() do
     system() == "pc"
   end
+
   def start_platform() do
     platform_dispatch(:start)
   end
@@ -66,7 +67,20 @@ defmodule Andy do
   end
 
   def name_of_other() do
-    get_andy_env("ANDY_OTHER_NAME", "dude")
+    case Node.list() do
+      [] ->
+        get_andy_env("ANDY_OTHER_NAME", "dude")
+
+      nodes ->
+        names =
+          Enum.map(nodes, fn node ->
+            [name, _] = String.split("#{node}", "@")
+            name
+          end)
+
+        other_name = Enum.find(names, &(&1 != "playground"))
+        if other_name != nil, do: other_name, else: get_andy_env("ANDY_OTHER_NAME", "dude")
+    end
   end
 
   def ports_config() do

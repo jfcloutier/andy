@@ -126,7 +126,7 @@ defmodule Andy.AndyWorldGateway do
   def actuate(actuator_type, command) do
     name = Andy.name()
 
-    Logger.warn("Actuating #{inspect(actuator_type)} of #{inspect(name)}")
+    Logger.warn("Actuating #{inspect(actuator_type)} of #{inspect(name)} with #{inspect command}")
 
     Agent.get(
       @name,

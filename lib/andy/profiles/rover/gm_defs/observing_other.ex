@@ -133,19 +133,22 @@ defmodule Andy.Profiles.Rover.GMDefs.ObservingOther do
 
   defp face_saying_valuator() do
     fn %{direction: direction, recently_observed_or_tried: recently_observed_or_tried?} ->
+      name_of_other = Andy.name_of_other()
       cond do
+        name_of_other == nil ->
+          nil
         # don't bother if in the last 20 secs we observed the other, or failed to, for at least 5 consecutive secs
         recently_observed_or_tried? ->
           nil
 
         direction == :unknown ->
-          saying(" #{Andy.name_of_other()}, where are you?")
+          saying(" #{name_of_other}, where are you?")
 
         abs(direction) < 181 ->
-          saying("I'm watching you, #{Andy.name_of_other()}")
+          saying("I'm watching you, #{name_of_other}")
 
         true ->
-          saying("There you are, #{Andy.name_of_other()}")
+          saying("There you are, #{name_of_other}")
       end
     end
   end
