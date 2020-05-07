@@ -6,7 +6,7 @@ defmodule Andy.GM.PubSub do
 
   require Logger
   import Andy.Utils
-
+ 
   @registry_name :registry
   # single topic for all subscribers
   @topic :pp
@@ -57,7 +57,7 @@ defmodule Andy.GM.PubSub do
 
   @doc "Notify of an intent actuated"
   def notify_actuated(intent) do
-    notify({:actuated, intent})
+      notify({:actuated, intent})
   end
 
   @doc "The registry name"

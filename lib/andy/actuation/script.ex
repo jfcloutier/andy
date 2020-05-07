@@ -3,6 +3,7 @@ defmodule Andy.Script do
 
   require Logger
   import Andy.Utils, only: [platform_dispatch: 2]
+  alias Andy.AndyWorldGateway
 
   defstruct name: nil, steps: [], devices: nil
 
@@ -66,7 +67,7 @@ defmodule Andy.Script do
           end
         end
       )
-
+    if Andy.simulation?(), do: AndyWorldGateway.actuate(actuator_type)
     %Andy.Script{script | devices: updated_devices}
   end
 

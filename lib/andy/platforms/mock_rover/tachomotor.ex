@@ -69,7 +69,7 @@ defmodule Andy.MockRover.Tachomotor do
   end
 
   def set_ramp_down(motor, msecs) do
-    Logger.info("Setting ramp-up of #{motor.path} to #{msecs} msecs")
+    Logger.info("Setting ramp-down of #{motor.path} to #{msecs} msecs")
     set_motor_control(motor, :ramp_down, msecs)
   end
 

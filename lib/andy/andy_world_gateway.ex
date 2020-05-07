@@ -46,23 +46,6 @@ defmodule Andy.AndyWorldGateway do
     end
   end
 
-  def handle_event({:actuated, intent}, %{placed?: placed?} = state) do
-    name = Andy.name()
-    Logger.warn("Notifying Andy World that #{name} actuated with intent #{inspect(intent)}")
-
-    if placed? do
-      :ok =
-        GenServer.call(
-          playground(),
-          {:actuate, name, intent.kind}
-        )
-    else
-      Logger.warn("Failed to notify Andy World of actuation. #{name} is not placed.")
-    end
-
-    state
-  end
-
   def handle_event({event_name}, state) do
     name = Andy.name()
 
@@ -119,7 +102,9 @@ defmodule Andy.AndyWorldGateway do
     name = Andy.name()
 
     Logger.warn(
-      "Setting motor control #{inspect(control)}, to #{inspect(value)} for #{inspect(motor_port)}"
+      "Setting motor control #{inspect(control)}, to #{inspect(value)} for #{inspect(motor_port)} of #{
+        inspect(name)
+      }"
     )
 
     Agent.get(
@@ -132,6 +117,27 @@ defmodule Andy.AndyWorldGateway do
           )
         else
           Logger.warn("#{name} not placed yet. Can't set motor control.")
+          :ok
+        end
+      end
+    )
+  end
+
+  def actuate(actuator_type) do
+    name = Andy.name()
+
+    Logger.warn("Actuating #{inspect(actuator_type)} of #{inspect(name)}")
+
+    Agent.get(
+      @name,
+      fn %{placed?: placed?} = _state ->
+        if placed? do
+          GenServer.call(
+            playground(),
+            {:actuate, name, actuator_type}
+          )
+        else
+          Logger.warn("#{name} not placed yet. Can't actuate #{inspect actuator_type}.")
           :ok
         end
       end

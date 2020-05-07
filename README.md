@@ -86,6 +86,6 @@ To stop the robot and retain newly acquired experience:
 
 To test on PC with mock rover named karl, do: 
 
-    > export ANDY_PLAYGROUND='playground@ukemi';iex --sname karl --cookie 'predictive processing'
+    > export ANDY_PLAYGROUND='playground@ukemi';iex --sname karl --cookie 'predictive processing' -S mix
 
 
