@@ -123,7 +123,7 @@ defmodule Andy.AndyWorldGateway do
     )
   end
 
-  def actuate(actuator_type) do
+  def actuate(actuator_type, command) do
     name = Andy.name()
 
     Logger.warn("Actuating #{inspect(actuator_type)} of #{inspect(name)}")
@@ -134,7 +134,7 @@ defmodule Andy.AndyWorldGateway do
         if placed? do
           GenServer.call(
             playground(),
-            {:actuate, name, actuator_type}
+            {:actuate, name, actuator_type, command}
           )
         else
           Logger.warn("#{name} not placed yet. Can't actuate #{inspect actuator_type}.")

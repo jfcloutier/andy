@@ -67,7 +67,7 @@ defmodule Andy.Script do
           end
         end
       )
-    if Andy.simulation?(), do: AndyWorldGateway.actuate(actuator_type)
+
     %Andy.Script{script | devices: updated_devices}
   end
 
@@ -80,7 +80,7 @@ defmodule Andy.Script do
         name -> [Map.get(all_devices, name)]
       end
 
-    Enum.reduce(
+    updated_devices = Enum.reduce(
       devices,
       all_devices,
       fn device, acc ->
@@ -90,6 +90,9 @@ defmodule Andy.Script do
         Map.put(acc, device_name, updated_device)
       end
     )
+
+    if Andy.simulation?(), do: AndyWorldGateway.actuate(actuator_type, command)
+    updated_devices
   end
 
   defp sleep(msecs, all_devices) do
