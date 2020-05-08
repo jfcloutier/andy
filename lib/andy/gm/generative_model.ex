@@ -1,11 +1,20 @@
 defmodule Andy.GM.GenerativeModel do
   @moduledoc "A generative model agent"
 
-  # TODO - Simplify updating the current round
+  # The lifecycle of a generative model (GM), after instantiation, is a sequence of time-boxed rounds during which the GM
+  # both emits and receives events (predictions, prediction errors etc.)
+  #
+  # The GM keeps the final states of past rounds in memory so it can draw upon its recent past to make decisions in the current round.
+  #
+  # After a round is initialized, the GM handles events from other GMs as they also go, asynchronously, through their rounds.
+  #
+  # When the round completes, it starts a new round, after putting itself in "cold storage".
 
+  # And so on, ad infinitum.
+  #
   # Initializing the current round:
   #
-  #           Setup a new round, carrying over unfinished business from the previous round, if any
+  #           Setup a new round, carrying over unfinished business from the previous round, if any.
   #
   #           - Copy over all the perceptions from the previous round that have not already been copied too often
   #             (a GM's perceptions are prediction errors from sub-GMs and detectors,
@@ -17,13 +26,13 @@ defmodule Andy.GM.GenerativeModel do
   #             round's current conjecture activations
   #           - Make predictions about perceptions in this round from the initial conjecture activations, given carried-over
   #             beliefs and perceptions, and accordingly valuated. Add them to perceptions, replacing obsoleted perceptions.
-  #          - Report (send out) these predictions
+  #           - Report (send out) these predictions
   #               - Sub-GMs with matching conjectures accumulate them as received predictions (may lead to them producing prediction errors)
   #               - Any detector that can directly verify a prediction is triggered
   #
   # Running the current round:
   #
-  #           Handle events from other GMs this GM cares about until running the round times out or completes
+  #           Handle events from other GMs this GM cares about until running the round times out or completes.
   #
   #           - Receive completed round notifications from sub-GMs; mark them as reported-in
   #             (i.e. they made their contributions to this round)
@@ -46,6 +55,8 @@ defmodule Andy.GM.GenerativeModel do
   # Completing the current round:
   #
   #           A round completes if no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting to be completed.
+  #           When completing a round, the GM updates its beliefs and carries out actions it estimates might be effective to achieve
+  #           outstanding goals or shore up its updated beliefs.
   #
   #           - Update precision weighing of sub-GMs given prediction errors from competing sources of perceptions
   #               - Reduce precision weight of the competing sub-GMs that deviate more from a given prediction
