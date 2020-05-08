@@ -91,7 +91,7 @@ defmodule Andy.Script do
       end
     )
 
-    if Andy.simulation?(), do: AndyWorldGateway.actuate(actuator_type, command)
+    if Andy.simulation?(), do: AndyWorldGateway.actuate(actuator_type, command, params)
     updated_devices
   end
 

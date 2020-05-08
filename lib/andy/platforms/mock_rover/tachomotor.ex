@@ -126,7 +126,7 @@ defmodule Andy.MockRover.Tachomotor do
 
   defp set_motor_control(motor, control, value) do
     :ok = AndyWorldGateway.set_motor_control(motor.port, control, value)
-    set_control(motor, :duty_cycle, value)
+    set_control(motor, control, value)
   end
 
   defp set_control(motor, control, value) do

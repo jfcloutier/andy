@@ -333,7 +333,7 @@ defmodule Andy.GM.GenerativeModel do
   # Complete execution of the current round and set up the next round
   defp complete_round(%State{} = state) do
     Logger.info("#{info(state)}: Completing round")
-
+    if state.conjecture_activations == [], do: Logger.warn("#{info(state)} Round completed without conjecture activations")
     new_state =
       state
       # Update the precision weight assigned to each sub-GM/contributing detectors based on prediction errors
@@ -1362,7 +1362,7 @@ defmodule Andy.GM.GenerativeModel do
     else
       Logger.info("#{info(state)}: No intents in round. Closing now.")
       updated_state |> Round.round_status(:closing)
-      delay_cast(gm_name(state), fn state -> Round.close_round(state) end)
+      delay_cast(gm_name(state), fn state -> Round.close_round(state) |> add_new_round() end)
       updated_state
     end
   end

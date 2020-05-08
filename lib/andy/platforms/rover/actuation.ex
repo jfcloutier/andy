@@ -170,6 +170,7 @@ defmodule Andy.Rover.Actuation do
 
   defp turning() do
     fn intent, motors ->
+      Logger.info("Turning with intent #{inspect(intent)}")
       how_long = round(intent.value.turn_time * 1000)
       direction = intent.value.turn_direction
 

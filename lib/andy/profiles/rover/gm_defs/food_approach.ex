@@ -3,6 +3,7 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   alias Andy.GM.{GenerativeModelDef, Intention, Conjecture}
   import Andy.GM.Utils
+  require Logger
 
   def gm_def() do
     %GenerativeModelDef{
@@ -140,30 +141,30 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   defp turn_food_valuator() do
     fn %{heading: heading} ->
-      # suspicious!
-      if heading == :unknown do
-        nil
-      else
-        turn_direction = if heading < 0, do: :left, else: :right
-        abs_heading = abs(heading)
+      {turn_direction, abs_heading} =
+        if heading == :unknown do
+          # guess!
+          {Enum.random([:left, :right]), Enum.random(0..90)}
+        else
+          {if(heading < 0, do: :left, else: :right), abs(heading)}
+        end
 
-        turn_time =
-          cond do
-            abs_heading <= 4 -> 0
-            abs_heading < 10 -> 0.25
-            abs_heading < 20 -> 0.5
-            abs_heading < 30 -> 1
-            true -> 1.5
-          end
+      turn_time =
+        cond do
+          abs_heading <= 4 -> 0
+          abs_heading < 10 -> 0.25
+          abs_heading < 20 -> 0.5
+          abs_heading < 30 -> 1
+          true -> 1.5
+        end
 
-        %{
-          value: %{
-            turn_direction: turn_direction,
-            turn_time: turn_time
-          },
-          duration: turn_time
-        }
-      end
+      %{
+        value: %{
+          turn_direction: turn_direction,
+          turn_time: turn_time
+        },
+        duration: turn_time
+      }
     end
   end
 
@@ -176,36 +177,34 @@ defmodule Andy.Profiles.Rover.GMDefs.FoodApproach do
 
   defp go_forward_food_valuator() do
     fn %{distance: distance} ->
-      # suspicious!
-      if distance == :unknown do
-        nil
-      else
-        speed =
-          cond do
-            distance < 10 -> :very_slow
-            distance < 15 -> :slow
-            distance < 30 -> :normal
-            true -> :fast
-          end
+      speed =
+        cond do
+          distance == :unknown -> :fast
+          distance < 10 -> :very_slow
+          distance < 15 -> :slow
+          distance < 30 -> :normal
+          true -> :fast
+        end
 
-        forward_time =
-          cond do
-            distance < 4 -> 0
-            distance < 10 -> 0.5
-            distance < 20 -> 1
-            distance < 40 -> 1.5
-            distance < 60 -> 2
-            true -> 3
-          end
+      forward_time =
+        cond do
+          distance == :unknown -> 2
+          distance < 4 ->
+            0
+          distance < 10 -> 0.5
+          distance < 20 -> 1
+          distance < 40 -> 1.5
+          distance < 60 -> 2
+          true -> 3
+        end
 
-        %{
-          value: %{
-            speed: speed,
-            time: forward_time
-          },
-          duration: forward_time
-        }
-      end
+      %{
+        value: %{
+          speed: speed,
+          time: forward_time
+        },
+        duration: forward_time
+      }
     end
   end
 
