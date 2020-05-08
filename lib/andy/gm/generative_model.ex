@@ -1,7 +1,6 @@
 defmodule Andy.GM.GenerativeModel do
   @moduledoc "A generative model agent"
 
-  # TODO - Too big. Refactor code into PrecisionWeights, Conjectures, Intentions
   # TODO - Simplify updating the current round
 
   # Initializing the current round:
@@ -12,54 +11,57 @@ defmodule Andy.GM.GenerativeModel do
   #           - Carry over conjecture activation for non-achieved goals.
   #           - Activate self-activated conjectures
   #           - Remove carried-over perceptions that are attributable to conjectures that are mutually exclusive of this
-  #             round's conjecture activations
+  #             round's current conjecture activations
   #           - Make predictions about perceptions in this round from the initial conjecture activations, given carried-over
-  #             beliefs and perceptions. Add them to perceptions, replacing obsoleted perceptions.
-  #          - Report these predictions
-  #               - Sub-GMs accumulate them as received predictions (may lead to them producing prediction errors)
+  #             beliefs and perceptions, and accordingly valuated. Add them to perceptions, replacing obsoleted perceptions.
+  #          - Report (send out) these predictions
+  #               - Sub-GMs with matching conjectures accumulate them as received predictions (may lead to them producing prediction errors)
   #               - Any detector that can directly verify a prediction is triggered
   #
   # Running the current round (handle events until running the round times out or complete)s:
   #           - Receive completed round notifications from sub-GMs; mark them as reported-in
   #             (i.e. they made their contributions to this round)
   #                 - Check if the round ready for completion (all considered sub-GMs reported in - with precision weight > 0).
-  #                 - If so complete it.
-  #           - Receive predictions from super-GMs and replace overridden received predictions
+  #                 - If so complete it right away.
+  #           - Receive predictions from super-GMs and replace prior received predictions that are overridden
   #             (overridden if the have the same subject - conjecture name and object it is about -
-  #             and are from the same GM). For each received prediction, immediately
-  #               - Activate the associated conjecture, unless redundant (conjecture already activated on same subject)
-  #               - Remove contradicted conjecture activations
-  #               - Remove obsolete beliefs and perceptions (i.e. derived from a removed conjecture activation)
+  #             and are from the same GM).
+  #           - For each received prediction, immediately
+  #               - Activate the associated conjecture, unless prediction is redundant (conjecture already activated on same subject)
+  #               - Remove current conjecture activations contradicted by the newly activated conjecture
+  #               - Remove obsolete beliefs and perceptions (i.e. those derived from a removed conjecture activation)
   #               - Make predictions from the newly activated conjectures, if any
-  #                 and starting the timeout clock if it had not yet been started
+  #                 and start the round timeout clock if it had not yet been started
   #           - Receive prediction errors from sub-GMs and detectors as perceptions and replace overridden perceptions
-  #             (a prediction error overrides the prediction it corrects)
+  #             (a prediction error overrides the prediction the error contradicts)
   #               - After receiving a prediction error from a detector, see if all detectors activated by the GM
-  #                 have reported a (possibly zero-sized) prediction error. Then maybe complete the round.
+  #                 have reported a (possibly zero-sized) prediction error. If so, complete the round immediately.
   #
-  # Completing the current round (no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting):
+  # Completing the current round:
+  # (A round completes if no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting to be completed)
   #           - Update precision weighing of sub-GMs given prediction errors from competing sources of perceptions
   #               - Reduce precision weight of the competing sub-GMs that deviate more from a given prediction
   #                 (confirmation bias)
   #               - Increase precision weight of the sub-GMs that deviate the least or have no competitor
-  #           - When two perceptions are about the same thing, retain only the more trustworthy
+  #           - When two perceptions are about the same subject, retain only the more trustworthy
   #               - A GM retains one effective perception about something (e.g. can't perceive two distances to a wall)
   #           - Compute the round's final GM's beliefs for each activated conjecture given GM's present and past rounds,
   #             and determine if they are prediction errors (i.e. beliefs that contradict or are misaligned with
-  #             received predictions). The new beliefs replace any already held beliefs with the same subjects.
-  #           - Report the prediction errors
+  #             received predictions).
+  #           - The new beliefs replace any already held beliefs with the same subjects.
+  #           - Report (send out) the prediction errors
   #           - Update course of action efficacies given current belief (i.e. re-evaluate what past courses of action
   #             seem to have worked best to achieve a belief or to maintain it)
-  #           - Choose a course of action for each conjecture activation, influenced by historical efficacy, to
-  #             hopefully make belief in the activated conjecture true or keep it true in the next round
+  #           - Choose a course of action for each conjecture activation, influenced by historical efficacy,
+  #               - to hopefully make belief in the activated conjecture true or keep it true in the next round
   #           - Execute the chosen courses of action by reporting valued intents from each one's sequence of intentions
   #               - Wait for a while until all executed intents have completed their actuation
   #           - Close the round
   # Closing the current round
   #           - Mark round completed and report completion
-  #           - Drop obsolete rounds (from too distant past)
+  #           - Drop obsolete rounds (those from a too distant past)
   #           - Add a round as the new current round
-  #           - Initialize the new round
+  #           - Initialize the new round (i.e. rinse and repeat)
 
   require Logger
   import Andy.Utils, only: [listen_to_events: 3, now: 0, delay_cast: 2]
