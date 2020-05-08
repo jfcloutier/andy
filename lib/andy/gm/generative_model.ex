@@ -4,6 +4,9 @@ defmodule Andy.GM.GenerativeModel do
   # TODO - Simplify updating the current round
 
   # Initializing the current round:
+  #
+  #           Setup a new round, carrying over unfinished business from the previous round, if any
+  #
   #           - Copy over all the perceptions from the previous round that have not already been copied too often
   #             (a GM's perceptions are prediction errors from sub-GMs and detectors,
   #             and predictions made by the GM that are not contradicted by prediction errors)
@@ -18,7 +21,10 @@ defmodule Andy.GM.GenerativeModel do
   #               - Sub-GMs with matching conjectures accumulate them as received predictions (may lead to them producing prediction errors)
   #               - Any detector that can directly verify a prediction is triggered
   #
-  # Running the current round (handle events until running the round times out or complete)s:
+  # Running the current round:
+  #
+  #           Handle events from other GMs this GM cares about until running the round times out or completes
+  #
   #           - Receive completed round notifications from sub-GMs; mark them as reported-in
   #             (i.e. they made their contributions to this round)
   #                 - Check if the round ready for completion (all considered sub-GMs reported in - with precision weight > 0).
@@ -38,7 +44,9 @@ defmodule Andy.GM.GenerativeModel do
   #                 have reported a (possibly zero-sized) prediction error. If so, complete the round immediately.
   #
   # Completing the current round:
-  # (A round completes if no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting to be completed)
+  #
+  #           A round completes if no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting to be completed.
+  #
   #           - Update precision weighing of sub-GMs given prediction errors from competing sources of perceptions
   #               - Reduce precision weight of the competing sub-GMs that deviate more from a given prediction
   #                 (confirmation bias)
@@ -57,7 +65,11 @@ defmodule Andy.GM.GenerativeModel do
   #           - Execute the chosen courses of action by reporting valued intents from each one's sequence of intentions
   #               - Wait for a while until all executed intents have completed their actuation
   #           - Close the round
+  #
   # Closing the current round
+  #
+  #           Do some housekeeping before moving on to the next round.
+  #
   #           - Mark round completed and report completion
   #           - Drop obsolete rounds (those from a too distant past)
   #           - Add a round as the new current round
