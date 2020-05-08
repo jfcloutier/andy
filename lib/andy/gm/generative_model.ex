@@ -4,7 +4,8 @@ defmodule Andy.GM.GenerativeModel do
   # The lifecycle of a generative model (GM), after instantiation, is a sequence of time-boxed rounds during which the GM
   # both emits and receives events (predictions, prediction errors etc.)
   #
-  # The GM keeps the final states of past rounds in memory so it can draw upon its recent past to make decisions in the current round.
+  # The GM keeps the final states of past rounds in memory so it can draw upon its recent past to make decisions in the
+  # current round.
   #
   # After a round is initialized, the GM handles events from other GMs as they also go, asynchronously, through their rounds.
   #
@@ -27,7 +28,8 @@ defmodule Andy.GM.GenerativeModel do
   #           - Make predictions about perceptions in this round from the initial conjecture activations, given carried-over
   #             beliefs and perceptions, and accordingly valuated. Add them to perceptions, replacing obsoleted perceptions.
   #           - Report (send out) these predictions
-  #               - Sub-GMs with matching conjectures accumulate them as received predictions (may lead to them producing prediction errors)
+  #               - Sub-GMs with matching conjectures accumulate them as received predictions (may lead to them producing
+  #                 prediction errors)
   #               - Any detector that can directly verify a prediction is triggered
   #
   # Running the current round:
@@ -42,7 +44,8 @@ defmodule Andy.GM.GenerativeModel do
   #             (overridden if the have the same subject - conjecture name and object it is about -
   #             and are from the same GM).
   #           - For each received prediction, immediately
-  #               - Activate the associated conjecture, unless prediction is redundant (conjecture already activated on same subject)
+  #               - Activate the associated conjecture, unless prediction is redundant (conjecture already activated on same
+  #                 subject)
   #               - Remove current conjecture activations contradicted by the newly activated conjecture
   #               - Remove obsolete beliefs and perceptions (i.e. those derived from a removed conjecture activation)
   #               - Make predictions from the newly activated conjectures, if any
@@ -54,9 +57,10 @@ defmodule Andy.GM.GenerativeModel do
   #
   # Completing the current round:
   #
-  #           A round completes if no conjecture was activated, or all sub-GMs have reported in, or the round has timed out waiting to be completed.
-  #           When completing a round, the GM updates its beliefs and carries out actions it estimates might be effective to achieve
-  #           outstanding goals or shore up its updated beliefs.
+  #           A round completes if no conjecture was activated, or all sub-GMs have reported in, or the round has timed out
+  #           waiting to be completed.
+  #           When completing a round, the GM updates its beliefs and carries out actions it estimates might be effective to
+  #           achieve outstanding goals or shore up its updated beliefs.
   #
   #           - Update precision weighing of sub-GMs given prediction errors from competing sources of perceptions
   #               - Reduce precision weight of the competing sub-GMs that deviate more from a given prediction
