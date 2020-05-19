@@ -6,7 +6,7 @@ defmodule Andy.GM.PubSub do
 
   require Logger
   import Andy.Utils
- 
+
   @registry_name :registry
   # single topic for all subscribers
   @topic :pp
@@ -70,6 +70,7 @@ defmodule Andy.GM.PubSub do
     Logger.info("Notify #{inspect(event)}")
 
     spawn(fn ->
+      Andy.Clock.wait_while_paused()
       Registry.dispatch(
         @registry_name,
         @topic,
@@ -79,7 +80,7 @@ defmodule Andy.GM.PubSub do
                 Agent.cast(
                   pid,
                   fn state ->
-                    # Logger.debug("SENDING event #{inspect event} to #{module} at #{inspect pid}")
+                    Logger.debug("SENDING event #{inspect event} to #{module} at #{inspect pid}")
                     apply(module, :handle_event, [event, state])
                   end
                 )

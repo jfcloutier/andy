@@ -2,6 +2,7 @@ defmodule Andy.Utils do
   @moduledoc "Utility functions"
 
   alias Andy.GM.PubSub
+  alias Andy.Clock
   require Logger
 
   @brickpi_port_pattern ~r/spi0.1:(.+)/
@@ -55,7 +56,8 @@ defmodule Andy.Utils do
 
   @doc "The time now in msecs"
   def now() do
-    div(:os.system_time(), 1_000_000)
+    # div(:os.system_time(), 1_000_000)
+    Clock.now()
   end
 
   @doc "Supported time units"

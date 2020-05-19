@@ -8,7 +8,7 @@ defmodule Andy.Application do
   use Application
   require Logger
   alias Andy.GM.{EmbodiedCognitionSupervisor}
-  alias Andy.{Speaker, AndyWorldGateway}
+  alias Andy.{Speaker, AndyWorldGateway, Clock}
   import Supervisor.Spec
 
   def start(_type, _args) do
@@ -21,6 +21,7 @@ defmodule Andy.Application do
     wait_for_platform_ready(0)
 
     children = [
+      Clock,
       supervisor(EmbodiedCognitionSupervisor, []),
       Speaker
     ]
@@ -33,6 +34,7 @@ defmodule Andy.Application do
 
     opts = [strategy: :one_for_one, name: :andy_supervisor]
     result = Supervisor.start_link(all_my_children, opts)
+    :ok = Clock.resume()
     go()
     result
   end
