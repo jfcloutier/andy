@@ -64,7 +64,7 @@ defmodule Andy.AndyWorldGateway do
     :ok =
       GenServer.cast(
         playground(),
-        {:event, name, {event_name, "#{inspect(payload)}"}}
+        {:event, name, {event_name, payload}}
       )
 
     state
@@ -134,7 +134,7 @@ defmodule Andy.AndyWorldGateway do
         if placed? do
           GenServer.call(
             playground(),
-            {:actuate, name, actuator_type, command}
+            {:actuate, name, actuator_type, command, params}
           )
         else
           Logger.warn("#{name} not placed yet. Can't actuate #{inspect actuator_type}.")

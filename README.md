@@ -83,9 +83,15 @@ To stop the robot and retain newly acquired experience:
 
     > Andy.shutdown
 
+To pause and resume the robot:
+
+    > Andy.Clock.pause
+    > Andy.Clock.resume
+
 
 To test on PC with mock rover named karl, do: 
 
     > export ANDY_PLAYGROUND='playground@ukemi';iex --sname karl --cookie 'predictive processing' -S mix
+
 
 

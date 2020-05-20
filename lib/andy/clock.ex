@@ -7,8 +7,8 @@ defmodule Andy.Clock do
   require Logger
   alias __MODULE__
 
-  # every 1000th of a sec
-  @tick 1
+  # every 100th of a sec
+  @tick 10
   # wait 1 sec if paused
   @wait_duration 1000
 
@@ -19,7 +19,7 @@ defmodule Andy.Clock do
 
   @impl true
   def init(_) do
-    Process.send_after(self(), :advance, @wait_duration)
+    Process.send_after(self(), :advance, @tick)
     now = :os.system_time(:millisecond)
     {:ok, %{time: now, paused: true}}
   end

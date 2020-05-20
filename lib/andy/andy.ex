@@ -69,7 +69,7 @@ defmodule Andy do
   def name_of_other() do
     case Node.list() do
       [] ->
-        get_andy_env("ANDY_OTHER_NAME", "dude")
+        ""
 
       nodes ->
         names =
@@ -79,7 +79,7 @@ defmodule Andy do
           end)
 
         other_name = Enum.find(names, &(&1 != "playground"))
-        if other_name != nil, do: other_name, else: get_andy_env("ANDY_OTHER_NAME", "dude")
+        if other_name != nil, do: other_name, else: ""
     end
   end
 
