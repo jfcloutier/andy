@@ -81,7 +81,7 @@ defmodule Andy.Actuator do
     sleep_msecs = round(1000 * (duration || Intent.default_duration()))
 
     spawn(fn ->
-      Process.sleep(sleep_msecs)
+      Process.sleep(Andy.Clock.wait(sleep_msecs))
       PubSub.notify_actuated(intent)
     end)
   end

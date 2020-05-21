@@ -18,9 +18,9 @@ defmodule Andy.MockRover.Platform do
   ### PlatformBehaviour
 
   def start() do
-     # Start
-     :ok
-   end
+    # Start
+    :ok
+  end
 
   def ready?() do
     true
@@ -126,5 +126,4 @@ defmodule Andy.MockRover.Platform do
   def execute_command(%Device{mock: true} = device, command, params) do
     apply(device.mod, command, [device | params])
   end
-
 end

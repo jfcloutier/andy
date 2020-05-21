@@ -44,9 +44,9 @@ defmodule Andy.GM.EmbodiedCognitionSupervisor do
   @doc "Start embodied cognition"
   def start_embodied_cognition() do
     spawn(fn ->
-      Process.sleep(5000)
+      Process.sleep(Andy.Clock.wait(5000))
       Andy.BrickPi.LegoSound.speak("Ready")
-      Process.sleep(2000)
+      Process.sleep(Andy.Clock.wait(2000))
       Logger.info("*** STARTING EMBODIED COGNITION ***")
       start_detectors()
       start_actuators()

@@ -80,16 +80,17 @@ defmodule Andy.Script do
         name -> [Map.get(all_devices, name)]
       end
 
-    updated_devices = Enum.reduce(
-      devices,
-      all_devices,
-      fn device, acc ->
-        module = platform_dispatch(:device_manager, [actuator_type])
-        updated_device = apply(module, :execute_command, [device, command, params])
+    updated_devices =
+      Enum.reduce(
+        devices,
+        all_devices,
+        fn device, acc ->
+          module = platform_dispatch(:device_manager, [actuator_type])
+          updated_device = apply(module, :execute_command, [device, command, params])
 
-        Map.put(acc, device_name, updated_device)
-      end
-    )
+          Map.put(acc, device_name, updated_device)
+        end
+      )
 
     if Andy.simulation?(), do: AndyWorldGateway.actuate(actuator_type, command, params)
     updated_devices
@@ -97,7 +98,7 @@ defmodule Andy.Script do
 
   defp sleep(msecs, all_devices) do
     Logger.info("SLEEPING for #{msecs}")
-    :timer.sleep(msecs)
+    :timer.sleep(Andy.Clock.wait(msecs))
     all_devices
   end
 

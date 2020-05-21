@@ -22,7 +22,7 @@ defmodule Andy.Utils do
   end
 
   def delay_cast(agent_name, function, delay \\ 10) do
-    Process.sleep(delay)
+    Process.sleep(Andy.Clock.wait(delay))
     Agent.cast(agent_name, function)
   end
 

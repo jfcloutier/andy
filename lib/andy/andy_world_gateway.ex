@@ -58,8 +58,9 @@ defmodule Andy.AndyWorldGateway do
     state
   end
 
-  def handle_event({event_name, payload}, state) do
+  def handle_event({event_name, raw_payload}, state) do
     name = Andy.name()
+    payload = if is_struct(raw_payload), do: Map.from_struct(raw_payload), else: raw_payload
 
     :ok =
       GenServer.cast(
@@ -126,7 +127,11 @@ defmodule Andy.AndyWorldGateway do
   def actuate(actuator_type, command, params) do
     name = Andy.name()
 
-    Logger.warn("Actuating #{inspect(actuator_type)} of #{inspect(name)} with #{inspect command} (params were #{inspect params})")
+    Logger.warn(
+      "Actuating #{inspect(actuator_type)} of #{inspect(name)} with #{inspect(command)} (params were #{
+        inspect(params)
+      })"
+    )
 
     Agent.get(
       @name,
@@ -137,7 +142,7 @@ defmodule Andy.AndyWorldGateway do
             {:actuate, name, actuator_type, command, params}
           )
         else
-          Logger.warn("#{name} not placed yet. Can't actuate #{inspect actuator_type}.")
+          Logger.warn("#{name} not placed yet. Can't actuate #{inspect(actuator_type)}.")
           :ok
         end
       end

@@ -21,11 +21,15 @@ defmodule Andy.Clock do
   def init(_) do
     Process.send_after(self(), :advance, @tick)
     now = :os.system_time(:millisecond)
-    {:ok, %{time: now, paused: true}}
+    {:ok, %{time: now, paused: true, dilatation: 0}}
   end
 
   def now() do
     GenServer.call(:clock, :now)
+  end
+
+  def dilate(dilatation) do
+    GenServer.cast(:clock, {:dilate, dilatation})
   end
 
   def paused?() do
@@ -40,6 +44,10 @@ defmodule Andy.Clock do
     GenServer.cast(:clock, :resume)
   end
 
+  def wait(msecs) do
+    GenServer.call(:clock, {:wait, msecs})
+  end
+
   def wait_while_paused() do
     if paused?() do
       Process.sleep(@wait_duration)
@@ -49,11 +57,15 @@ defmodule Andy.Clock do
 
   @impl true
   def handle_call(:now, _from, %{time: time} = state) do
-     {:reply, time, state}
+    {:reply, time, state}
   end
 
   def handle_call(:paused?, _from, %{paused: paused?} = state) do
     {:reply, paused?, state}
+  end
+
+  def handle_call({:wait, msecs}, _from, %{dilatation: dilatation} = state) do
+    {:reply, max(msecs, msecs * dilatation), state}
   end
 
   @impl true
@@ -68,12 +80,16 @@ defmodule Andy.Clock do
     {:noreply, %{state | paused: false}}
   end
 
+  def handle_cast({:dilate, dilatation}, state) do
+    {:noreply, %{state | dilatation: dilatation}}
+  end
+
   @impl true
-  def handle_info(:advance, %{time: time, paused: paused?} = state) do
+  def handle_info(:advance, %{time: time, paused: paused?, dilatation: dilatation} = state) do
     if paused? do
       {:noreply, state}
     else
-      Process.send_after(self(), :advance, @tick)
+      Process.send_after(self(), :advance, max(@tick, @tick * dilatation))
       {:noreply, %{state | time: time + @tick}}
     end
   end

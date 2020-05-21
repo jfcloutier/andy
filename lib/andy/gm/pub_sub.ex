@@ -39,7 +39,7 @@ defmodule Andy.GM.PubSub do
   @doc "Notify after a delay"
   def notify_after(event, delay) do
     spawn(fn ->
-      Process.sleep(delay)
+      Process.sleep(Andy.Clock.wait(delay))
       notify(event)
     end)
   end
@@ -57,7 +57,7 @@ defmodule Andy.GM.PubSub do
 
   @doc "Notify of an intent actuated"
   def notify_actuated(intent) do
-      notify({:actuated, intent})
+    notify({:actuated, intent})
   end
 
   @doc "The registry name"
@@ -71,6 +71,7 @@ defmodule Andy.GM.PubSub do
 
     spawn(fn ->
       Andy.Clock.wait_while_paused()
+
       Registry.dispatch(
         @registry_name,
         @topic,
@@ -80,7 +81,10 @@ defmodule Andy.GM.PubSub do
                 Agent.cast(
                   pid,
                   fn state ->
-                    Logger.debug("SENDING event #{inspect event} to #{module} at #{inspect pid}")
+                    Logger.debug(
+                      "SENDING event #{inspect(event)} to #{module} at #{inspect(pid)}"
+                    )
+
                     apply(module, :handle_event, [event, state])
                   end
                 )
