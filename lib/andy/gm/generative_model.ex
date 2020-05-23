@@ -331,6 +331,7 @@ defmodule Andy.GM.GenerativeModel do
   # Initialize the new round which is already with prior (default) beliefs
   defp initialize_round(%State{gm_def: gm_def} = state) do
     Logger.info("#{info(state)}: Initializing new round")
+    PubSub.notify({:round_initiating, gm_name(state)})
 
     updated_state =
       state
@@ -356,12 +357,14 @@ defmodule Andy.GM.GenerativeModel do
     )
 
     delay_cast(gm_name(state), fn state -> empty_event_buffer(state) end)
+    PubSub.notify({:round_running, gm_name(state)})
     updated_state
   end
 
   # Complete execution of the current round and set up the next round
   defp complete_round(%State{} = state) do
     Logger.info("#{info(state)}: Completing round")
+    PubSub.notify({:round_completing, gm_name(state)})
 
     if state.conjecture_activations == [],
       do: Logger.warn("#{info(state)} Round completed without conjecture activations")
@@ -564,7 +567,6 @@ defmodule Andy.GM.GenerativeModel do
       |> Enum.map(&Perception.increment_carry_overs(&1))
 
     Logger.info("#{info(state)}: Carrying over perceptions #{inspect(carried_over_perceptions)}")
-
     updated_round = %Round{round | perceptions: carried_over_perceptions}
     %State{state | rounds: [updated_round, previous_round | other_rounds]}
   end
@@ -705,6 +707,7 @@ defmodule Andy.GM.GenerativeModel do
       reject_mutually_excluded_perceptions(gm_def, perceptions, conjecture_activations)
 
     updated_beliefs = reject_mutually_excluded_beliefs(gm_def, beliefs, conjecture_activations)
+    PubSub.notify({:beliefs, %{gm_name: gm_name(state), list: updated_beliefs}})
 
     Logger.info(
       "#{info(state)}: After removing excluded perceptions: #{inspect(updated_perceptions)}"
@@ -762,12 +765,15 @@ defmodule Andy.GM.GenerativeModel do
        ) do
     Logger.info("#{info(state)}: Received prediction #{inspect(prediction)}")
 
+    updated_received_predictions = [
+      prediction
+      | Enum.reject(received_predictions, &Perception.same_subject?(&1, prediction))
+    ]
+    PubSub.notify({:predictions, %{gm_name: gm_name(state), list: updated_received_predictions}})
+
     updated_round = %Round{
       round
-      | received_predictions: [
-          prediction
-          | Enum.reject(received_predictions, &Perception.same_subject?(&1, prediction))
-        ]
+      | received_predictions: updated_received_predictions
     }
 
     updated_state = %State{state | rounds: [updated_round | previous_rounds]}
@@ -877,6 +883,7 @@ defmodule Andy.GM.GenerativeModel do
       ) ++ predictions
 
     Logger.info("#{info(state)}: Updated perceptions to #{inspect(updated_perceptions)}")
+    PubSub.notify({:perceptions, %{gm_name: gm_name(state), list: updated_perceptions}})
 
     updated_state = %State{
       state
@@ -929,6 +936,7 @@ defmodule Andy.GM.GenerativeModel do
         )
     ]
 
+    PubSub.notify({:perceptions, %{gm_name: gm_name(state), list: updated_perceptions}})
     Logger.info("#{info(state)}: Updated perceptions #{inspect(updated_perceptions)}")
     %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
   end
@@ -1004,19 +1012,22 @@ defmodule Andy.GM.GenerativeModel do
       |> Enum.map(&create_belief_from_conjecture(&1, state))
 
     Logger.info("#{info(state)}: New beliefs #{inspect(new_beliefs)}")
+    Enum.each(new_beliefs, &PubSub.notify({:belief, &1}))
 
-    remaining_current_beliefs =
-      Enum.reject(
+    disbeliefs =
+      Enum.filter(
         current_beliefs,
         fn current_belief ->
           Enum.any?(new_beliefs, &(Belief.subject(&1) == Belief.subject(current_belief)))
         end
       )
 
-    beliefs = remaining_current_beliefs ++ new_beliefs
-    Logger.info("#{info(state)}: Final beliefs #{inspect(beliefs)}")
+    Enum.each(disbeliefs, &PubSub.notify({:disbelief, &1}))
+    remaining_current_beliefs = current_beliefs -- disbeliefs
 
-    %State{state | rounds: [%Round{round | beliefs: beliefs} | previous_rounds]}
+    updated_beliefs = remaining_current_beliefs ++ new_beliefs
+    Logger.info("#{info(state)}: Final beliefs #{inspect(updated_beliefs)}")
+    %State{state | rounds: [%Round{round | beliefs: updated_beliefs} | previous_rounds]}
   end
 
   defp create_belief_from_conjecture(
@@ -1222,6 +1233,7 @@ defmodule Andy.GM.GenerativeModel do
       )
 
     dropped = perceptions -- updated_perceptions
+    PubSub.notify({:perceptions, %{gm_name: gm_name(state), list: updated_perceptions}})
     Logger.info("#{info(state)}: Dropped perceptions #{inspect(dropped)}")
     %State{state | rounds: [%Round{round | perceptions: updated_perceptions} | previous_rounds]}
   end
@@ -1313,6 +1325,7 @@ defmodule Andy.GM.GenerativeModel do
       } and updated efficacies #{inspect(updated_efficacies)}"
     )
 
+    Enum.each(round_courses_of_action, &PubSub.notify({:course_of_action, &1}))
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
 
