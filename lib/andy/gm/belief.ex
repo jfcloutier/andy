@@ -77,8 +77,8 @@ end
 
 defimpl Inspect, for: Andy.GM.Belief do
   def inspect(belief, _opts) do
-    "<Belief that #{if belief.goal == nil, do: "opinion", else: "goal"} #{
+    "Belief that #{if belief.goal == nil, do: "opinion", else: "goal"} #{
       inspect(belief.conjecture_name)
-    } of #{inspect(belief.about)} is #{inspect(belief.values)} (#{belief.carry_overs})>"
+    } of #{inspect(belief.about)} is #{inspect(belief.values)} (#{belief.carry_overs})"
   end
 end

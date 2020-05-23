@@ -113,8 +113,8 @@ end
 
 defimpl Inspect, for: Andy.GM.ConjectureActivation do
   def inspect(activation, _opts) do
-    "<Activation of #{if activation.goal == nil, do: "opinion", else: "goal"} #{
+    "Activation of #{if activation.goal == nil, do: "opinion", else: "goal"} #{
       inspect(activation.conjecture.name)
-    } about #{inspect(activation.about)}>"
+    } about #{inspect(activation.about)}"
   end
 end

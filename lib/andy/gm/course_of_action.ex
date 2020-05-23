@@ -406,6 +406,6 @@ end
 
 defimpl Inspect, for: Andy.GM.CourseOfAction do
   def inspect(coa, _opts) do
-    "<CoA #{inspect(coa.intention_names)} for #{inspect(coa.conjecture_activation)}>"
+    "#{inspect(coa.intention_names)} for #{inspect(coa.conjecture_activation)}"
   end
 end

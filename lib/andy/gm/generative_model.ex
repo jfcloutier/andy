@@ -1328,7 +1328,7 @@ defmodule Andy.GM.GenerativeModel do
     Enum.each(round_courses_of_action, &PubSub.notify({:course_of_action, &1}))
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
-
+    PubSub.notify({:courses_of_action, %{gm_name: gm_name(state), list: round_courses_of_action}})
     %State{
       state
       | courses_of_action_indices: updated_courses_of_action_indices,
