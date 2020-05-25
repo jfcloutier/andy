@@ -13,6 +13,7 @@ defmodule Andy.MockRover.Platform do
   }
 
   alias Andy.{Device, SoundPlayer, AndyWorldGateway}
+  import Andy.Utils, only: [get_andy_env: 2]
   require Logger
 
   ### PlatformBehaviour
@@ -98,7 +99,7 @@ defmodule Andy.MockRover.Platform do
   end
 
   def voice() do
-    "en-sc"
+    get_andy_env("ANDY_VOICE", "en-us")
   end
 
   def sensor_read_sense(%Device{mock: true} = device, sense) do

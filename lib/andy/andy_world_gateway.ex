@@ -2,7 +2,7 @@ defmodule Andy.AndyWorldGateway do
   @moduledoc """
   The gateway to Andy World when in simulation mode.
   """
-  import Andy.Utils, only: [listen_to_events: 3]
+  import Andy.Utils, only: [listen_to_events: 3, get_andy_env: 2]
   require Logger
   @name __MODULE__
 
@@ -208,10 +208,13 @@ defmodule Andy.AndyWorldGateway do
     {:playground, Andy.playground_node()}
   end
 
+  # returns %{row: row, column: column, orientation: orientation}
   defp start_state(name) do
-    start =
-      Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:start) |> Map.fetch!(name)
-
+    [row_s, column_s, orientation_s] = get_andy_env("ANDY_PLACE", "0,0,0") |> String.split(",")
+    {row, _} = Integer.parse(row_s)
+    {column, _} = Integer.parse(column_s)
+    {orientation, _} = Integer.parse(orientation_s)
+    start = %{row: row, column: column, orientation: orientation}
     Logger.info("#{name} is starting with #{inspect(start)}")
     start
   end

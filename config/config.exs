@@ -35,10 +35,6 @@ config :andy,
   very_slow_rps: 0.15
 
 config :andy, :mock_config,
-  start: %{
-    andy: %{row: 3, column: 3, orientation: 0},
-    karl: %{row: 2, column: 15, orientation: -30}
-  },
   sensor_data: [
     %{
       port: "in1",
