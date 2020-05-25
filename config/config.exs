@@ -68,13 +68,13 @@ config :andy, :mock_config,
   motor_data: [
     %{
       port: "outA",
-      direction: 1,
+      direction: -1,
       side: :left,
       controls: %{speed_mode: :rps, speed: 0, time: 0}
     },
     %{
       port: "outB",
-      direction: 1,
+      direction: -1,
       side: :right,
       controls: %{speed_mode: :rps, speed: 0, time: 0}
     },

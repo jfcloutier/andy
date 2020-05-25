@@ -1285,6 +1285,7 @@ defmodule Andy.GM.GenerativeModel do
         &Efficacy.update_efficacies_from_belief(&1, &2, state)
       )
 
+    PubSub.notify({:efficacies, %{gm_name: gm_name(state), list: List.flatten(Map.values(updated_efficacies))}})
     Logger.info("#{info(state)}: Updated efficacies #{inspect(updated_efficacies)}")
     %State{state | efficacies: updated_efficacies}
   end
@@ -1338,6 +1339,7 @@ defmodule Andy.GM.GenerativeModel do
     Enum.each(round_courses_of_action, &PubSub.notify({:course_of_action, &1}))
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
+    PubSub.notify({:efficacies, %{gm_name: gm_name(state), list: List.flatten(Map.values(updated_efficacies))}})
     PubSub.notify({:courses_of_action, %{gm_name: gm_name(state), list: round_courses_of_action}})
 
     %State{

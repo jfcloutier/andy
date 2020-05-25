@@ -211,7 +211,7 @@ end
 
 defimpl Inspect, for: Andy.GM.Efficacy do
   def inspect(efficacy, _opts) do
-    "<Efficacy of doing #{inspect(efficacy.intention_names)} is #{efficacy.degree} when #{
+    "Doing #{inspect(efficacy.intention_names)} is #{efficacy.degree} when #{
       inspect(efficacy.conjecture_activation_subject)
     } is #{if efficacy.when_already_satisfied?, do: "", else: "not"} already satisfied>"
   end

@@ -214,4 +214,6 @@ defmodule Andy do
   def gm_element_type(%Andy.GM.Belief{}), do: :belief
   def gm_element_type(%Andy.GM.CourseOfAction{}), do: :course_of_action
   def gm_element_type(%Andy.GM.ConjectureActivation{}), do: :conjecture_activation
+  def gm_element_type(%Andy.GM.Efficacy{}), do: :efficacy
+
 end
