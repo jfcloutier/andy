@@ -208,4 +208,10 @@ defmodule Andy do
   def reduce_level_by(:high, :low) do
     :medium
   end
+
+  def gm_element_type(%Andy.GM.Prediction{}), do: :prediction
+  def gm_element_type(%Andy.GM.PredictionError{}), do: :prediction_error
+  def gm_element_type(%Andy.GM.Belief{}), do: :belief
+  def gm_element_type(%Andy.GM.CourseOfAction{}), do: :course_of_action
+  def gm_element_type(%Andy.GM.ConjectureActivation{}), do: :conjecture_activation
 end

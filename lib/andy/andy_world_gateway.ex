@@ -23,6 +23,7 @@ defmodule Andy.AndyWorldGateway do
           playground_node = Andy.playground_node()
           Logger.info("Trying to connect to  node #{playground_node}")
           true = Node.connect(playground_node)
+
           place_robot()
           %{listening?: false, placed?: true}
         end,
@@ -60,7 +61,13 @@ defmodule Andy.AndyWorldGateway do
 
   def handle_event({gm_event_name, %{gm_name: gm_name, list: list}}, state) do
     name = Andy.name()
-    payload = Enum.map(list, &(%{label: inspect(&1), type: type(&1), value: Map.from_struct(&1)}))
+
+    payload =
+      Enum.map(
+        list,
+        &%{label: inspect(&1), type: Andy.gm_element_type(&1), value: Map.from_struct(&1)}
+      )
+
     :ok =
       GenServer.cast(
         playground(),
@@ -70,10 +77,12 @@ defmodule Andy.AndyWorldGateway do
     state
   end
 
-  def handle_event({event_name, payload}, state) when event_name in [:prediction, :prediction_error, :belief, :disbelief, :course_of_action] do
+  def handle_event({event_name, payload}, state)
+      when event_name in [:prediction, :prediction_error, :belief, :disbelief, :course_of_action] do
     name = Andy.name()
     label = inspect(payload)
     value = Map.from_struct(payload)
+
     :ok =
       GenServer.cast(
         playground(),
@@ -174,9 +183,7 @@ defmodule Andy.AndyWorldGateway do
     )
   end
 
-  #### PRIVATE
-
-  defp place_robot() do
+  def place_robot() do
     name = Andy.name()
     Logger.info("Placing #{name} in Andy World")
     %{row: row, column: column, orientation: orientation} = start_state(name)
@@ -194,6 +201,8 @@ defmodule Andy.AndyWorldGateway do
          motor_data: motor_data()}
       )
   end
+
+  #### PRIVATE
 
   defp playground() do
     {:playground, Andy.playground_node()}
@@ -214,10 +223,4 @@ defmodule Andy.AndyWorldGateway do
   defp motor_data() do
     Application.fetch_env!(:andy, :mock_config) |> Keyword.fetch!(:motor_data)
   end
-
-  defp type(%Andy.GM.Prediction{}), do: :prediction
-  defp type(%Andy.GM.PredictionError{}), do: :prediction_error
-  defp type(%Andy.GM.Belief{}), do: :belief
-  defp type(%Andy.GM.CourseOfAction{}), do: :course_of_action
-
 end

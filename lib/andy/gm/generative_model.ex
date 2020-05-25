@@ -647,6 +647,10 @@ defmodule Andy.GM.GenerativeModel do
         gm_def
       )
 
+    PubSub.notify(
+      {:conjecture_activations, %{gm_name: gm_name(state), list: conjecture_activations}}
+    )
+
     Logger.info(
       "#{info(state)}: Initial conjecture activations #{inspect(conjecture_activations)}"
     )
@@ -769,6 +773,7 @@ defmodule Andy.GM.GenerativeModel do
       prediction
       | Enum.reject(received_predictions, &Perception.same_subject?(&1, prediction))
     ]
+
     PubSub.notify({:predictions, %{gm_name: gm_name(state), list: updated_received_predictions}})
 
     updated_round = %Round{
@@ -796,6 +801,11 @@ defmodule Andy.GM.GenerativeModel do
             new_conjecture_activations ++ conjecture_activations,
             gm_def
           )
+
+        PubSub.notify(
+          {:conjecture_activations,
+           %{gm_name: gm_name(state), list: updated_conjecture_activations}}
+        )
 
         Logger.info(
           "#{info(state)}: Conjecture activations #{inspect(updated_conjecture_activations)} after receiving prediction #{
@@ -1329,6 +1339,7 @@ defmodule Andy.GM.GenerativeModel do
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
     PubSub.notify({:courses_of_action, %{gm_name: gm_name(state), list: round_courses_of_action}})
+
     %State{
       state
       | courses_of_action_indices: updated_courses_of_action_indices,
