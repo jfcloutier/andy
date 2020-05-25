@@ -32,7 +32,9 @@ defmodule Andy.GM.Round do
             # intents executed in the round
             intents: [],
             # whether round is on an early timeout (otherwise would have completed too soon
-            early_timeout_on: false
+            early_timeout_on: false,
+            # A snaphot of efficacies at the time the round completed
+            efficacies_snapshot: []
 
   def new(gm_def, index) do
     initial_beliefs = GenerativeModelDef.initial_beliefs(gm_def)
@@ -90,6 +92,7 @@ defmodule Andy.GM.Round do
 
     state
     |> mark_round_completed()
+    |> remember_efficacies()
     # Drop obsolete rounds (forget the distant past)
     |> drop_obsolete_rounds()
   end
@@ -116,6 +119,10 @@ defmodule Andy.GM.Round do
 
   defp mark_round_completed(%State{rounds: [round | previous_rounds]} = state) do
     %State{state | rounds: [%Round{round | completed_on: now()} | previous_rounds]}
+  end
+
+  defp remember_efficacies(%State{rounds: [round | previous_rounds], efficacies: efficacies} = state) do
+    %State{state | rounds: [%Round{round | completed_on: now(), efficacies_snapshot: List.flatten(Map.values(efficacies))} | previous_rounds]}
   end
 
   defp drop_obsolete_rounds(%State{rounds: rounds} = state) do

@@ -50,7 +50,8 @@ defmodule Andy.AndyPortal do
       perceptions: convert_gm_elements(round.perceptions),
       predictions_in: convert_gm_elements(round.received_predictions),
       beliefs: convert_gm_elements(round.beliefs),
-      courses_of_action: convert_gm_elements(round.courses_of_action)
+      courses_of_action: convert_gm_elements(round.courses_of_action),
+      efficacies: convert_gm_elements(round.efficacies_snapshot)
     ]
 
     {:reply, {:ok, round_state}, state}
