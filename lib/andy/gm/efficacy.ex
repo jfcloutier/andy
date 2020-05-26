@@ -142,6 +142,7 @@ defmodule Andy.GM.Efficacy do
 
   # Update the degree of efficacy of a type of CoA in achieving belief across all (remembered) rounds
   # where it was executed, given that the belief was already achieved or not at the time of the CoA's execution
+  # TODO - REVIEW THIS
   defp update_efficacy_degree(
          %Efficacy{
            conjecture_activation_subject: conjecture_activation_subject,
@@ -205,14 +206,16 @@ defmodule Andy.GM.Efficacy do
 
     # Give equal weight to the correlation with the CoA causing this belief and the prior degree of efficacy of the CoA
     # in achieving belief in the same conjecture in all previous rounds.
-    (normalized_correlation + degree) / 2.0
+    min(1.0, (normalized_correlation + degree) / 2.0)
   end
 end
 
 defimpl Inspect, for: Andy.GM.Efficacy do
   def inspect(efficacy, _opts) do
-    "Doing #{inspect(efficacy.intention_names)} is #{efficacy.degree} when #{
-      inspect(efficacy.conjecture_activation_subject)
-    } is #{if efficacy.when_already_satisfied?, do: "", else: "not"} already satisfied>"
+    "Doing #{inspect(efficacy.intention_names)} is #{
+      round(Float.round(efficacy.degree * 1.0, 2) * 100)
+    }% when #{inspect(efficacy.conjecture_activation_subject)} is #{
+      if efficacy.when_already_satisfied?, do: "", else: "not"
+    } already satisfied>"
   end
 end

@@ -5,6 +5,7 @@ defmodule Andy.AndyPortal do
 
   use GenServer
   require Logger
+  alias Andy.GM.GenerativeModel
 
   @name :andy_portal
 
@@ -37,13 +38,15 @@ defmodule Andy.AndyPortal do
 
   @doc "Return the number of past rounds remebered by the the GM of the given name."
   def handle_call({:past_rounds_count, gm_name}, _from, state) do
-    count = Agent.get(gm_name, fn gm_state -> Enum.count(gm_state.rounds) - 1 end)
+    agent_name = GenerativeModel.agent_name(gm_name)
+    count = Agent.get(agent_name, fn gm_state -> Enum.count(gm_state.rounds) - 1 end)
     {:reply, {:ok, count}, state}
   end
 
   @doc "Return elements of the round at index in the format expected by AndyWorld"
   def handle_call({:round_state, gm_name, round_index}, _from, state) do
-    rounds = Agent.get(gm_name, fn gm_state -> gm_state.rounds end)
+    agent_name = GenerativeModel.agent_name(gm_name)
+    rounds = Agent.get(agent_name, fn gm_state -> gm_state.rounds end)
     round = Enum.at(rounds, round_index)
 
     round_state = [

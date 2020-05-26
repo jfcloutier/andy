@@ -91,7 +91,7 @@ defmodule Andy.GM.GenerativeModel do
   #           - Initialize the new round (i.e. rinse and repeat)
 
   require Logger
-  import Andy.Utils, only: [listen_to_events: 3, now: 0, delay_cast: 2]
+  import Andy.Utils, only: [listen_to_events: 3, now: 0]
   import Andy.GM.Utils, only: [info: 1, gm_name: 1, random_permutation: 1]
   alias Andy.Intent
 
@@ -138,6 +138,8 @@ defmodule Andy.GM.GenerativeModel do
     %{efficacies: efficacies, courses_of_action_indices: courses_of_action_indices} =
       recall_experience(name)
 
+    agent_name = agent_name(name)
+
     {:ok, pid} =
       Agent.start_link(
         fn ->
@@ -151,11 +153,15 @@ defmodule Andy.GM.GenerativeModel do
             courses_of_action_indices: courses_of_action_indices
           }
         end,
-        name: name
+        name: agent_name
       )
 
-    listen_to_events(pid, __MODULE__, gm_def.name)
+    listen_to_events(pid, __MODULE__, name)
     {:ok, pid}
+  end
+
+  def agent_name(gm_name) do
+    :"#{__MODULE__}(#{gm_name})"
   end
 
   ### Event handling by the agent
@@ -1285,7 +1291,11 @@ defmodule Andy.GM.GenerativeModel do
         &Efficacy.update_efficacies_from_belief(&1, &2, state)
       )
 
-    PubSub.notify({:efficacies, %{gm_name: gm_name(state), list: List.flatten(Map.values(updated_efficacies))}})
+    PubSub.notify(
+      {:efficacies,
+       %{gm_name: gm_name(state), list: List.flatten(Map.values(updated_efficacies))}}
+    )
+
     Logger.info("#{info(state)}: Updated efficacies #{inspect(updated_efficacies)}")
     %State{state | efficacies: updated_efficacies}
   end
@@ -1339,7 +1349,12 @@ defmodule Andy.GM.GenerativeModel do
     Enum.each(round_courses_of_action, &PubSub.notify({:course_of_action, &1}))
     updated_round = %Round{round | courses_of_action: round_courses_of_action}
     updated_courses_of_action_indices = Map.merge(courses_of_action_indices, updated_coa_indices)
-    PubSub.notify({:efficacies, %{gm_name: gm_name(state), list: List.flatten(Map.values(updated_efficacies))}})
+
+    PubSub.notify(
+      {:efficacies,
+       %{gm_name: gm_name(state), list: List.flatten(Map.values(updated_efficacies))}}
+    )
+
     PubSub.notify({:courses_of_action, %{gm_name: gm_name(state), list: round_courses_of_action}})
 
     %State{
@@ -1423,6 +1438,11 @@ defmodule Andy.GM.GenerativeModel do
       delay_cast(gm_name(state), fn state -> Round.close_round(state) |> add_new_round() end)
       updated_state
     end
+  end
+
+  defp delay_cast(gm_name, function, delay \\ 10) do
+    Process.sleep(Andy.Clock.wait(delay))
+    Agent.cast(agent_name(gm_name), function)
   end
 
   defp shutdown(%State{efficacies: efficacies, courses_of_action_indices: indices} = state) do

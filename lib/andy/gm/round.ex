@@ -121,8 +121,20 @@ defmodule Andy.GM.Round do
     %State{state | rounds: [%Round{round | completed_on: now()} | previous_rounds]}
   end
 
-  defp remember_efficacies(%State{rounds: [round | previous_rounds], efficacies: efficacies} = state) do
-    %State{state | rounds: [%Round{round | completed_on: now(), efficacies_snapshot: List.flatten(Map.values(efficacies))} | previous_rounds]}
+  defp remember_efficacies(
+         %State{rounds: [round | previous_rounds], efficacies: efficacies} = state
+       ) do
+    %State{
+      state
+      | rounds: [
+          %Round{
+            round
+            | completed_on: now(),
+              efficacies_snapshot: List.flatten(Map.values(efficacies))
+          }
+          | previous_rounds
+        ]
+    }
   end
 
   defp drop_obsolete_rounds(%State{rounds: rounds} = state) do
