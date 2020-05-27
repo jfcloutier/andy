@@ -24,24 +24,26 @@ defmodule Andy.GM.Efficacy do
         efficacies,
         state
       ) do
-    conjecture_satisfied? = Belief.satisfies_conjecture?(belief)
-    subject_of_belief = Belief.subject(belief)
+    if Belief.satisfies_conjecture?(belief) do
+      subject_of_belief = Belief.subject(belief)
 
-    case Map.get(efficacies, subject_of_belief) do
-      nil ->
-        efficacies
+      case Map.get(efficacies, subject_of_belief) do
+        nil ->
+          efficacies
 
-      conjecture_efficacies ->
-        revised =
-          revise_conjecture_efficacies(conjecture_efficacies, conjecture_satisfied?, state)
+        conjecture_efficacies ->
+          revised = revise_conjecture_efficacies(conjecture_efficacies, state)
 
-        Logger.info(
-          "#{info(state)}: Efficacies for #{inspect(subject_of_belief)} given conjecture satisfied is #{
-            conjecture_satisfied?
-          } updated to #{inspect(revised)}"
-        )
+          Logger.info(
+            "#{info(state)}: Efficacies for #{inspect(subject_of_belief)}, given conjecture is satisfied, are updated to #{
+              inspect(revised)
+            }"
+          )
 
-        Map.put(efficacies, subject_of_belief, revised)
+          Map.put(efficacies, subject_of_belief, revised)
+      end
+    else
+      efficacies
     end
   end
 
@@ -117,48 +119,41 @@ defmodule Andy.GM.Efficacy do
   end
 
   # Revise the efficacies of various CoAs executed in all rounds to validate a conjecture as they correlate
-  # to the current belief (or non-belief) in the conjecture.
+  # to the current belief (or non-belief) in the conjecture that was satisfied.
   defp revise_conjecture_efficacies(
          conjecture_activation_efficacies,
-         conjecture_satisfied?,
          state
        ) do
     Logger.info(
-      "#{info(state)}: Revising efficacies #{inspect(conjecture_activation_efficacies)} given conjecture satisfied is #{
-        conjecture_satisfied?
-      }"
+      "#{info(state)}: Revising efficacies #{inspect(conjecture_activation_efficacies)}"
     )
 
     Enum.reduce(
       conjecture_activation_efficacies,
       [],
       fn %Efficacy{} = efficacy, acc ->
-        updated_degree = update_efficacy_degree(efficacy, conjecture_satisfied?, state)
+        updated_degree = update_efficacy_degree(efficacy, state)
 
         [%Efficacy{efficacy | degree: updated_degree} | acc]
       end
     )
   end
 
-  # Update the degree of efficacy of a type of CoA in achieving belief across all (remembered) rounds
-  # where it was executed, given that the belief was already achieved or not at the time of the CoA's execution
-  # TODO - REVIEW THIS
+  # Update the degree of efficacy of a type of CoA in achieving (or preserving) belief across all (remembered) rounds
+  # where it was executed
   defp update_efficacy_degree(
          %Efficacy{
            conjecture_activation_subject: conjecture_activation_subject,
            intention_names: intention_names,
-           when_already_satisfied?: when_already_satisfied?,
            degree: degree
          },
-         conjecture_satisfied?,
          %State{
            rounds: rounds
          }
        ) do
     number_of_rounds = Enum.count(rounds)
 
-    # Find the indices of rounds where the type of CoA was executed
-    # and where what the conjecture was about (its subject) is already satisfied (or not)
+    # Find the indices of rounds where the type of CoA was executed (same subject, same order of intention names)
     indices_of_rounds_with_coa =
       Enum.reduce(
         0..(number_of_rounds - 1),
@@ -168,8 +163,7 @@ defmodule Andy.GM.Efficacy do
 
           if Enum.any?(
                courses_of_action,
-               &(CourseOfAction.of_type?(&1, conjecture_activation_subject, intention_names) and
-                   when_already_satisfied? == conjecture_satisfied?)
+               &CourseOfAction.of_type?(&1, conjecture_activation_subject, intention_names)
              ) do
             [index | acc]
           else
@@ -183,7 +177,6 @@ defmodule Andy.GM.Efficacy do
 
     # Estimate how much each CoA execution correlates to believing in the conjecture it was meant to validate
     # The closer the CoA execution is to this round, the greater the correlation
-    impact = if conjecture_satisfied?, do: 1.0, else: 0.0
 
     # The correlation of a CoA in a round to a current belief is the closeness of the round to the current one
     # e.g. [4/4, 2/4, 1/4]
@@ -193,8 +186,7 @@ defmodule Andy.GM.Efficacy do
         [],
         fn round_index, acc ->
           closeness = (number_of_rounds - round_index) / number_of_rounds_with_coa
-          round_correlation = closeness * impact
-          [round_correlation | acc]
+          [closeness | acc]
         end
       )
 
@@ -212,10 +204,8 @@ end
 
 defimpl Inspect, for: Andy.GM.Efficacy do
   def inspect(efficacy, _opts) do
-    "Doing #{inspect(efficacy.intention_names)} is #{
-      round(Float.round(efficacy.degree * 1.0, 2) * 100)
-    }% when #{inspect(efficacy.conjecture_activation_subject)} is #{
-      if efficacy.when_already_satisfied?, do: "", else: "not"
-    } already satisfied>"
+    "Doing #{inspect(efficacy.intention_names)} is #{round(efficacy.degree * 100)}% when #{
+      inspect(efficacy.conjecture_activation_subject)
+    } is #{if efficacy.when_already_satisfied?, do: "", else: "not"} already satisfied>"
   end
 end

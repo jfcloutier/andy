@@ -36,7 +36,9 @@ defmodule Andy.GM.CourseOfAction do
         {conjecture_name, _},
         intention_names
       ) do
-    coa_conjecture_name == conjecture_name and coa_intention_names == intention_names
+    # ordering of intentions matters!
+    coa_conjecture_name == conjecture_name and
+      coa_intention_names == intention_names
   end
 
   def empty?(%CourseOfAction{

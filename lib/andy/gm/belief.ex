@@ -41,6 +41,10 @@ defmodule Andy.GM.Belief do
     values != nil
   end
 
+  def goal?(%Belief{goal: goal}) do
+    goal != nil
+  end
+
   def satisfies_conjecture?(%Belief{values: nil}) do
     false
   end
