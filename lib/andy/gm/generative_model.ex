@@ -372,8 +372,10 @@ defmodule Andy.GM.GenerativeModel do
     Logger.info("#{info(state)}: Completing round")
     PubSub.notify({:round_completing, gm_name(state)})
 
-    if state.conjecture_activations == [],
-      do: Logger.warn("#{info(state)} Round completed without conjecture activations")
+    if state.conjecture_activations == [] do
+      Logger.warn("#{info(state)} Round completed without conjecture activations")
+      PubSub.notify({:no_conjecture_activations, gm_name(state)})
+    end
 
     new_state =
       state
