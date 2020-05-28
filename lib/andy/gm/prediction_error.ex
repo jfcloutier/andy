@@ -52,7 +52,7 @@ end
 
 defimpl Inspect, for: Andy.GM.PredictionError do
   def inspect(prediction_error, _opts) do
-    "Error [#{prediction_error.size}] predicting #{inspect(prediction_error.prediction)}: Got #{
+    "Error [#{prediction_error.size}] predicting #{inspect(prediction_error.prediction)}. Got #{
       inspect(prediction_error.belief.values)
     }  (#{prediction_error.carry_overs})"
   end
