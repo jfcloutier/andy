@@ -337,7 +337,8 @@ defmodule Andy.GM.GenerativeModel do
   # Initialize the new round which is already with prior (default) beliefs
   defp initialize_round(%State{gm_def: gm_def} = state) do
     Logger.info("#{info(state)}: Initializing new round")
-    PubSub.notify({:round_initiating, gm_name(state)})
+    %Round{id: round_id, index: index} = Round.current_round(state)
+    PubSub.notify({:round_initiating, %{gm_name: gm_name(state), round_number: index}})
 
     updated_state =
       state
@@ -355,22 +356,21 @@ defmodule Andy.GM.GenerativeModel do
       |> make_predictions()
       |> Round.round_status(:running)
 
-    %Round{id: round_id} = Round.current_round(updated_state)
-
     PubSub.notify_after(
       {:round_timed_out, gm_name(state), round_id},
       gm_def.max_round_duration
     )
 
     delay_cast(gm_name(state), fn state -> empty_event_buffer(state) end)
-    PubSub.notify({:round_running, gm_name(state)})
+    PubSub.notify({:round_running, %{gm_name: gm_name(state), round_number: index}})
     updated_state
   end
 
   # Complete execution of the current round and set up the next round
   defp complete_round(%State{} = state) do
     Logger.info("#{info(state)}: Completing round")
-    PubSub.notify({:round_completing, gm_name(state)})
+    %Round{index: index} = Round.current_round(state)
+    PubSub.notify({:round_completing, %{gm_name: gm_name(state), round_number: index}})
 
     if state.conjecture_activations == [] do
       Logger.warn("#{info(state)} Round completed without conjecture activations")
@@ -411,7 +411,8 @@ defmodule Andy.GM.GenerativeModel do
     spawn(fn ->
       # Give time to the parents to process any prediction errors from this GM before they maybe complete
       Process.sleep(Andy.Clock.wait(10))
-      PubSub.notify({:round_completed, gm_name(state)})
+      %Round{index: index} = Round.current_round(state)
+      PubSub.notify({:round_completed, %{gm_name: gm_name(state), round_number: index}})
     end)
 
     state

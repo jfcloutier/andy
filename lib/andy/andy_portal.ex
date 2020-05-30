@@ -50,6 +50,7 @@ defmodule Andy.AndyPortal do
     round = Enum.at(rounds, round_index)
 
     round_state = [
+      round_number: round.index,
       perceptions: convert_gm_elements(round.perceptions),
       predictions_in: convert_gm_elements(round.received_predictions),
       beliefs: convert_gm_elements(round.beliefs),
