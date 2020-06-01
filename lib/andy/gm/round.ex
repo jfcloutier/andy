@@ -27,6 +27,8 @@ defmodule Andy.GM.Round do
             # beliefs in this GM conjecture activations given perceptions (own predictions and prediction errors
             # from sub-GMs and detectors)
             beliefs: [],
+            # prediction errors produced
+            prediction_errors: [],
             # [course_of_action, ...] - courses of action (to be) taken to achieve goals and/or shore up beliefs
             courses_of_action: [],
             # intents executed in the round
@@ -34,7 +36,9 @@ defmodule Andy.GM.Round do
             # whether round is on an early timeout (otherwise would have completed too soon
             early_timeout_on: false,
             # A snaphot of efficacies at the time the round completed
-            efficacies_snapshot: []
+            efficacies_snapshot: [],
+            # A snapshot of conjecture activations at the time the round completed
+            conjecture_activations_snapshot: []
 
   def new(gm_def, index) do
     initial_beliefs = GenerativeModelDef.initial_beliefs(gm_def)
@@ -122,7 +126,11 @@ defmodule Andy.GM.Round do
   end
 
   defp remember_efficacies(
-         %State{rounds: [round | previous_rounds], efficacies: efficacies} = state
+         %State{
+           rounds: [round | previous_rounds],
+           efficacies: efficacies,
+           conjecture_activations: conjecture_activations
+         } = state
        ) do
     %State{
       state
@@ -130,7 +138,8 @@ defmodule Andy.GM.Round do
           %Round{
             round
             | completed_on: now(),
-              efficacies_snapshot: List.flatten(Map.values(efficacies))
+              efficacies_snapshot: List.flatten(Map.values(efficacies)),
+              conjecture_activations_snapshot: conjecture_activations
           }
           | previous_rounds
         ]

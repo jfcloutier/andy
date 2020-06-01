@@ -1068,9 +1068,19 @@ defmodule Andy.GM.GenerativeModel do
     )
   end
 
-  defp raise_prediction_errors(state) do
+  defp raise_prediction_errors(
+         %State{
+           rounds: [
+             %Round{
+               beliefs: beliefs,
+               received_predictions: predictions,
+               prediction_errors: current_prediction_errors
+             } = round
+             | previous_rounds
+           ]
+         } = state
+       ) do
     Logger.info("#{info(state)}: Raising prediction errors")
-    %Round{beliefs: beliefs, received_predictions: predictions} = Round.current_round(state)
 
     prediction_errors =
       Enum.reduce(
@@ -1113,7 +1123,13 @@ defmodule Andy.GM.GenerativeModel do
       )
 
     Enum.each(prediction_errors, &PubSub.notify({:prediction_error, &1}))
-    state
+
+    updated_prediction_errors = current_prediction_errors ++ prediction_errors
+
+    %State{
+      state
+      | rounds: [%Round{round | prediction_errors: updated_prediction_errors} | previous_rounds]
+    }
   end
 
   # Give more/less precision weight to competing contributors of prediction errors based on the respective
