@@ -91,9 +91,9 @@ To pause and resume the robot:
 
 To test on PC with mock rover named karla, with a scottish female voice and starting on tile row:
 
-    > export ANDY_PLACE='3,3,0';export ANDY_VOICE='en-scottish+f5';export ANDY_PLAYGROUND='playground@ukemi';iex --sname karla --cookie 'predictive processing' -S mix
+    > export ANDY_PLACE='3,3,0';export ANDY_VOICE='en-scottish+f5';export ANDY_PLAYGROUND='playground@minipc';iex --sname karla --cookie 'predictive processing' -S mix
 
-     > export ANDY_PLACE='2,15,-30';export ANDY_VOICE='en-us+m1';export ANDY_PLAYGROUND='playground@ukemi';iex --sname andy --cookie 'predictive processing' -S mix
+     > export ANDY_PLACE='2,15,-30';export ANDY_VOICE='en-us+m1';export ANDY_PLAYGROUND='playground@minipc';iex --sname andy --cookie 'predictive processing' -S mix
 
 
 
