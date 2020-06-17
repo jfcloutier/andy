@@ -19,7 +19,7 @@ Accessing the SWI-PROLOG pengine
 
     # This will assert safely
     iex> {:success, id, [%{}], false} = :pengine.ask(pid, 'assert_father_child(jf, will)', %{})
-    iex> {:success, id, [%{}], false} = :pengine.ask(pid, 'assert_father_child(liz, will)', %{})
+    iex> {:success, id, [%{}], false} = :pengine.ask(pid, 'assert_mother_child(liz, will)', %{})
 
     # Query and get one answer
     iex> {:success, id, answer, more_solutions?} = :pengine.ask(pid, 'ancestor_descendant(X, Y)', %{template: '[X, Y]', chunk: '1'})
