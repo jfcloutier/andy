@@ -1,68 +1,69 @@
 # Meta-model
 
-* A GM is an actor in the sense of the Actor Model
-* A GM can have children GMs
-* A GM can have multiple parent GMs
-* GMs form an acyclic, parent-child directed graph with possibly multiple root nodes
+* A GM is responsible for a more or less absract domain of enactive cognition
 * A GM defines a core set of conjectured beliefs (its domain of beliefs). 
-* A GM can abduce new beliefs via its evolving `theory` (a logic program). 
-* A belief is either about an object in the environment, including self (e.g. safe(self)), or about an ordered pair of objects (e.g. closer-to(self, Obstacle))
-* A GM's perceptions are predicted beliefs of child GMs, possibly corrected by prediction errors from the child GMs.
-* Each belief belonging to at least one set (with > 1 members) of mutually exclusive beliefs.
-  * Each such set identifies one default belief
+  * A belief is either about an object in the environment, including self (e.g. safe(self)), or about an ordered pair of objects (e.g. closer-to(self, Obstacle))
+  * A GM's perceptions are predicted beliefs of child GMs, possibly corrected by prediction errors from the child GMs.
+  * Each belief belonging to at least one set (with > 1 members) of mutually exclusive beliefs.
+    * Each such set identifies one default belief
+* A GM can have (less abstract) children GMs
+  * A GM G1 is implicitly a child to parent GM G2 is G1 can hold beliefs that are perceptions to G2 from which G2 constructs its own beliefs
+* A GM can have multiple (more abstract) parent GMs
+* GMs form an acyclic, parent-child directed graph with possibly multiple root nodes
+* A GM can abduce new beliefs via its `theory` (a logic program) that evolves as experience is gained. 
+* A GM is an actor in the sense of the Actor Model; it is a process that holds a state and communicates with other decoupled GMs via event messages
 
 # Lifecycle
 
-* Each GM, asynchronously of other GMs, goes through a lifecycle of successive, time-boxed rounds in which it sequentially:
+* Each GM asynchronously goes through a lifecycle of successive, time-boxed rounds in which it sequentially:
   * Starts up, listens, acts, shuts down
   * A GM updates its set of beliefs and perceptions whenever it receives (belief) predictions from parents or prediction errors from children
-    * Receiving a predicted belief removes any contradictory belief
-    * Receiving a prediction error replaces in the perceptions the prediction it contradicts
+    * Receiving a predicted belief (from a parent GM)  removes any currently held contradictory belief
+    * Receiving a prediction error (from a child GM) replaces in the perceptions the prediction it contradicts
     * Predictions it receives from parent GMs are
-      * goal beliefs the GM is expected to realize via actions
-      * opinion beliefs the GM is expected to validate by proving it wrong via actions, which yield prediction errors
-  * A GM immediately emits belief predictions and/or prediction errors whenever its beliefs change
+      * `goal beliefs` the GM is expected to realize via actions
+      * `opinion beliefs` the GM is expected to test possibly via actions
+  * A GM immediately emits updated belief predictions and/or prediction errors whenever its beliefs change
   * A GM always maintains a maximal set of beliefs (one from each group of mutually exclusive beliefs conjecturable by the GM) that's consistent with the latest perceptions and predicted beliefs from parent GMs
     * If no belief in a mutual exclusion set is predicted in a given round, the latest prior belief in that set is carried over to the current round.
-      * If none, the default belief in the set is held
-  * A GM maintains a theory about itself and its environment (a generated logic program) it applies to 
-    * update its beliefs when receiving prediction errors,
-    * make predictions (about child GM beliefs) when its own beliefs change
-    * select actions to realize predicted goal beliefs and try to prove wrong predicted opinion beliefs
+      * If none, the default belief in the set is the one held
+  * A GM maintains a theory about itself and its environment (a generated logic program) it applies to: 
+    * Update its beliefs when its perceptions are updated from receiving prediction errors,
+    * Make predictions (about child GM beliefs) when its own beliefs change
+    * Select actions to realize predicted goal beliefs and try to prove wrong predicted opinion beliefs
   * When starting up, a GM:
     * Accepts buffered, relevant predictions from parent GMs and prediction errors from child GMs emitted while it was not listening
-    * Complete the set of held beliefs
+    * Updates the set of held beliefs
   * When listening, it:
       * Receives and processes belief predictions from parent GMs, and prediction errors from child GMs
       * It completes this phase after a set amount of time has elapsed since the GM has emitted any prediction in this round
-        * Each GM may have 
   * When acting, it:
-    * Selects actions expected to achieve goal beliefs and invalidate-revalidate opinion beliefs predicted in this round
+    * Selects actions expected to achieve goal beliefs and test opinion beliefs predicted in this round
     * Carry out these actions
   * When shutting down, it:
     * Commits the round to memory
     * Drops from memory rounds from too long ago
-    * Triggers update of its theory to be consistent with all remembered rounds
+    * Triggers update of its theory to make sense of all remembered rounds
 
 # Goal vs opinion beliefs
 
 A GM gets goal and (default) opinion beliefs top-down from parent GMs (the parents mark the belief as goal or opinion). 
 
-The GM validates its beliefs by predicting consequent perceptions (predicted beliefs of child GMs) and compiling prediction errors from child GMs. If one of its currently held beliefs is contradicted, the GM raises a prediction error to be captured by parent GMs.
+The GM validates its beliefs by predicting consequent perceptions (predicted beliefs of child GMs) and compiling prediction errors from child GMs. If one of its currently held beliefs is contradicted, the GM raises a prediction error to be received by parent GMs.
 
 The essential differences between a goal and an opinion belief are:
 
-* A GM is expected to select and execute actions (to act) so as to *realize* a goal belief, i.e. made it valid
-* A GM is expected to act to *test* an opinion belief, i.e. to make it valid or  invalid (both are equally desirable)
+* A GM is expected to select and execute actions (to act) so as to *realize* a goal belief, i.e. eventually make it valid
+* A GM is expected to act to *test* an opinion belief, i.e. to make it valid or invalid (both are equally desirable)
 
 "If I am hungry then I predict that I am eating" (goal)
 "If I am over food then I predict that I see white under me" (opinion)
 
-In effect, the goal vs. opinion nature of the predicted belief contrains the choice of actions; to attempt making it true if it's a goal, or to test it if it's an opinion.
+In effect, the goal vs. opinion nature of the predicted belief contrains the choice of actions; to attempt making it true if it's a goal (it is assumed currently not to be true), or to test it if it's an opinion (it is assumed to currently be true).
 
 How a GM tests an opinion belief B1 predicted by a parent GM: 
-  * at a minimum, the GM makes predictions about inferred child GM beliefs (and so on), possibly leading to prediction errors (from down into the GM tree), and a revision of belief B1
-  * if at the end of the round and opinion belief B1 is still held, the GM takes an action that *challenges* belief B1, if there is one
+  * At a minimum, the GM makes predictions about inferred child GM beliefs (and so on), possibly leading to prediction errors (from down into the GM tree), and a revision of belief B1
+  * If the GM is at the end of the round and opinion belief B1 is still held, the GM takes an action that *challenges* belief B1, if there is such action.
 
 # About actions
 
@@ -74,7 +75,7 @@ Each intent parameter has a value domain, e.g. speed in {fast, normal, slow}, du
 
 An action can be either `reactive` or `causative`.
 
-A reactive action is statically associated with a belief B1 and is to be taken when a belief B1 is held after a contradictory belief B2 was held.
+A reactive action is associated *a priori* with a belief B1 and is to be taken when a belief B1 is held after a contradictory belief B2 was held. For example, saying "I am hungry" when the "not hungry" belief is flipped to the "hungry" belief.
 
 Each causative action is paired with one that reverses it, plus a transform function on the other action's parameters to get the reversing action's parameter values (typically it will be an identity function).
 
