@@ -1,4 +1,4 @@
-# Meta-model
+# A directed graph of Generative Models (GMs)
 
 * A GM is responsible for a more or less absract domain of enactive cognition
 * A GM defines a core set of conjectured beliefs (its domain of beliefs). 
@@ -9,7 +9,7 @@
 * A GM can have (less abstract) children GMs
   * A GM G1 is implicitly a child to parent GM G2 is G1 can hold beliefs that are perceptions to G2 from which G2 constructs its own beliefs
 * A GM can have multiple (more abstract) parent GMs
-* GMs form an acyclic, parent-child directed graph with possibly multiple root nodes
+* GMs form an implicit, acyclic, parent-child directed graph with possibly multiple root nodes
 * A GM can abduce new beliefs via its `theory` (a logic program) that evolves as experience is gained. 
 * A GM is an actor in the sense of the Actor Model; it is a process that holds a state and communicates with other decoupled GMs via event messages
 
@@ -77,47 +77,35 @@ An action can be either `reactive` or `causative`.
 
 A reactive action is associated *a priori* with a belief B1 and is to be taken when a belief B1 is held after a contradictory belief B2 was held. For example, saying "I am hungry" when the "not hungry" belief is flipped to the "hungry" belief.
 
-Each causative action is paired with one that reverses it, plus a transform function on the other action's parameters to get the reversing action's parameter values (typically it will be an identity function).
+A causative action re. belief B1 is an action that could causes belief B1 to become held (or could do so) soon after being taken (in the next round or the one after).
 
-There is evidence that action A1 causes belief B1 if it is taken in round N where a belief B2 contradicting B1 is held and B1 is held in round N + I, where I < 3.
+# Which actions to take and when
 
-# Which actions to take
-
-A causative action is to be taken to achieve belief B1. It is dynamically associated with belief B1 according to the GM's `theory` of itself in its environment (a generated logic program).
+A causative action is dynamically associated with belief B1 according to the GM's `theory` of itself in its environment (a generated logic program).
 
 If a GM was predicted to hold a goal belief B1 and does not hold it (it holds a contradictory belief B2), it will choose a causative action that, according to its current theory, could realize belief B1, i.e flip from holding a contradictory belief B2 to holding belief B1.
 
-If a GM holds an opinion belief B1 it is not `confident` about, it will choose a causative action A1, if there is one, such that, according to the GM's theory, action A1 causes contradictory belief B2 to flip to B1 but not vice-versa.
+If a GM holds an opinion belief B1, it will choose a causative action A1, if there is one, such that, according to the GM's theory, action A1 causes a contradictory belief B2 to flip to B1 but not vice-versa.
 
-If a GM has insufficient evidence whether an action A1 in its repertoire affects belief B1, it can choose action A1 to gather such evidence. A GM experiments to avoid bulding a disparity of evidence within its repertoire of actions.
+If a GM has insufficient evidence whether an action A1 in its repertoire affects belief B1, it can choose action A1 to gather such evidence. A GM experiments to avoid bulding a disparity of positive or negative evidence within its repertoire of actions.
 
-If an action has been taken in round N to affect or test belief B1, no other action known to alter belief B1 should be taken, in this or other rounds, until it is affected, or until round N + I has completed (i.e. give it time). This is meant to keep a GM from "thrashing".
+If an action has been taken in round N to achieve goal belief B1, no other action known to alter belief B1 should be taken, in this or the next two rounds. This is to give the action time to take perceived effect and keep a GM from "thrashing".
 
-# Confidence in a belief
-
-A GM is `confident` in a belief if it was verified recently (in the last N rounds) while being continuously held, and it will not repeatedly take action to verify it. This is meant to avoid OCD-like behaviors.
-
-A GM's confidence in an opinion belief B1 is greatest right after it has been verified (by trying to test it via some action). 
-
-A GM's confidence in an opinion belief B2 is given to a prediction error raised by the GM about B1 (predicted by a parent GM) if B1 contradicts B2.
-
-A GM's confidence in an opinion belief B1 is given to the predictions it makes from that belief (predictions about inferred child GM beliefs B2, B3).
-
-If a GM's confidence in opinion belief B1 is greater than the confidence of child GMs in related prediction errors, the GM dismisses the prediction errors and retains its belief B1, and it decreases its confidence in B1 by the maximum confidence in any of the prediction errors.
+If an action has been taken in round N to test opinion belief B1, no other action to test belief B1 should be taken while the belief is being continuously held. This is to a GM from displaying "OCD-like" behaviors.
 
 # The GM's theory (of itself in its environment) as generated logic program 
 
-The logic program makes static and causal inferences.
+The GM's theory, a generated logic program, makes static and causal inferences.
   * Static: 
     * Perceptions => Beliefs
-      * forward inferences: the GM infers current beliefs from its current and prior perceptions, 
-      * backward inferences: the GM infers near-future perceptions, i.e. predictions on child GM beliefs, from its own near-future beliefs caused by actions
+      * forward inferences: the GM infers new beliefs from its current and prior perceptions, 
+      * backward inferences: the GM infers incoming perceptions (i.e. predictions on child GM beliefs) given current beliefs
   * Causal: 
     * Beliefs x Actions =~> Beliefs
-      * backward: the GM infers which actions would cause beliefs in the near-future
+      * backward: the GM infers which actions would cause beliefs in the near-future gien current beliefs
       * forward: the GM infers near-future beliefs from actions taken in this round
 
-Infered beliefs can be about known objects (self, other) and about "hidden", i.e. abduced, objects in the GM's environment.
+Inferred beliefs can be about known objects (self, other) and about "hidden", i.e. abduced, objects in the GM's environment.
 
 See Andy Karma notes for details.
 
@@ -144,9 +132,8 @@ A GM (re)generates a logic program from the data in past rounds that
 
 The Apperception Engine was developed under assumptions that are not true of GMs, namely:
 
-* Because GMs runs asynchronously and contribute to the perceptions of other GMs, any effects of an action taken at the end of round N may not be perceived by it during round N + 1 but only at round N + 2 or later.
-* An action is taken with an outcome in mind: either realize an identified belief (goal, opinion) or realize a mutually exclusive belief (opinion).
-* If a GM has a repertoire of actions at its disposal to achieve/verify beliefs, it wants to infer from experience which ones 
+* Because GMs runs asynchronously and contribute to the perceptions of other GMs, any effects of an action taken at the end of round N may not be perceived by it during round N + 1 but only at round N + 2 or even later.
+* An action (chosen from a GM's repertoire of actions) is taken with an outcome in mind: either to achieve a goal belief or test an opinion .
 
 
 
