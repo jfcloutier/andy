@@ -25,7 +25,9 @@ A GM is an actor in the sense of the Actor Model; it is a process that holds a s
 
 # Lifecycle
 
- Each GM asynchronously goes through a lifecycle of successive, time-boxed rounds.
+ Each GM asynchronously goes through a lifecycle of successive, timeboxed rounds.
+
+ A more abstract GM (e.g. safety) will typically have a bigger timebox than a more concrete GM (e.g. collision avoidance).
  
  For each round, a GM sequentially starts up, listens, acts, shuts down
  
@@ -131,40 +133,40 @@ Inferred beliefs can be about known objects (self, other) and about "hidden", i.
 
 # GM theories
 
-A GM (re)generates a logic program from the data in past rounds that
+A GM generates a logic program consistent with the data in past rounds that:
 
 * infers a GM's beliefs from its perceptions
 * infers a GM's predictions (next beliefs of child GMs) from current beliefs and past perceptions
 * infers a GM's actions from received predicted beliefs and current beliefs
 
-A GM's frame borrows from an a priori global frame which defines:
-  * types: robot, food, obstacle
-  * objects: self (a robot), other (a robot).
+A GM's a priori frame is a subset of an a priori global frame which defines:
+  * types: robot, food, obstacle, surface
+  * objects: self (a robot), other (a robot), floor (a surface).
   * unary and binary (belief) predicates
 
 Each GM pre-defines a priori theory elements:
-  * constraints
+  * constraints that satisfy "conceptual unity":
       * mutually exclusive unary beliefs
       * "full unary beliefs" (for each applicable object, one belief from each of the mutually exclusive belief sets)
-  * static rules (how to infer beliefs form perceptions)
+  * static rules (how to infer beliefs from perceptions)
+    * such that the inferred beliefs will satisfy "spatial unity"
 
 With experience (rounds completed), each GM *augments* its a priori theory elements with
   * causal rules (how to effect changes in beliefs via actions)
   * abduced objects 
   * induced belief predicates 
-  * XOr belief set constraints
-
-Spatial unity contraints?
+    * induced beliefs can not be predicted by parent GMs since their predicates are in the "local frame" of the GM's theory, unlike the a priori belief predicates which are in the "global frame"
+  * XOr constraints for the induced predicates
 
 ## Challenges
 
 The Apperception Engine was developed under assumptions that are not true of GMs, namely:
 
-* Because GMs runs asynchronously and contribute to the perceptions of other GMs, any effects of an action taken at the end of round N may not be perceived by it during round N + 1 but only at round N + 2 or even later.
+* Instead of generating one theory, we are generating multiple theories (one per GM) and they are interlinked implicitly by the GM parent-child relationships.
 
-* Instead of generating one theory, we are generating multiple theories (one per GM) and they are interlinked implicitly by the parent-child relationships between GMs.
+* Because GMs runs asynchronously and contribute to the perceptions of other GMs, any effects of an action taken at the end of round N may not be perceived by it during round N + 1 but only at round N + 2, or even later.
 
-* Can a GM theory express perceptions in terms of induced belief predicates and abduced objects? 
+* Could a GM theory express perceptions in terms of induced belief predicates and abduced objects that are put into the global frame? 
   * If so some other GM needs to express its own beliefs in these terms for this to be meaningful
   * Doing so must not break the acyclicity constraint in the implicit parent-child GM graph
   * How is this implemented if GM build their theories asynchronously?
