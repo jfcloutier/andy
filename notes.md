@@ -139,7 +139,7 @@ A GM generates a logic program consistent with the data in past rounds that:
 * infers a GM's predictions (next beliefs of child GMs) from current beliefs and past perceptions
 * infers a GM's actions from received predicted beliefs and current beliefs
 
-A GM's a priori frame is a subset of an a priori global frame which defines:
+A GM's a priori type signatures is a subset of an a priori global type signatures which defines:
   * types: robot, food, obstacle, surface
   * objects: self (a robot), other (a robot), floor (a surface).
   * unary and binary (belief) predicates
@@ -155,7 +155,7 @@ With experience (rounds completed), each GM *augments* its a priori theory eleme
   * causal rules (how to effect changes in beliefs via actions)
   * abduced objects 
   * induced belief predicates 
-    * induced beliefs can not be predicted by parent GMs since their predicates are in the "local frame" of the GM's theory, unlike the a priori belief predicates which are in the "global frame"
+    * induced beliefs can not be predicted by parent GMs since their predicates are in the "local types" of the GM's theory, unlike the a priori belief predicates which are in the "global types"
   * XOr constraints for the induced predicates
 
 ## Challenges
