@@ -160,13 +160,13 @@ With experience (rounds completed), each GM *augments* its a priori theory eleme
 
 ## Challenges
 
-The Apperception Engine was developed under assumptions that are not true of GMs, namely:
+The Apperception Engine was developed under assumptions that are not true of GMs.
 
-* Instead of generating one theory, we are generating multiple theories (one per GM) and they are interlinked implicitly by the GM parent-child relationships.
+* Instead of generating one theory, we are generating multiple theories (one per GM) and they are interlinked implicitly by the GM parent-child relationships of predictions and prediction errors.
 
-* Because GMs runs asynchronously and contribute to the perceptions of other GMs, any effects of an action taken at the end of round N may not be perceived by it during round N + 1 but only at round N + 2, or even later.
+* Because GMs run asynchronously and contribute to the perceptions of other GMs, any effects of an action taken at the end of round N may not be perceived by it during round N + 1 but only at round N + 2, or even later. The sequences are not "neat"
 
-* Could a GM theory express perceptions in terms of induced belief predicates and abduced objects that are put into the global frame? 
+* Could a GM theory express perceptions in terms of induced belief predicates and abduced objects that are put into the global context? 
   * If so some other GM needs to express its own beliefs in these terms for this to be meaningful
   * Doing so must not break the acyclicity constraint in the implicit parent-child GM graph
   * How is this implemented if GM build their theories asynchronously?

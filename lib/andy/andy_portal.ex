@@ -1,6 +1,6 @@
 defmodule Andy.AndyPortal do
   @moduledoc """
-    A portal to access Andy from another node.
+    A portal to access Andy from AndyWorld.
   """
 
   use GenServer

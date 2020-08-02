@@ -1,6 +1,6 @@
 defmodule Andy.AndyWorldGateway do
   @moduledoc """
-  The gateway to Andy World when in simulation mode.
+  The gateway from Andy to Andy World. Used when Andy is in simulation mode.
   """
   import Andy.Utils, only: [listen_to_events: 3, get_andy_env: 2]
   require Logger
