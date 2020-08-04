@@ -160,7 +160,7 @@ With experience (rounds completed), each GM *augments* its a priori theory eleme
 
 ## Challenges
 
-The Apperception Engine was developed under assumptions that are not true of GMs.
+The Apperception Engine was developed under assumptions that are, in many cases, not true of GMs.
 
 * Instead of generating one theory, we are generating multiple theories (one per GM) and they are interlinked implicitly by the GM parent-child relationships of predictions and prediction errors.
 
