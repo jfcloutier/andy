@@ -34,7 +34,7 @@ defmodule Andy.MixProject do
       {:logger_file_backend, "~> 0.0.10"},
       {:elixir_uuid, "~> 1.2"},
       {:erl_pengine, "~> 0.1.1"},
-      {:hackney, "~> 1.15", override: true}
+      {:hackney, "~> 1.18", override: true}
     ]
   end
 
